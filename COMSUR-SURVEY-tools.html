@@ -10,7 +10,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="KMZ Viewer">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiS01aIFZpZXdlciB2OCIsInNob3J0X25hbWUiOiJLTVogVmlld2VyIiwiZGVzY3JpcHRpb24iOiJQZXRhIFN1cnZleSBJbnRlcmFrdGl2Iiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmZmZmZmYiLCJ0aGVtZV9jb2xvciI6IiMxMGI5ODEiLCJvcmllbnRhdGlvbiI6InBvcnRyYWl0IiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDEwMCAxMDAnPjxyZWN0IHdpZHRoPScxMDAnIGhlaWdodD0nMTAwJyByeD0nMjAnIGZpbGw9JyMxMGI5ODEnLz48dGV4dCB4PSc1MCcgeT0nNjInIGZvbnQtc2l6ZT0nNTAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZpbGw9J3doaXRlJz7wn5GAPC90ZXh0Pjwvc3ZnPiIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9zdmcreG1sIn1dfQ==">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- CDN Libraries (Core) -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -19,6 +20,7 @@
 <script src="https://unpkg.com/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<!-- Lazy-loaded: QR, jsPDF, html2canvas (loaded on demand) -->
 <!-- Tailwind CSS v3.4.17 CDN (pinned stable) -->
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 
@@ -64,9 +66,31 @@ window.addEventListener('unhandledrejection',function(ev){
 .leaflet-popup-content::-webkit-scrollbar{width:4px}.leaflet-popup-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}.leaflet-popup-content::-webkit-scrollbar-track{background:transparent}.leaflet-popup-content::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.3)}
 .popup-body-scrollable::-webkit-scrollbar{width:5px}.popup-body-scrollable::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:5px}.popup-body-scrollable::-webkit-scrollbar-track{background:rgba(255,255,255,.05);border-radius:5px}.popup-body-scrollable::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.4)}.popup-body-scrollable{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) rgba(255,255,255,.05)}
 
-/* ===== Bottom Navigation Bar (9 items) ===== */
+/* ===== SEARCH & FILTER ===== */
+.search-box{position:relative}.search-box input{width:100%;padding:7px 10px 7px 32px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:12px;outline:none;background:#f9fafb;transition:all .15s}.search-box input:focus{border-color:#6366f1;background:#fff;box-shadow:0 0 0 3px rgba(99,102,241,.1)}.search-box svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#9ca3af}
+.filter-chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}.filter-chip{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;transition:all .15s;white-space:nowrap}.filter-chip:hover{border-color:#6366f1;color:#6366f1}.filter-chip.active{background:#6366f1;color:#fff;border-color:#6366f1}
+
+/* ===== DATA TABLE MODAL ===== */
+.data-table-wrap{overflow:auto;max-height:55vh;-webkit-overflow-scrolling:touch}.data-table-wrap::-webkit-scrollbar{width:4px}.data-table-wrap::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px}
+.data-table{width:100%;border-collapse:collapse;font-size:11px}.data-table thead{position:sticky;top:0;z-index:2}.data-table th{background:#f1f5f9;padding:8px 10px;text-align:left;font-weight:700;color:#374151;border-bottom:2px solid #e2e8f0;cursor:pointer;user-select:none;white-space:nowrap}.data-table th:hover{background:#e2e8f0}.data-table th .sort-arrow{margin-left:3px;font-size:9px;opacity:.4}.data-table th .sort-arrow.active{opacity:1;color:#6366f1}.data-table td{padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#4b5563;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.data-table tr:hover td{background:#f0f4ff}.data-table tr.selected td{background:#ede9fe}
+
+/* ===== GPS TRACKING ===== */
+.gps-track-info{background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #bfdbfe;border-radius:12px;padding:10px 12px}
+@keyframes gps-pulse{0%,100%{box-shadow:0 0 6px rgba(59,130,246,.4)}50%{box-shadow:0 0 16px rgba(59,130,246,.8)}}
+
+/* ===== COMMENTS ===== */
+.comment-item{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6}.comment-item:last-child{border-bottom:none}.comment-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}.comment-body{flex:1;min-width:0}.comment-name{font-size:11px;font-weight:700;color:#374151}.comment-time{font-size:9px;color:#9ca3af}.comment-text{font-size:12px;color:#4b5563;margin-top:2px;line-height:1.4;word-break:break-word}.comment-delete{opacity:0;transition:opacity .15s}.comment-item:hover .comment-delete{opacity:1}
+
+/* ===== QR CODE ===== */
+.qr-modal-content{text-align:center;padding:20px}.qr-code-img{margin:0 auto;display:block;border:8px solid #fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+
+/* ===== BATCH EDIT BAR ===== */
+.batch-bar{display:flex;align-items:center;gap:6px;padding:8px 12px;background:linear-gradient(135deg,#ede9fe,#e0e7ff);border:1px solid #c7d2fe;border-radius:12px;flex-wrap:wrap}
+.batch-bar button{padding:5px 10px;border-radius:8px;font-size:10px;font-weight:600;border:1.5px solid #c7d2fe;background:#fff;color:#4f46e5;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:4px}.batch-bar button:hover{background:#6366f1;color:#fff;border-color:#6366f1}
+
+/* ===== Bottom Navigation Bar ===== */
 .bottom-bar{
-  position:fixed;bottom:0;left:0;right:0;height:56px;
+  position:fixed;bottom:0;left:0;right:0;height:52px;
   background:#fff;border-top:1px solid #e5e7eb;
   display:flex;align-items:center;justify-content:space-around;
   z-index:1000;padding-bottom:env(safe-area-inset-bottom,0);
@@ -81,10 +105,10 @@ window.addEventListener('unhandledrejection',function(ev){
 }
 .bottom-bar-item:active{transform:scale(.9)}
 .bottom-bar-item.active{color:var(--bar-color,#9ca3af);filter:drop-shadow(0 0 6px var(--bar-color,#9ca3af))}
-.bottom-bar-item svg{width:20px;height:20px;transition:transform .2s;flex-shrink:0}
+.bottom-bar-item svg{width:18px;height:18px;transition:transform .2s;flex-shrink:0}
 .bottom-bar-item.active svg{transform:scale(1.15)}
 .bottom-bar-item span{
-  font-size:8px;font-weight:700;letter-spacing:.01em;
+  font-size:7px;font-weight:700;letter-spacing:.01em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   max-width:100%;text-align:center;line-height:1.1;
   color:var(--bar-color,#9ca3af);
@@ -167,7 +191,7 @@ window.addEventListener('unhandledrejection',function(ev){
 .modal-visible{display:flex!important}
 
 /* Map area adjustments */
-#map-container{position:fixed;top:44px;left:0;right:0;bottom:56px;z-index:1}
+#map-container{position:fixed;top:44px;left:0;right:0;bottom:52px;z-index:1}
 
 /* ===== Firebase Auth & Sync UI ===== */
 .sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
@@ -628,6 +652,11 @@ window.addEventListener('unhandledrejection',function(ev){
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#14b8a6"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
     <span>OFFLINE</span>
   </div>
+  <!-- 10. Alat (GPS Track, Line Draw, QR, PDF) -->
+  <div class="bottom-bar-item" style="--bar-color:#ec4899" data-panel="panel-alat" onclick="togglePanel('panel-alat')" role="button" tabindex="0" aria-label="Alat Lanjutan">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#ec4899"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+    <span>ALAT</span>
+  </div>
 </div>
 
 <!-- ===== PANEL 1: LAYER & IMPORT ===== -->
@@ -855,6 +884,18 @@ window.addEventListener('unhandledrejection',function(ev){
     <button class="bottom-panel-close" onclick="closeAllPanels()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
   </div>
   <div class="bottom-panel-body">
+    <div class="panel-section" style="padding-top:0">
+      <div class="search-box">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="marker-search-input" placeholder="Cari nama, kode, deskripsi..." oninput="filterMarkerList()" />
+      </div>
+      <div class="filter-chips">
+        <span class="filter-chip active" data-filter="all" onclick="setMarkerFilter('all',this)">Semua</span>
+        <span class="filter-chip" data-filter="photo" onclick="setMarkerFilter('photo',this)">Punya Foto</span>
+        <span class="filter-chip" data-filter="nophoto" onclick="setMarkerFilter('nophoto',this)">Tanpa Foto</span>
+        <span class="filter-chip" data-filter="comment" onclick="setMarkerFilter('comment',this)">Ada Komentar</span>
+      </div>
+    </div>
     <div class="panel-section">
       <!-- Select All & Action Buttons -->
       <div id="edit-titik-actions" class="hidden">
@@ -894,6 +935,21 @@ window.addEventListener('unhandledrejection',function(ev){
             Export Semua ke KMZ (Google Earth)
           </button>
         </div>
+      </div>
+      <div id="batch-edit-bar" class="hidden panel-section">
+        <div class="batch-bar">
+          <span class="text-[10px] font-bold text-indigo-600" id="batch-count-label">0 dipilih</span>
+          <select id="batch-folder-select" class="text-[10px] border border-indigo-200 rounded-lg px-2 py-1 bg-white"><option value="">Pindah Folder...</option></select>
+          <button onclick="batchMoveToFolder()">Pindah</button>
+          <button onclick="batchChangeColor()">Warna</button>
+          <button onclick="deleteSelectedMarkers()" style="color:#dc2626;border-color:#fca5a5">Hapus</button>
+        </div>
+      </div>
+      <div class="panel-section">
+        <button onclick="openDataTableModal()" class="w-full flex items-center justify-center gap-2 p-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl text-xs font-bold hover:from-indigo-600 hover:to-purple-600 transition-all active:scale-[0.97] shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          Tabel Data View
+        </button>
       </div>
       <div id="marker-list" class="space-y-1 max-h-56 overflow-y-auto"></div>
     </div>
@@ -976,6 +1032,76 @@ window.addEventListener('unhandledrejection',function(ev){
   </div>
 </div>
 
+<!-- ===== PANEL 10: ALAT LANJUTAN ===== -->
+<div class="bottom-panel-overlay" id="overlay-panel-alat" onclick="closeAllPanels()"></div>
+<div class="bottom-panel" id="panel-alat">
+  <div class="bottom-panel-handle"></div>
+  <div class="bottom-panel-header">
+    <h3><svg xmlns="http://www.w3.org/2000/svg" class="text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> Alat Lanjutan</h3>
+    <button class="bottom-panel-close" onclick="closeAllPanels()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+  </div>
+  <div class="bottom-panel-body">
+    <!-- GPS Tracking -->
+    <div class="panel-section">
+      <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">GPS Tracking / Rekam Jalur</div>
+      <div id="gps-track-status" class="gps-track-info mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-gray-400" id="gps-track-dot"></div>
+          <span class="text-xs font-semibold text-blue-700" id="gps-track-text">Tidak aktif</span>
+        </div>
+        <div class="flex items-center gap-4 mt-1.5 text-[10px] text-blue-600">
+          <span id="gps-track-distance">Jarak: 0 m</span>
+          <span id="gps-track-points">Titik: 0</span>
+          <span id="gps-track-time">Waktu: 00:00</span>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button id="btn-gps-track-start" onclick="toggleGpsTracking()" class="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-500 text-white rounded-lg text-xs font-semibold hover:bg-blue-600 transition-all active:scale-[0.97]">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Mulai Rekam
+        </button>
+        <button onclick="clearGpsTrack()" class="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+      </div>
+    </div>
+    <!-- Line Drawing -->
+    <div class="panel-section">
+      <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Gambar Jalur (Line)</div>
+      <div class="flex gap-2 mb-2">
+        <input type="text" id="draw-line-name" placeholder="Nama jalur" class="flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-300 bg-white" />
+        <input type="color" id="draw-line-color" value="#f43f5e" class="w-8 h-8 rounded-lg border border-gray-200 cursor-pointer" />
+      </div>
+      <div class="flex gap-2">
+        <button id="btn-draw-line" onclick="toggleLineDraw()" class="flex-1 flex items-center justify-center gap-1.5 py-2 bg-rose-500 text-white rounded-lg text-xs font-semibold hover:bg-rose-600 transition-all active:scale-[0.97]">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+          Gambar Jalur
+        </button>
+        <button onclick="undoDrawLinePoint()" class="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200">Undo</button>
+        <button onclick="finishDrawLine()" class="px-3 py-2 bg-emerald-100 text-emerald-600 rounded-lg text-xs font-semibold hover:bg-emerald-200">Selesai</button>
+      </div>
+    </div>
+    <!-- Export PDF -->
+    <div class="panel-section">
+      <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Export Laporan</div>
+      <button onclick="exportToPdf()" id="btn-export-pdf" class="w-full flex items-center justify-center gap-2 p-2.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl text-xs font-bold hover:from-red-600 hover:to-pink-600 transition-all active:scale-[0.97] shadow-md">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        Export ke PDF (Peta + Data)
+      </button>
+      <div id="pdf-progress" class="hidden pdf-export-progress"><div id="pdf-progress-bar" class="pdf-export-progress-bar" style="width:0"></div></div>
+    </div>
+    <!-- QR Code -->
+    <div class="panel-section">
+      <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">QR Code per Titik</div>
+      <p class="text-[10px] text-gray-400 mb-2">Klik titik di peta, lalu tekan tombol QR di popup untuk generate kode unik.</p>
+      <button onclick="showQrForSelected()" class="w-full flex items-center justify-center gap-2 p-2.5 bg-gray-800 text-white rounded-xl text-xs font-bold hover:bg-gray-900 transition-all active:scale-[0.97]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+        QR Code Titik Terakhir / Dipilih
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== PANEL 9: PETA OFFLINE ===== -->
 <div class="bottom-panel-overlay" id="overlay-panel-offline" onclick="closeAllPanels()"></div>
 <div class="bottom-panel" id="panel-offline">
@@ -1004,10 +1130,16 @@ window.addEventListener('unhandledrejection',function(ev){
 </div>
 
 <!-- Edit Modal (unchanged) -->
-<div id="edit-modal" class="fixed inset-0 z-[10000] hidden"><div class="absolute inset-0 bg-black/40" onclick="closeEditModal()"></div><div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[360px] max-w-[90vw] max-h-[90vh] overflow-y-auto"><div class="bg-indigo-600 px-5 py-3 flex items-center justify-between sticky top-0 z-10"><span class="text-white font-semibold text-sm">Edit Titik</span><button onclick="closeEditModal()" class="close-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg></button></div><div class="p-5 space-y-3"><div><label class="text-[11px] font-medium text-gray-500 uppercase">Nama</label><input type="text" id="edit-name" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" /></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Deskripsi</label><textarea id="edit-desc" rows="2" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea></div><div class="grid grid-cols-2 gap-3"><div><label class="text-[11px] font-medium text-gray-500 uppercase">Latitude</label><input type="text" id="edit-lat" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" /></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Longitude</label><input type="text" id="edit-lng" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" /></div></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Folder</label><select id="edit-folder" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"><option value="">Tanpa Folder</option></select></div><div><label class="text-[11px] font-medium text-gray-500 uppercase flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Foto Titik</label><div id="edit-photo-area" class="mt-1.5 space-y-2"><div id="edit-photo-preview" class="hidden"><div class="relative inline-block"><img id="edit-photo-img" class="w-full max-h-40 object-cover rounded-lg border border-gray-200 cursor-pointer" onclick="viewMarkerPhoto()" /><button type="button" onclick="removeMarkerPhoto()" class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md">x</button><div id="edit-photo-size" class="text-[9px] text-gray-400 mt-1 text-center"></div></div></div><div class="flex gap-2"><label class="flex-1 flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all text-xs text-gray-500 font-medium"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4 4m0 0l-4-4m4 4V4"/></svg>Pilih Foto<input type="file" accept="image/*" class="hidden" onchange="handleMarkerPhotoSelect(event)" /></label><label class="flex-1 flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 transition-all text-xs text-gray-500 font-medium"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Kamera<input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleMarkerPhotoSelect(event)" /></label></div><div id="edit-photo-loading" class="hidden text-center py-2"><div class="inline-block w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div><span class="text-[10px] text-gray-400 ml-2">Mengompres foto...</span></div></div></div><div class="flex gap-2 pt-2"><button onclick="saveMarkerEdit()" class="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Simpan</button><button onclick="deleteEditingMarker()" class="px-4 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600">Hapus</button></div></div></div></div>
+<div id="edit-modal" class="fixed inset-0 z-[10000] hidden"><div class="absolute inset-0 bg-black/40" onclick="closeEditModal()"></div><div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[360px] max-w-[90vw] max-h-[90vh] overflow-y-auto"><div class="bg-indigo-600 px-5 py-3 flex items-center justify-between sticky top-0 z-10"><span class="text-white font-semibold text-sm">Edit Titik</span><button onclick="closeEditModal()" class="close-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg></button></div><div class="p-5 space-y-3"><div><label class="text-[11px] font-medium text-gray-500 uppercase">Nama</label><input type="text" id="edit-name" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" /></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Deskripsi</label><textarea id="edit-desc" rows="2" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea></div><div class="grid grid-cols-2 gap-3"><div><label class="text-[11px] font-medium text-gray-500 uppercase">Latitude</label><input type="text" id="edit-lat" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" /></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Longitude</label><input type="text" id="edit-lng" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" /></div></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Folder</label><select id="edit-folder" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"><option value="">Tanpa Folder</option></select></div><div><label class="text-[11px] font-medium text-gray-500 uppercase flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Foto Titik</label><div id="edit-photo-area" class="mt-1.5 space-y-2"><div id="edit-photo-preview" class="hidden"><div class="relative inline-block"><img id="edit-photo-img" class="w-full max-h-40 object-cover rounded-lg border border-gray-200 cursor-pointer" onclick="viewMarkerPhoto()" /><button type="button" onclick="removeMarkerPhoto()" class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md">x</button><div id="edit-photo-size" class="text-[9px] text-gray-400 mt-1 text-center"></div></div></div><div class="flex gap-2"><label class="flex-1 flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all text-xs text-gray-500 font-medium"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4 4m0 0l-4-4m4 4V4"/></svg>Pilih Foto<input type="file" accept="image/*" class="hidden" onchange="handleMarkerPhotoSelect(event)" /></label><label class="flex-1 flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 transition-all text-xs text-gray-500 font-medium"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Kamera<input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleMarkerPhotoSelect(event)" /></label></div><div id="edit-photo-loading" class="hidden text-center py-2"><div class="inline-block w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div><span class="text-[10px] text-gray-400 ml-2">Mengompres foto...</span></div></div></div><!-- Comment Section --><div><label class="text-[11px] font-medium text-gray-500 uppercase flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>Komentar (<span id="edit-comment-count">0</span>)</label><div id="edit-comments-list" class="mt-1.5 max-h-40 overflow-y-auto space-y-0 border border-gray-100 rounded-lg p-2 bg-gray-50"></div><div class="flex gap-1.5 mt-1.5"><input type="text" id="edit-comment-input" placeholder="Tulis komentar..." class="flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300" onkeydown="if(event.key==='Enter')addCommentToMarker()" /><button onclick="addCommentToMarker()" class="px-3 py-1.5 bg-indigo-500 text-white text-xs font-semibold rounded-lg hover:bg-indigo-600">Kirim</button></div></div><div class="flex gap-2 pt-2"><button onclick="saveMarkerEdit()" class="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Simpan</button><button onclick="deleteEditingMarker()" class="px-4 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600">Hapus</button></div></div></div></div>
 
 <!-- Photo Viewer Modal -->
 <div id="photo-viewer-modal" class="fixed inset-0 z-[10001] hidden" onclick="closePhotoViewer()"><div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div><div class="absolute inset-0 flex items-center justify-center p-4"><img id="photo-viewer-img" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl" onclick="event.stopPropagation()" /></div><div class="absolute top-4 right-4"><button onclick="closePhotoViewer()" class="w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></div></div>
+
+<!-- ===== MODAL: DATA TABLE VIEW ===== -->
+<div id="data-table-modal" class="fixed inset-0 z-[10002] hidden"><div class="absolute inset-0 bg-black/40" onclick="closeDataTableModal()"></div><div class="absolute inset-2 sm:inset-4 bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"><div class="flex items-center justify-between px-4 py-3 border-b bg-gray-50 shrink-0"><h3 class="text-sm font-bold text-gray-800 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>Tabel Data (<span id="data-table-count">0</span> titik)</h3><div class="flex items-center gap-2"><button onclick="exportDataTableToExcel()" class="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white text-[11px] font-semibold rounded-lg hover:bg-emerald-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>Excel</button><button onclick="closeDataTableModal()" class="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 18L18 6M6 6l12 12"/></svg></button></div></div><div id="data-table-search" class="px-4 py-2 border-b bg-white shrink-0"><input type="text" placeholder="Cari di tabel..." oninput="filterDataTable(this.value)" class="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300" /></div><div class="data-table-wrap flex-1 p-2" id="data-table-container"></div></div></div>
+
+<!-- ===== MODAL: QR CODE ===== -->
+<div id="qr-modal" class="fixed inset-0 z-[10002] hidden"><div class="absolute inset-0 bg-black/40" onclick="closeQrModal()"></div><div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[320px] max-w-[90vw] overflow-hidden"><div class="bg-gray-800 px-4 py-3 flex items-center justify-between"><span class="text-white font-semibold text-sm">QR Code</span><button onclick="closeQrModal()" class="w-7 h-7 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M6 18L18 6M6 6l12 12"/></svg></button></div><div class="qr-modal-content" id="qr-modal-body"><p class="text-gray-400 text-sm">Tidak ada data</p></div></div></div>
 
 <!-- Poly Menu (unchanged) -->
 <div id="poly-menu" class="fixed z-[9999] hidden"><div class="bg-white rounded-xl shadow-2xl border border-gray-200 w-52 overflow-hidden"><div class="px-3 py-2 bg-emerald-600 text-white"><p class="text-xs font-bold">Masukkan ke Folder</p></div><div id="poly-menu-items" class="py-1 max-h-48 overflow-y-auto"></div><div class="border-t border-gray-100 px-3 py-1.5"><button onclick="closePolyMenu()" class="w-full text-center text-[10px] text-gray-400 hover:text-gray-600">Batal (Esc)</button></div></div></div>
@@ -1048,7 +1180,7 @@ let isDownloadingTiles = false;
 
 // Persistence
 const STORAGE_KEY = 'kmz-viewer-v8-state';
-const STORAGE_VERSION = 8; // Increment when state format changes
+const STORAGE_VERSION = 9; // Increment when state format changes
 let saveTimeout = null;
 
 const MARKER_COLORS = {gps:'#3b82f6',manual:'#f59e0b',click:'#22c55e'};
@@ -1332,7 +1464,8 @@ function saveState(){
   try{
     const serializableMarkers=Array.from(markers.values()).map(m=>({
       id:m.id,lat:m.lat,lng:m.lng,name:m.name,description:m.description,
-      color:m.color,userId:m.userId,timestamp:m.timestamp,folderId:m.folderId
+      color:m.color,userId:m.userId,timestamp:m.timestamp,folderId:m.folderId,
+      photo:m.photo||null,comments:m.comments||[]
     }));
     const sl=layers.map(l=>({
       name:l.name,color:l.color,visible:l.visible,layerNames:l.layerNames,
@@ -1345,7 +1478,7 @@ function saveState(){
       folders,folderIdCounter:markerIdCounter,
       polygonFolders:spf,
       layers:sl,
-      activeFolderId,mapCenter:map.getCenter(),mapZoom:map.getZoom()
+      activeFolderId,drawnLines:drawnLines.map(dl=>({name:dl.name,color:dl.color,latlngs:dl.latlngs})),mapCenter:map.getCenter(),mapZoom:map.getZoom()
     };
     localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
     showSaveIndicator();
@@ -1436,6 +1569,17 @@ async function loadState(){
           }
         }
       }
+    }
+
+    // Restore drawn lines
+    if(state.drawnLines){
+      state.drawnLines.forEach(function(dl){
+        if(dl.latlngs && dl.latlngs.length >= 2){
+          var ll=dl.latlngs.map(function(p){return [p.lat,p.lng];});
+          var layer=L.polyline(ll,{color:dl.color||'#f43f5e',weight:3,opacity:0.8}).addTo(map);
+          drawnLines.push({name:dl.name,color:dl.color,latlngs:dl.latlngs,leafletLayer:layer});
+        }
+      });
     }
 
     // Restore polygon folders
@@ -4050,6 +4194,8 @@ window.__editMarker=(id)=>{
     if(previewEl) previewEl.classList.add('hidden');
     if(sizeEl) sizeEl.textContent = '';
   }
+  // Load comments
+  renderEditComments(m);
   document.getElementById('edit-modal').classList.remove('hidden');
 };
 
@@ -4081,6 +4227,24 @@ window.__showPolyFolderMenu=()=>{
 
 // ==================== SIDEBAR TOGGLE ====================
 // ===== BOTTOM BAR PANEL LOGIC =====
+
+// ===== NEW FEATURE VARIABLES =====
+let currentMarkerFilter = 'all';
+let dataTableSort = {col: null, asc: true};
+let gpsTrackingActive = false;
+let gpsTrackPoints = [];
+let gpsTrackLayer = null;
+let gpsTrackMarker = null;
+let gpsWatchId = null;
+let gpsTrackStartTime = null;
+let gpsTrackTimer = null;
+let isLineDrawMode = false;
+let drawLinePoints = [];
+let drawLineLayers = [];
+let drawLineTempLine = null;
+let drawLineClickHandler = null;
+let drawnLines = []; // saved lines [{name, color, latlngs, leafletLayer}]
+
 let activePanel = null;
 
 // ==================== SATELLITE TOGGLE ====================
@@ -5492,9 +5656,12 @@ function buildMarkerPopupHtml(m) {
   // ── Footer ──
   h += '<div style="padding:6px 12px 8px;border-top:1px solid rgba(255,255,255,.1);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">';
   h += '<div style="font-size:9px;color:rgba(255,255,255,.4);">' + esc(m.userId) + '</div>';
-  h += '<button onclick="window.__editMarker(\'' + m.id + '\')" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 12px;font-size:10px;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:4px;transition:all .15s;backdrop-filter:blur(8px);" onmouseenter="this.style.background=\'rgba(255,255,255,.2)\'" onmouseleave="this.style.background=\'rgba(255,255,255,.1)\'" onmousedown="this.style.opacity=.8" onmouseup="this.style.opacity=1">';
-  h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-  h += 'Edit</button>';
+  h += '<div style="display:flex;gap:4px;">';
+  h += '<button onclick="showQrCode(\'' + m.id + '\')" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 10px;font-size:10px;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:4px;transition:all .15s;" onmouseenter="this.style.background=\'rgba(255,255,255,.2)\'" onmouseleave="this.style.background=\'rgba(255,255,255,.1)\'" title="QR Code"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>QR</button>';
+  var cmtCount = (m.comments && m.comments.length) || 0;
+  h += '<button onclick="window.__editMarker(\'' + m.id + '\')" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 12px;font-size:10px;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:4px;transition:all .15s;" onmouseenter="this.style.background=\'rgba(255,255,255,.2)\'" onmouseleave="this.style.background=\'rgba(255,255,255,.1)\'" onmousedown="this.style.opacity=.8" onmouseup="this.style.opacity=1">';
+  h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit' + (cmtCount > 0 ? ' <span style="background:#f59e0b;color:#000;border-radius:99px;padding:0 5px;font-size:8px;">' + cmtCount + '</span>' : '') + '</button>';
+  h += '</div>';
   h += '</div>';
 
   h += '</div>'; // close content wrapper
@@ -5504,6 +5671,23 @@ function buildMarkerPopupHtml(m) {
 
 let selectedMarkerIds=new Set();
 
+function getFilteredMarkers(){
+  var arr=Array.from(markers.values());
+  var q=(document.getElementById('marker-search-input')||{}).value||'';
+  q=q.toLowerCase().trim();
+  if(q){arr=arr.filter(function(m){return (m.name||'').toLowerCase().includes(q)||(m.description||'').toLowerCase().includes(q)||(m.lat+', '+m.lng).includes(q);});}
+  if(currentMarkerFilter==='photo') arr=arr.filter(function(m){return !!m.photo;});
+  else if(currentMarkerFilter==='nophoto') arr=arr.filter(function(m){return !m.photo;});
+  else if(currentMarkerFilter==='comment') arr=arr.filter(function(m){return m.comments&&m.comments.length>0;});
+  return arr;
+}
+function setMarkerFilter(f,el){
+  currentMarkerFilter=f;
+  document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.remove('active');});
+  if(el)el.classList.add('active');
+  filterMarkerList();
+}
+function filterMarkerList(){renderMarkerList();}
 function renderMarkerList(){
   document.getElementById('marker-count').textContent=markers.size;
   const badge=document.getElementById('badge-markers');
@@ -5516,11 +5700,21 @@ function renderMarkerList(){
     c.innerHTML='<p class="text-center text-gray-400 text-xs py-4">Belum ada titik</p>';return;
   }
   actionsEl.classList.remove('hidden');
-  c.innerHTML=Array.from(markers.values()).map(m=>{
+  var filtered=getFilteredMarkers();
+  c.innerHTML=filtered.map(m=>{
     const checked=selectedMarkerIds.has(m.id)?'checked':'';
     return '<div class="flex items-center gap-2 p-1.5 rounded hover:bg-gray-50 group'+(selectedMarkerIds.has(m.id)?' bg-indigo-50 border border-indigo-200':'')+'"><input type="checkbox" data-marker-id="'+m.id+'" '+checked+' onchange="toggleMarkerSelection(\''+m.id+'\',this.checked)" onclick="event.stopPropagation()" class="w-3.5 h-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 shrink-0 cursor-pointer" /><div class="w-2.5 h-2.5 rounded-full shrink-0" style="background:'+sanitizeColor(m.color)+'"></div>'+(m.photo?'<svg class="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>':'')+'<div class="flex-1 min-w-0 cursor-pointer" onclick="window.__editMarker(\''+m.id+'\')"><p class="text-[11px] font-medium text-gray-700 truncate">'+esc(m.name)+'</p><p class="text-[9px] text-gray-400 font-mono">'+m.lat.toFixed(5)+', '+m.lng.toFixed(5)+'</p></div></div>';
   }).join('');
   updateSelectionUI();
+  // Update batch bar
+  var batchBar=document.getElementById('batch-edit-bar');
+  if(batchBar){
+    if(selectedMarkerIds.size>0){batchBar.classList.remove('hidden');document.getElementById('batch-count-label').textContent=selectedMarkerIds.size+' dipilih';}
+    else{batchBar.classList.add('hidden');}
+  }
+  // Update batch folder select
+  var bfs=document.getElementById('batch-folder-select');
+  if(bfs&&bfs.options.length<=1){folders.forEach(function(f){var o=document.createElement('option');o.value=f.id;o.textContent=f.name;bfs.appendChild(o);});}
 }
 
 function toggleMarkerSelection(id,checked){
@@ -5701,6 +5895,7 @@ function saveMarkerEdit(){
   if(editingPhotoData !== null){
     m.photo = editingPhotoData;
   }
+  // Comments are already saved in-place via addCommentToMarker/deleteComment
   if(m.leafletMarker)m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
   closeEditModal();renderMarkerList();renderFolderList();debouncedSave();
 }
@@ -6877,6 +7072,421 @@ function markCurrentLocation(){
     {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
 }
+
+
+
+// ==================== FEATURE 1: SEARCH & FILTER (integrated above) ====================
+
+// ==================== FEATURE 2: DATA TABLE VIEW ====================
+function openDataTableModal(){
+  document.getElementById('data-table-modal').classList.remove('hidden');
+  renderDataTable();
+}
+function closeDataTableModal(){document.getElementById('data-table-modal').classList.add('hidden');}
+let dataTableData=[];
+function renderDataTable(searchQ){
+  var container=document.getElementById('data-table-container');
+  var countEl=document.getElementById('data-table-count');
+  var arr=Array.from(markers.values());
+  if(searchQ){var q=searchQ.toLowerCase();arr=arr.filter(function(m){return(m.name||'').toLowerCase().includes(q)||(m.description||'').toLowerCase().includes(q)||(m.lat+', '+m.lng).includes(q);});}
+  dataTableData=arr;
+  countEl.textContent=arr.length;
+  var cols=[{k:'no',l:'No'},{k:'name',l:'Nama'},{k:'lat',l:'Lat'},{k:'lng',l:'Lng'},{k:'description',l:'Deskripsi'},{k:'folder',l:'Folder'},{k:'photo',l:'Foto'},{k:'comments',l:'Komentar'},{k:'timestamp',l:'Tanggal'}];
+  var s=dataTableSort;
+  if(s.col!==null){
+    arr.sort(function(a,b){
+      var va,vb;
+      if(s.col==='no'){return 0;}
+      else if(s.col==='folder'){var fa=folders.find(function(f){return f.id===a.folderId;});var fb=folders.find(function(f){return f.id===b.folderId;});va=(fa?fa.name:'-').toLowerCase();vb=(fb?fb.name:'-').toLowerCase();}
+      else if(s.col==='photo'){va=a.photo?1:0;vb=b.photo?1:0;}
+      else if(s.col==='comments'){va=(a.comments||[]).length;vb=(b.comments||[]).length;}
+      else if(s.col==='timestamp'){va=a.timestamp||'';vb=b.timestamp||'';}
+      else{va=String(a[s.col]||'').toLowerCase();vb=String(b[s.col]||'').toLowerCase();}
+      if(va<vb)return s.asc?-1:1;if(va>vb)return s.asc?1:-1;return 0;
+    });
+  }
+  var h='<table class="data-table"><thead><tr>';
+  cols.forEach(function(c){
+    var arrow='';
+    if(s.col===c.k) arrow='<span class="sort-arrow active">'+(s.asc?'\u25B2':'\u25BC')+'</span>';
+    else arrow='<span class="sort-arrow">\u25B2\u25BC</span>';
+    h+='<th onclick="sortDataTable(\''+c.k+'\')">'+c.l+arrow+'</th>';
+  });
+  h+='</tr></thead><tbody>';
+  arr.forEach(function(m,i){
+    var folder=folders.find(function(f){return f.id===m.folderId;});
+    h+='<tr onclick="closeDataTableModal();window.__editMarker(\''+m.id+'\')" style="cursor:pointer">';
+    h+='<td>'+(i+1)+'</td>';
+    h+='<td title="'+esc(m.name)+'"><b>'+esc(m.name)+'</b></td>';
+    h+='<td style="font-family:monospace;font-size:10px">'+m.lat.toFixed(6)+'</td>';
+    h+='<td style="font-family:monospace;font-size:10px">'+m.lng.toFixed(6)+'</td>';
+    h+='<td title="'+esc(m.description||'')+'">'+esc((m.description||'').substring(0,40))+'</td>';
+    h+='<td>'+(folder?esc(folder.name):'<span style="color:#ccc">-</span>')+'</td>';
+    h+='<td>'+(m.photo?'&#x1F4F7;':'-')+'</td>';
+    h+='<td>'+(m.comments&&m.comments.length?'&#x1F4AC; '+m.comments.length:'-')+'</td>';
+    h+='<td style="font-size:9px;color:#999">'+(m.timestamp?new Date(m.timestamp).toLocaleDateString('id-ID'):'-')+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  container.innerHTML=h;
+}
+function sortDataTable(col){
+  if(dataTableSort.col===col) dataTableSort.asc=!dataTableSort.asc;
+  else{dataTableSort.col=col;dataTableSort.asc=true;}
+  var q=(document.querySelector('#data-table-search input')||{}).value||'';
+  renderDataTable(q);
+}
+function filterDataTable(q){renderDataTable(q);}
+function exportDataTableToExcel(){
+  if(dataTableData.length===0){showToast('Tidak ada data','error');return;}
+  var ws_data=[['No','Nama','Latitude','Longitude','Deskripsi','Folder','Punya Foto','Jumlah Komentar','Tanggal']];
+  dataTableData.forEach(function(m,i){
+    var folder=folders.find(function(f){return f.id===m.folderId;});
+    ws_data.push([i+1,m.name,m.lat.toFixed(6),m.lng.toFixed(6),m.description||'',folder?folder.name:'',m.photo?'Ya':'Tidak',(m.comments||[]).length,m.timestamp?new Date(m.timestamp).toLocaleString('id-ID'):'']);
+  });
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols']=[{wch:5},{wch:25},{wch:14},{wch:14},{wch:30},{wch:15},{wch:10},{wch:12},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws,'Data Titik');
+  XLSX.writeFile(wb,'data-titik-'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('Export Excel berhasil!','success');
+}
+
+// ==================== FEATURE 3: GPS TRACKING ====================
+function toggleGpsTracking(){
+  if(gpsTrackingActive){stopGpsTracking();return;}
+  if(!navigator.geolocation){showToast('GPS tidak tersedia','error');return;}
+  gpsTrackingActive=true;
+  gpsTrackPoints=[];
+  gpsTrackStartTime=Date.now();
+  if(gpsTrackLayer){map.removeLayer(gpsTrackLayer);}
+  gpsTrackLayer=L.polyline([],{color:'#3b82f6',weight:4,opacity:0.8,dashArray:'6 4'}).addTo(map);
+  document.getElementById('btn-gps-track-start').textContent='Stop Rekam';
+  document.getElementById('btn-gps-track-start').classList.remove('bg-blue-500','hover:bg-blue-600');
+  document.getElementById('btn-gps-track-start').classList.add('bg-red-500','hover:bg-red-600');
+  document.getElementById('gps-track-dot').style.background='#3b82f6';
+  document.getElementById('gps-track-dot').classList.add('gps-track-dot');
+  document.getElementById('gps-track-text').textContent='Merekam...';
+  gpsTrackTimer=setInterval(updateGpsTrackInfo,1000);
+  gpsWatchId=navigator.geolocation.watchPosition(function(pos){
+    var latlng=L.latLng(pos.coords.latitude,pos.coords.longitude);
+    gpsTrackPoints.push(latlng);
+    gpsTrackLayer.addLatLng(latlng);
+    if(!gpsTrackMarker){
+      gpsTrackMarker=L.marker(latlng,{icon:L.divIcon({html:'<div class="gps-track-dot"></div>',className:'',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map);
+    }else{gpsTrackMarker.setLatLng(latlng);}
+    if(gpsTrackPoints.length===1) map.setView(latlng,16);
+  },function(err){showToast('GPS error: '+err.message,'error');},{enableHighAccuracy:true,maximumAge:2000,timeout:10000});
+  showToast('GPS Tracking dimulai','success');
+}
+function stopGpsTracking(){
+  gpsTrackingActive=false;
+  if(gpsWatchId!==null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}
+  if(gpsTrackTimer){clearInterval(gpsTrackTimer);gpsTrackTimer=null;}
+  document.getElementById('btn-gps-track-start').textContent='Mulai Rekam';
+  document.getElementById('btn-gps-track-start').classList.add('bg-blue-500','hover:bg-blue-600');
+  document.getElementById('btn-gps-track-start').classList.remove('bg-red-500','hover:bg-red-600');
+  document.getElementById('gps-track-dot').style.background='#22c55e';
+  document.getElementById('gps-track-dot').classList.remove('gps-track-dot');
+  document.getElementById('gps-track-text').textContent='Selesai';
+  if(gpsTrackMarker){map.removeLayer(gpsTrackMarker);gpsTrackMarker=null;}
+  showToast('GPS Tracking dihentikan. '+gpsTrackPoints.length+' titik direkam.','success');
+}
+function clearGpsTrack(){
+  if(gpsTrackingActive) stopGpsTracking();
+  gpsTrackPoints=[];
+  if(gpsTrackLayer){map.removeLayer(gpsTrackLayer);gpsTrackLayer=null;}
+  document.getElementById('gps-track-distance').textContent='Jarak: 0 m';
+  document.getElementById('gps-track-points').textContent='Titik: 0';
+  document.getElementById('gps-track-time').textContent='Waktu: 00:00';
+  document.getElementById('gps-track-text').textContent='Tidak aktif';
+  document.getElementById('gps-track-dot').style.background='#9ca3af';
+}
+function updateGpsTrackInfo(){
+  var d=0;
+  for(var i=1;i<gpsTrackPoints.length;i++){d+=gpsTrackPoints[i-1].distanceTo(gpsTrackPoints[i]);}
+  document.getElementById('gps-track-distance').textContent='Jarak: '+(d<1000?d.toFixed(0)+' m':(d/1000).toFixed(2)+' km');
+  document.getElementById('gps-track-points').textContent='Titik: '+gpsTrackPoints.length;
+  var elapsed=Math.floor((Date.now()-gpsTrackStartTime)/1000);
+  var m=Math.floor(elapsed/60);var s=elapsed%60;
+  document.getElementById('gps-track-time').textContent='Waktu: '+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+// ==================== FEATURE 4: COMMENTS ====================
+function renderEditComments(m){
+  var list=document.getElementById('edit-comments-list');
+  var countEl=document.getElementById('edit-comment-count');
+  var comments=m.comments||[];
+  countEl.textContent=comments.length;
+  if(comments.length===0){list.innerHTML='<p class="text-[10px] text-gray-400 text-center py-2">Belum ada komentar</p>';return;}
+  var h='';
+  comments.slice().reverse().forEach(function(c,i){
+    var initial=(c.user||'U').charAt(0).toUpperCase();
+    h+='<div class="comment-item"><div class="comment-avatar">'+esc(initial)+'</div><div class="comment-body"><div class="flex items-center gap-2"><span class="comment-name">'+esc(c.user||'User')+'</span><span class="comment-time">'+(c.time?timeAgo(c.time):'')+'</span><button class="comment-delete ml-auto text-red-400 hover:text-red-600 text-xs" onclick="deleteComment('+(comments.length-1-i)+')">x</button></div><p class="comment-text">'+esc(c.text)+'</p></div></div>';
+  });
+  list.innerHTML=h;
+}
+function timeAgo(ts){
+  var d=Date.now()-new Date(ts).getTime();
+  if(d<60000) return 'baru saja';
+  if(d<3600000) return Math.floor(d/60000)+'m lalu';
+  if(d<86400000) return Math.floor(d/3600000)+'j lalu';
+  return Math.floor(d/86400000)+'h lalu';
+}
+function addCommentToMarker(){
+  if(!editingMarkerId) return;
+  var input=document.getElementById('edit-comment-input');
+  var text=input.value.trim();
+  if(!text) return;
+  var m=markers.get(editingMarkerId);
+  if(!m) return;
+  if(!m.comments) m.comments=[];
+  m.comments.push({text:text,user:currentUser?currentUser.displayName||currentUser.email:'User',time:new Date().toISOString()});
+  input.value='';
+  renderEditComments(m);
+  debouncedSave();
+}
+function deleteComment(idx){
+  if(!editingMarkerId) return;
+  var m=markers.get(editingMarkerId);
+  if(!m||!m.comments) return;
+  m.comments.splice(idx,1);
+  renderEditComments(m);
+  if(m.leafletMarker) m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
+  debouncedSave();
+}
+
+// ==================== FEATURE 5: BATCH EDIT ====================
+function batchMoveToFolder(){
+  if(selectedMarkerIds.size===0){showToast('Pilih titik dulu','error');return;}
+  var folderId=document.getElementById('batch-folder-select').value;
+  if(!folderId){showToast('Pilih folder tujuan','error');return;}
+  selectedMarkerIds.forEach(function(id){var m=markers.get(id);if(m){m.folderId=folderId;}});
+  renderMarkerList();renderFolderList();debouncedSave();
+  showToast(selectedMarkerIds.size+' titik dipindahkan','success');
+}
+function batchChangeColor(){
+  if(selectedMarkerIds.size===0){showToast('Pilih titik dulu','error');return;}
+  var color=prompt('Masukkan warna hex (misal: #ef4444):','#ef4444');
+  if(!color) return;
+  color=sanitizeColor(color);
+  selectedMarkerIds.forEach(function(id){
+    var m=markers.get(id);if(!m) return;
+    m.color=color;
+    if(m.leafletMarker){
+      var icon=L.divIcon({html:'<div style="width:28px;height:28px;background:'+color+';border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>',className:'',iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-28]});
+      m.leafletMarker.setIcon(icon);
+      m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
+    }
+  });
+  renderMarkerList();debouncedSave();
+  showToast(selectedMarkerIds.size+' warna diubah','success');
+}
+
+// ==================== FEATURE 6: QR CODE ====================
+// Lazy-load non-critical libraries on demand
+var _lazyLibs={};
+function lazyLoadLib(url,globalName){
+  if(_lazyLibs[url]) return Promise.resolve(window[globalName]);
+  _lazyLibs[url]=true;
+  return new Promise(function(resolve,reject){
+    var s=document.createElement('script');s.src=url;s.async=true;
+    s.onload=function(){resolve(window[globalName]);};
+    s.onerror=function(){reject(new Error('Failed to load '+url));};
+    document.head.appendChild(s);
+  });
+}
+function showQrForSelected(){
+  if(selectedMarkerIds.size>0){showQrCode(selectedMarkerIds.values().next().value);return;}
+  if(editingMarkerId){showQrCode(editingMarkerId);return;}
+  if(markers.size>0){showQrCode(markers.keys().next().value);return;}
+  showToast('Belum ada titik','error');
+}
+function closeQrModal(){document.getElementById('qr-modal').classList.add('hidden');}
+
+function showQrCode(markerId){
+  var m=markers.get(markerId);if(!m) return;
+  lazyLoadLib('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js','qrcode').then(function(){
+    var data=JSON.stringify({id:m.id,name:m.name,lat:m.lat.toFixed(6),lng:m.lng.toFixed(6)});
+    try{
+      var qr=qrcode(0,'M');qr.addData(data);qr.make();
+      var imgTag=qr.createImgTag(5,0);
+      var body=document.getElementById('qr-modal-body');
+      body.innerHTML='<img src="'+imgTag.match(/src="([^"]*)"/)[1]+'" class="qr-code-img" />'+
+        '<div class="qr-info"><p style="font-size:14px;font-weight:700;color:#1f2937;margin-bottom:4px">'+esc(m.name)+'</p>'+
+        '<p style="font-size:11px;color:#6b7280">'+m.lat.toFixed(6)+', '+m.lng.toFixed(6)+'</p>'+
+        '<p style="font-size:10px;color:#9ca3af;margin-top:4px">ID: '+m.id+'</p></div>';
+      document.getElementById('qr-modal').classList.remove('hidden');
+    }catch(e){showToast('Gagal generate QR: '+e.message,'error');}
+  }).catch(function(e){showToast('Library QR belum dimuat: '+e.message,'error');});
+}
+
+async function exportToPdf(){
+  if(markers.size===0){showToast('Tidak ada data titik','error');return;}
+  var btn=document.getElementById('btn-export-pdf');
+  var prog=document.getElementById('pdf-progress');
+  var bar=document.getElementById('pdf-progress-bar');
+  btn.disabled=true;btn.textContent='Membuat PDF...';
+  prog.classList.remove('hidden');bar.style.width='10%';
+  try{
+    await Promise.all([
+      lazyLoadLib('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js','jspdf'),
+      lazyLoadLib('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js','html2canvas')
+    ]);
+    bar.style.width='30%';
+    var {jsPDF}=jspdf;
+    var doc=new jsPDF('p','mm','a4');
+    doc.setFillColor(99,102,241);doc.rect(0,0,210,28,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(16);doc.text('LAPORAN SURVEY',15,12);
+    doc.setFontSize(10);doc.text(currentProjectId||'COMSUR Survey Tools',15,18);
+    doc.setFontSize(8);doc.text('Tanggal: '+new Date().toLocaleString('id-ID'),15,24);
+    bar.style.width='40%';
+    try{
+      var mapEl=document.getElementById('map');
+      var canvas=await html2canvas(mapEl,{useCORS:true,allowTaint:true,scale:1,logging:false,width:mapEl.clientWidth,height:mapEl.clientHeight});
+      var imgData=canvas.toDataURL('image/jpeg',0.7);
+      var mapW=180;var mapH=(canvas.height/canvas.width)*mapW;if(mapH>80) mapH=80;
+      doc.addImage(imgData,'JPEG',15,32,mapW,mapH);var y=32+mapH+5;
+    }catch(e){var y=35;}
+    bar.style.width='60%';
+    doc.setTextColor(0,0,0);doc.setFontSize(11);doc.text('Data Titik ('+markers.size+')',15,y);y+=6;
+    var hdrs=['No','Nama','Lat','Lng','Folder'];var cw=[10,55,35,35,35];
+    doc.setFillColor(241,245,249);doc.rect(15,y,190,7,'F');
+    doc.setFontSize(8);doc.setTextColor(55,65,81);var xx=15;hdrs.forEach(function(h,i){doc.text(h,xx+2,y+5);xx+=cw[i];});
+    y+=7;doc.setTextColor(75,85,99);
+    Array.from(markers.values()).slice(0,100).forEach(function(m,i){
+      if(y>275){doc.addPage();y=15;}
+      var fld=folders.find(function(f){return f.id===m.folderId;});
+      var rd=[String(i+1),(m.name||'').substring(0,25),m.lat.toFixed(5),m.lng.toFixed(5),(fld?fld.name:'-').substring(0,15)];
+      xx=15;rd.forEach(function(d,j){doc.text(d,xx+2,y+4);xx+=cw[j];});y+=6;
+    });
+    if(markers.size>100){y+=4;doc.setFontSize(8);doc.text('... dan '+(markers.size-100)+' titik lainnya',15,y);}
+    bar.style.width='80%';
+    var pc=doc.internal.getNumberOfPages();
+    for(var p=1;p<=pc;p++){doc.setPage(p);doc.setFontSize(7);doc.setTextColor(156,163,175);doc.text('Halaman '+p+'/'+pc,15,290);}
+    bar.style.width='100%';
+    doc.save('laporan-survey-'+new Date().toISOString().slice(0,10)+'.pdf');
+    showToast('PDF berhasil diexport!','success');
+  }catch(e){showToast('Export PDF gagal: '+e.message,'error');console.error(e);}
+  finally{btn.disabled=false;btn.innerHTML='Export ke PDF (Peta + Data)';setTimeout(function(){prog.classList.add('hidden');bar.style.width='0';},2000);}
+}
+
+// ==================== FEATURE 7: LINE DRAWING ====================
+function toggleLineDraw(){
+  if(isLineDrawMode){stopLineDraw();return;}
+  isLineDrawMode=true;
+  drawLinePoints=[];
+  drawLineLayers.forEach(function(l){map.removeLayer(l);});
+  drawLineLayers=[];
+  document.getElementById('btn-draw-line').textContent='Stop Gambar';
+  document.getElementById('btn-draw-line').classList.remove('bg-rose-500','hover:bg-rose-600');
+  document.getElementById('btn-draw-line').classList.add('bg-red-500','hover:bg-red-600');
+  map.getContainer().style.cursor='crosshair';
+  drawLineClickHandler=function(e){
+    if(!isLineDrawMode) return;
+    drawLinePoints.push(e.latlng);
+    var icon=L.divIcon({html:'<div class="draw-vertex"></div>',className:'',iconSize:[12,12],iconAnchor:[6,6]});
+    var vm=L.marker(e.latlng,{icon:icon,zIndexOffset:1000}).addTo(map);
+    drawLineLayers.push(vm);
+    if(drawLineTempLine) map.removeLayer(drawLineTempLine);
+    if(drawLinePoints.length>1){
+      drawLineTempLine=L.polyline(drawLinePoints,{color:document.getElementById('draw-line-color').value,weight:3,dashArray:'8 4',opacity:0.7}).addTo(map);
+      drawLineLayers.push(drawLineTempLine);
+    }
+  };
+  map.on('click',drawLineClickHandler);
+  showToast('Mode Gambar Jalur aktif. Klik pada peta.','success');
+}
+function stopLineDraw(){
+  isLineDrawMode=false;
+  if(drawLineClickHandler){map.off('click',drawLineClickHandler);drawLineClickHandler=null;}
+  document.getElementById('btn-draw-line').textContent='Gambar Jalur';
+  document.getElementById('btn-draw-line').classList.add('bg-rose-500','hover:bg-rose-600');
+  document.getElementById('btn-draw-line').classList.remove('bg-red-500','hover:bg-red-600');
+  map.getContainer().style.cursor='';
+}
+function undoDrawLinePoint(){
+  if(drawLinePoints.length===0) return;
+  drawLinePoints.pop();
+  var removed=drawLineLayers.pop();
+  if(removed) map.removeLayer(removed);
+  if(drawLineTempLine){map.removeLayer(drawLineTempLine);drawLineTempLine=null;}
+  drawLineLayers.forEach(function(l){if(l instanceof L.Polyline){map.removeLayer(l);}});
+  drawLineLayers=drawLineLayers.filter(function(l){return!(l instanceof L.Polyline);});
+  if(drawLinePoints.length>1){
+    drawLineTempLine=L.polyline(drawLinePoints,{color:document.getElementById('draw-line-color').value,weight:3,dashArray:'8 4',opacity:0.7}).addTo(map);
+    drawLineLayers.push(drawLineTempLine);
+  }
+}
+function finishDrawLine(){
+  if(drawLinePoints.length<2){showToast('Minimal 2 titik untuk membuat jalur','error');return;}
+  var name=document.getElementById('draw-line-name').value.trim()||('Jalur '+(drawnLines.length+1));
+  var color=document.getElementById('draw-line-color').value;
+  // Remove temp line
+  if(drawLineTempLine){map.removeLayer(drawLineTempLine);drawLineTempLine=null;}
+  drawLineLayers=drawLineLayers.filter(function(l){if(l instanceof L.Polyline){map.removeLayer(l);return false;}return true;});
+  // Create final line
+  var finalLine=L.polyline(drawLinePoints,{color:color,weight:3,opacity:0.8}).addTo(map);
+  finalLine.bindPopup('<div style="padding:8px;font-family:Inter,sans-serif;"><b style="font-size:13px">'+esc(name)+'</b><br><span style="font-size:10px;color:#666">Jalur: '+drawLinePoints.length+' titik</span></div>');
+  drawnLines.push({name:name,color:color,latlngs:drawLinePoints.map(function(p){return{lat:p.lat,lng:p.lng};}),leafletLayer:finalLine});
+  // Clear temp
+  drawLineLayers.forEach(function(l){map.removeLayer(l);});
+  drawLineLayers=[];drawLinePoints=[];
+  stopLineDraw();
+  document.getElementById('draw-line-name').value='';
+  debouncedSave();
+  showToast('Jalur ' + name + ' disimpan!','success');
+}
+
+// ==================== FEATURE 8: EXPORT PDF ====================
+async function exportToPdf(){
+  if(markers.size===0){showToast('Tidak ada data titik','error');return;}
+  var btn=document.getElementById('btn-export-pdf');
+  var prog=document.getElementById('pdf-progress');
+  var bar=document.getElementById('pdf-progress-bar');
+  btn.disabled=true;btn.textContent='Membuat PDF...';
+  prog.classList.remove('hidden');bar.style.width='20%';
+  try{
+    if(typeof jspdf==='undefined'||typeof html2canvas==='undefined'){showToast('Library PDF belum dimuat, coba refresh','error');return;}
+    var {jsPDF}=jspdf;
+    var doc=new jsPDF('p','mm','a4');
+    bar.style.width='30%';
+    doc.setFillColor(99,102,241);doc.rect(0,0,210,28,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(16);doc.text('LAPORAN SURVEY',15,12);
+    doc.setFontSize(10);doc.text(currentProjectId||'COMSUR Survey Tools',15,18);
+    doc.setFontSize(8);doc.text('Tanggal: '+new Date().toLocaleString('id-ID'),15,24);
+    bar.style.width='40%';
+    try{
+      var mapEl=document.getElementById('map');
+      var canvas=await html2canvas(mapEl,{useCORS:true,allowTaint:true,scale:1,logging:false,width:mapEl.clientWidth,height:mapEl.clientHeight});
+      var imgData=canvas.toDataURL('image/jpeg',0.7);
+      var mapW=180;var mapH=(canvas.height/canvas.width)*mapW;if(mapH>80) mapH=80;
+      doc.addImage(imgData,'JPEG',15,32,mapW,mapH);
+      var y=32+mapH+5;
+    }catch(e){var y=35;}
+    bar.style.width='60%';
+    doc.setTextColor(0,0,0);doc.setFontSize(11);doc.text('Data Titik ('+markers.size+')',15,y);y+=6;
+    var hdrs=['No','Nama','Lat','Lng','Folder'];var cw=[10,55,35,35,35];
+    doc.setFillColor(241,245,249);doc.rect(15,y,190,7,'F');
+    doc.setFontSize(8);doc.setTextColor(55,65,81);var xx=15;hdrs.forEach(function(h,i){doc.text(h,xx+2,y+5);xx+=cw[i];});
+    y+=7;doc.setTextColor(75,85,99);
+    Array.from(markers.values()).slice(0,100).forEach(function(m,i){
+      if(y>275){doc.addPage();y=15;}
+      var fld=folders.find(function(f){return f.id===m.folderId;});
+      var rd=[String(i+1),(m.name||'').substring(0,25),m.lat.toFixed(5),m.lng.toFixed(5),(fld?fld.name:'-').substring(0,15)];
+      xx=15;rd.forEach(function(d,j){doc.text(d,xx+2,y+4);xx+=cw[j];});y+=6;
+    });
+    if(markers.size>100){y+=4;doc.setFontSize(8);doc.text('... dan '+(markers.size-100)+' titik lainnya',15,y);}
+    bar.style.width='80%';
+    var pc=doc.internal.getNumberOfPages();
+    for(var p=1;p<=pc;p++){doc.setPage(p);doc.setFontSize(7);doc.setTextColor(156,163,175);doc.text('Halaman '+p+'/'+pc,15,290);}
+    bar.style.width='100%';
+    doc.save('laporan-survey-'+new Date().toISOString().slice(0,10)+'.pdf');
+    showToast('PDF berhasil diexport!','success');
+  }catch(e){showToast('Export PDF gagal: '+e.message,'error');console.error(e);}
+  finally{btn.disabled=false;btn.innerHTML='Export ke PDF (Peta + Data)';setTimeout(function(){prog.classList.add('hidden');bar.style.width='0';},2000);}
+}
+
 
 // ==================== PWA SERVICE WORKER ====================
 (function initPWA() {
