@@ -1,0 +1,17 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/proxy",
+        "function": "proxy",
+        "region": "asia-southeast1"
+      }
+    ]
+  }
+}
