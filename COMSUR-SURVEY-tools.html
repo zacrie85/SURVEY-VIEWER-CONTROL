@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title data-i18n="app_title">COMSUR Survey v9</title>
+<title data-i18n="app_title">SURVEY VIEWER CONTROL v9</title>
 <meta name="description" content="COMSUR Survey Tools - Peta Survey Interaktif">
 <meta name="theme-color" content="#10b981">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -251,12 +251,11 @@ window.addEventListener('unhandledrejection',function(ev){
     <div style="position:absolute;top:40%;left:50%;width:40%;height:40%;background:radial-gradient(circle,rgba(236,72,153,.08) 0%,transparent 70%);animation:floatOrb3 12s ease-in-out infinite"></div>
   </div>
   <style>
-    @keyframes floatOrb1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,20px) scale(1.1)}
-    @keyframes floatOrb2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,-30px) scale(1.15)}
-    @keyframes floatOrb3{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-45%,-55%) scale(1.05)}
+    @keyframes floatOrb1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,20px) scale(1.1)}}
+    @keyframes floatOrb2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,-30px) scale(1.15)}}
+    @keyframes floatOrb3{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-45%,-55%) scale(1.05)}}
     @keyframes gateCardIn{from{opacity:0;transform:translateY(30px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
     @keyframes logoPulse{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.3),0 8px 32px rgba(0,0,0,.2)}50%{box-shadow:0 0 0 12px rgba(99,102,241,.08),0 8px 32px rgba(0,0,0,.2)}}
-    @keyframes inputGlow{0%,100%{border-color:rgba(99,102,241,.3)}50%{border-color:rgba(99,102,241,.6)}}
     .gate-card{animation:gateCardIn .6s cubic-bezier(.16,1,.3,1) forwards}
     .gate-logo-new{animation:logoPulse 3s ease-in-out infinite}
     .gate-input-new:focus{border-color:#6366f1!important;box-shadow:0 0 0 3px rgba(99,102,241,.15)!important;animation:none!important}
@@ -265,60 +264,286 @@ window.addEventListener('unhandledrejection',function(ev){
     .gate-btn-new:hover{transform:translateY(-1px)!important;box-shadow:0 8px 25px rgba(99,102,241,.35)!important}
     .gate-btn-new:active{transform:translateY(0)!important}
     .gate-btn-new::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2) 0%,transparent 50%);pointer-events:none}
-    @keyframes shakeX{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
   </style>
   <div class="gate-card" style="position:relative;z-index:1;width:360px;max-width:90vw;background:rgba(15,23,42,.65);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:40px 32px 32px;box-shadow:0 25px 50px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)">
     <div style="text-align:center;margin-bottom:24px">
       <div class="gate-logo-new" style="width:64px;height:64px;background:linear-gradient(135deg,#6366f1,#10b981);border-radius:18px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
       </div>
-      <h1 style="color:#f1f5f9;font-size:22px;font-weight:800;margin:0 0 4px;letter-spacing:-.02em;font-family:Inter,system-ui,sans-serif">COMSUR Survey</h1>
+      <h1 style="color:#f1f5f9;font-size:22px;font-weight:800;margin:0 0 4px;letter-spacing:-.02em;font-family:Inter,system-ui,sans-serif">SURVEY VIEWER CONTROL</h1>
       <p id="gate-subtitle-text" style="color:rgba(148,163,184,.8);font-size:12px;margin:0;font-family:Inter,system-ui,sans-serif">Masukkan password untuk melanjutkan</p>
     </div>
+    <!-- LOGIN MODE -->
     <div id="gate-mode-login">
       <div style="position:relative;margin-bottom:16px">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:rgba(148,163,184,.5);pointer-events:none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-        <input type="password" id="gate-password-input" class="gate-input-new" placeholder="Password aplikasi" onkeydown="if(event.key==='Enter')gateSubmit()" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
+        <input type="password" id="gate-password-input" class="gate-input-new" placeholder="Password aplikasi" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
       </div>
-      <button id="gate-submit-btn" class="gate-btn-new" onclick="gateSubmit()" style="width:100%;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,system-ui,sans-serif;letter-spacing:.01em">Masuk</button>
+      <button id="gate-submit-btn" class="gate-btn-new" style="width:100%;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,system-ui,sans-serif;letter-spacing:.01em">Masuk</button>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
-        <p id="gate-change-link" class="hidden" style="margin:0"><a href="#" onclick="event.preventDefault();gateShowChangePassword()" style="color:rgba(148,163,184,.6);font-size:11px;text-decoration:none">Ubah Password</a></p>
-        <p id="gate-local-reset" class="gate-reset" style="margin:0"><a href="#" onclick="event.preventDefault();gateResetLocal()" style="color:rgba(239,68,68,.5);font-size:11px;text-decoration:none">Reset Password</a></p>
-        <p id="gate-reset-hint" class="hidden" style="margin:0;margin-top:6px"><a href="#" onclick="event.preventDefault();gateResetLocal()" style="color:rgba(239,68,68,.5);font-size:11px;text-decoration:none">Reset Password</a></p>
+        <p id="gate-change-link" style="margin:0;display:none"><a href="#" id="gate-change-link-a" style="color:rgba(148,163,184,.6);font-size:11px;text-decoration:none">Ubah Password</a></p>
+        <p id="gate-local-reset" style="margin:0;display:none"><a href="#" id="gate-reset-link-a" style="color:rgba(239,68,68,.5);font-size:11px;text-decoration:none">Reset Password</a></p>
       </div>
     </div>
-    <div id="gate-mode-setup" class="hidden">
-      <div id="gate-admin-badge" class="hidden" style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:8px 12px;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+    <!-- SETUP MODE -->
+    <div id="gate-mode-setup" style="display:none">
+      <div id="gate-admin-badge" style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:8px 12px;margin-bottom:16px;display:flex;align-items:center;gap:8px">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#fbbf24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         <span style="color:#fbbf24;font-size:11px;font-weight:600">Kamu akan menjadi Admin</span>
       </div>
       <div style="position:relative;margin-bottom:10px">
-        <input type="password" id="gate-new-password" class="gate-input-new" placeholder="Buat password baru (min 4 karakter)" onkeydown="if(event.key==='Enter')document.getElementById('gate-confirm-password').focus()" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
+        <input type="password" id="gate-new-password" class="gate-input-new" placeholder="Buat password baru (min 4 karakter)" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
       </div>
       <div style="position:relative;margin-bottom:16px">
-        <input type="password" id="gate-confirm-password" class="gate-input-new" placeholder="Konfirmasi password" onkeydown="if(event.key==='Enter')gateSetupPassword()" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
+        <input type="password" id="gate-confirm-password" class="gate-input-new" placeholder="Konfirmasi password" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
       </div>
-      <button id="gate-setup-btn" class="gate-btn-new" onclick="gateSetupPassword()" style="width:100%;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,system-ui,sans-serif">Simpan Password</button>
+      <button id="gate-setup-btn" class="gate-btn-new" style="width:100%;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,system-ui,sans-serif">Simpan Password</button>
     </div>
-    <div id="gate-mode-change" class="hidden">
+    <!-- CHANGE PASSWORD MODE -->
+    <div id="gate-mode-change" style="display:none">
       <div style="position:relative;margin-bottom:10px">
-        <input type="password" id="gate-change-old" class="gate-input-new" placeholder="Password lama" onkeydown="if(event.key==='Enter')document.getElementById('gate-change-new').focus()" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
+        <input type="password" id="gate-change-old" class="gate-input-new" placeholder="Password lama" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
       </div>
       <div style="position:relative;margin-bottom:10px">
-        <input type="password" id="gate-change-new" class="gate-input-new" placeholder="Password baru (min 4 karakter)" onkeydown="if(event.key==='Enter')document.getElementById('gate-change-confirm').focus()" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
+        <input type="password" id="gate-change-new" class="gate-input-new" placeholder="Password baru (min 4 karakter)" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
       </div>
       <div style="position:relative;margin-bottom:16px">
-        <input type="password" id="gate-change-confirm" class="gate-input-new" placeholder="Konfirmasi password baru" onkeydown="if(event.key==='Enter')gateChangePassword()" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
+        <input type="password" id="gate-change-confirm" class="gate-input-new" placeholder="Konfirmasi password baru" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
       </div>
-      <button id="gate-change-btn" class="gate-btn-new" onclick="gateChangePassword()" style="width:100%;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,system-ui,sans-serif">Ubah Password</button>
-      <p style="text-align:center;margin-top:12px"><a href="#" onclick="event.preventDefault();gateBackToLogin()" style="color:rgba(148,163,184,.5);font-size:11px;text-decoration:none">Kembali ke Login</a></p>
+      <button id="gate-change-btn" class="gate-btn-new" style="width:100%;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,system-ui,sans-serif">Ubah Password</button>
+      <p style="text-align:center;margin-top:12px"><a href="#" id="gate-back-link-a" style="color:rgba(148,163,184,.5);font-size:11px;text-decoration:none">Kembali ke Login</a></p>
     </div>
     <p id="gate-error" style="color:#f87171;font-size:11px;margin-top:12px;min-height:16px;text-align:center"></p>
-    <div id="gate-viewer-hint" class="hidden" style="margin-top:8px;text-align:center"><span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2);border-radius:8px;color:rgba(147,197,253,.8);font-size:10px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>Akses Viewer tersedia</span></div>
-    <p id="gate-setup-hint" class="gate-setup hidden" style="color:rgba(148,163,184,.5);font-size:11px;margin-top:12px;text-align:center">Password belum diatur. <a href="#" onclick="event.preventDefault();gateShowSetupOld()" style="color:#a5b4fc;text-decoration:none">Atur sekarang</a></p>
+    <div id="gate-viewer-hint" style="margin-top:8px;text-align:center;display:none"><span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2);border-radius:8px;color:rgba(147,197,253,.8);font-size:10px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>Akses Viewer tersedia</span></div>
   </div>
   <div style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(148,163,184,.3);font-size:10px;z-index:1">v9.0 — Secured Access</div>
 </div>
+
+<!-- STANDALONE GATE ENGINE -->
+<script>
+(function(){
+  'use strict';
+  var GATE_SALT='comsur-survey-v9-salt-2024';
+  window._gateHash=null; window._gateViewerHash=null; window._gateAdminId=null;
+  window._gateUnlocked=false; window._gateIsAdmin=false;
+
+  async function _sha256(msg){
+    try{
+      var buf=new TextEncoder().encode(GATE_SALT+msg);
+      var hash=await crypto.subtle.digest('SHA-256',buf);
+      return Array.from(new Uint8Array(hash)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+    }catch(e){
+      console.warn('crypto.subtle failed, using fallback',e);
+      var h=0;for(var i=0;i<(GATE_SALT+msg).length;i++){h=((h<<5)-h)+(GATE_SALT+msg).charCodeAt(i);h|=0;}
+      return 'fallback-'+Math.abs(h).toString(16);
+    }
+  }
+  window._gateSha256=_sha256;
+  window.sha256=_sha256;
+
+  function $(id){return document.getElementById(id);}
+  function show(el){if(el)el.style.display='';}
+  function hide(el){if(el)el.style.display='none';}
+
+  window.gateShowLogin=function(){
+    try{
+      var t=$('gate-subtitle-text');if(t)t.textContent='Masukkan password untuk melanjutkan';
+      show($('gate-mode-login'));hide($('gate-mode-setup'));hide($('gate-mode-change'));
+      show($('gate-change-link'));show($('gate-local-reset'));
+      hide($('gate-viewer-hint'));
+      var e=$('gate-error');if(e)e.textContent='';
+      var inp=$('gate-password-input');if(inp){inp.value='';setTimeout(function(){inp.focus();},100);}
+    }catch(err){console.error('gateShowLogin:',err);}
+  };
+  window.gateShowSetup=function(){
+    try{
+      var t=$('gate-subtitle-text');if(t)t.textContent='Buat password untuk mengamankan aplikasi';
+      hide($('gate-mode-login'));show($('gate-mode-setup'));hide($('gate-mode-change'));
+      hide($('gate-change-link'));hide($('gate-local-reset'));
+      hide($('gate-viewer-hint'));
+      var e=$('gate-error');if(e)e.textContent='';
+      var inp=$('gate-new-password');if(inp)inp.value='';
+      var inp2=$('gate-confirm-password');if(inp2)inp2.value='';
+      setTimeout(function(){if(inp)inp.focus();},100);
+    }catch(err){console.error('gateShowSetup:',err);}
+  };
+  window.gateShowChangePassword=function(){
+    try{
+      var t=$('gate-subtitle-text');if(t)t.textContent='Ubah password aplikasi';
+      hide($('gate-mode-login'));hide($('gate-mode-setup'));show($('gate-mode-change'));
+      hide($('gate-change-link'));hide($('gate-local-reset'));hide($('gate-viewer-hint'));
+      var e=$('gate-error');if(e)e.textContent='';
+      var o=$('gate-change-old');if(o)o.value='';
+      var n=$('gate-change-new');if(n)n.value='';
+      var c=$('gate-change-confirm');if(c)c.value='';
+    }catch(err){console.error('gateShowChangePassword:',err);}
+  };
+  window.gateShowLoading=function(){
+    try{
+      var t=$('gate-subtitle-text');if(t)t.textContent='Memeriksa...';
+      hide($('gate-mode-login'));hide($('gate-mode-setup'));hide($('gate-mode-change'));
+    }catch(err){console.error('gateShowLoading:',err);}
+  };
+  window.gateBackToLogin=function(){gateShowLogin();};
+  window.gateShowSetupOld=function(){gateShowSetup();};
+
+  window.gateSubmit=async function(){
+    try{
+      var input=$('gate-password-input'),errEl=$('gate-error'),btn=$('gate-submit-btn');
+      if(!input||!btn)return;
+      var pwd=input.value.trim();
+      if(!pwd){if(errEl)errEl.textContent='Password tidak boleh kosong';return;}
+      if(!window._gateHash){gateShowSetup();return;}
+      btn.disabled=true;btn.textContent='Memverifikasi...';if(errEl)errEl.textContent='';
+      var hash=await _sha256(pwd);
+      if(hash===window._gateHash){
+        window._gateIsAdmin=true;window._doUnlock(true);
+      }else if(window._gateViewerHash && hash===window._gateViewerHash){
+        window._gateIsAdmin=false;window._doUnlock(false);
+      }else{
+        if(errEl)errEl.textContent='Password salah!';
+        input.value='';input.focus();
+      }
+      btn.disabled=false;btn.textContent='Masuk';
+    }catch(err){
+      console.error('gateSubmit:',err);
+      var e=$('gate-error');if(e)e.textContent='Error: '+err.message;
+      var b=$('gate-submit-btn');if(b){b.disabled=false;b.textContent='Masuk';}
+    }
+  };
+
+  window.gateSetupPassword=async function(){
+    try{
+      var n=$('gate-new-password'),c=$('gate-confirm-password'),e=$('gate-error'),btn=$('gate-setup-btn');
+      if(!n||!c||!btn)return;
+      var np=n.value.trim(),cp=c.value.trim();
+      if(!np){if(e)e.textContent='Password tidak boleh kosong';return;}
+      if(np.length<4){if(e)e.textContent='Password minimal 4 karakter';return;}
+      if(np!==cp){if(e)e.textContent='Konfirmasi password tidak cocok!';return;}
+      btn.disabled=true;btn.textContent='Menyimpan...';if(e)e.textContent='';
+      var hash=await _sha256(np);
+      window._gateHash=hash;window._gateAdminId='admin-local';window._gateIsAdmin=true;
+      try{localStorage.setItem('kmz_app_password',hash);localStorage.setItem('kmz_app_admin','admin-local');}catch(x){}
+      window._doUnlock(true);
+      if(typeof showToast==='function')showToast('Password berhasil dibuat! Kamu adalah Admin.','success');
+    }catch(err){
+      console.error('gateSetupPassword:',err);
+      var e=$('gate-error');if(e)e.textContent='Gagal: '+err.message;
+      var b=$('gate-setup-btn');if(b){b.disabled=false;b.textContent='Simpan Password';}
+    }
+  };
+
+  window.gateChangePassword=async function(){
+    try{
+      var o=$('gate-change-old'),n=$('gate-change-new'),c=$('gate-confirm-password'),e=$('gate-error'),btn=$('gate-change-btn');
+      if(!o||!n||!c||!btn)return;
+      var op=o.value.trim(),np=n.value.trim(),cp=c.value.trim();
+      if(!op){if(e)e.textContent='Masukkan password lama';return;}
+      if(!np){if(e)e.textContent='Masukkan password baru';return;}
+      if(np.length<4){if(e)e.textContent='Password baru minimal 4 karakter';return;}
+      if(np!==cp){if(e)e.textContent='Konfirmasi password tidak cocok!';return;}
+      var oh=await _sha256(op);
+      if(oh!==window._gateHash){if(e)e.textContent='Password lama salah!';return;}
+      btn.disabled=true;btn.textContent='Menyimpan...';if(e)e.textContent='';
+      var nh=await _sha256(np);
+      window._gateHash=nh;
+      try{localStorage.setItem('kmz_app_password',nh);}catch(x){}
+      if(typeof showToast==='function')showToast('Password berhasil diubah!','success');
+      setTimeout(gateShowLogin,800);
+    }catch(err){
+      console.error('gateChangePassword:',err);
+      var e=$('gate-error');if(e)e.textContent='Gagal: '+err.message;
+      var b=$('gate-change-btn');if(b){b.disabled=false;b.textContent='Ubah Password';}
+    }
+  };
+
+  window.gateResetLocal=function(){
+    try{localStorage.removeItem('kmz_app_password');localStorage.removeItem('kmz_app_admin');localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
+    window._gateHash=null;window._gateViewerHash=null;window._gateAdminId=null;
+    gateShowSetup();
+  };
+
+  window._doUnlock=function(asAdmin){
+    try{
+      window._gateUnlocked=true;window._gateIsAdmin=asAdmin;
+      var g=$('password-gate');if(g)g.style.display='none';
+      try{
+        sessionStorage.setItem('kmz_unlocked','1');
+        sessionStorage.setItem('kmz_unlock_time',Date.now().toString());
+        sessionStorage.setItem('kmz_is_admin',asAdmin?'1':'0');
+        sessionStorage.setItem('kmz_user_role',asAdmin?'admin':'viewer');
+      }catch(x){}
+      window.appPasswordHash=window._gateHash;
+      window.appAdminUid=window._gateAdminId;
+      window.appViewerPasswordHash=window._gateViewerHash;
+      window.isAdminUser=asAdmin;window.isAppUnlocked=true;
+      window.currentUser={name:asAdmin?'Admin':'Viewer',role:asAdmin?'admin':'viewer'};
+      if(typeof onUserLoggedIn==='function')try{onUserLoggedIn(window.currentUser);}catch(x){}
+      if(asAdmin&&typeof initAppAfterUnlock==='function')try{initAppAfterUnlock();}catch(x){}
+      if(!asAdmin&&typeof enforceViewerRestrictions==='function')try{enforceViewerRestrictions();}catch(x){}
+    }catch(err){console.error('_doUnlock:',err);}
+  };
+
+  window.unlockApp=function(){window._doUnlock(true);};
+  window.unlockAppAsViewer=function(){window._doUnlock(false);};
+  window.lockApp=function(){
+    try{
+      window._gateUnlocked=false;window.isAdminUser=false;window.currentUser=null;
+      try{sessionStorage.removeItem('kmz_unlocked');sessionStorage.removeItem('kmz_unlock_time');sessionStorage.removeItem('kmz_is_admin');sessionStorage.removeItem('kmz_user_role');}catch(x){}
+      var g=$('password-gate');if(g)g.style.display='';
+      gateShowLogin();
+    }catch(err){console.error('lockApp:',err);}
+  };
+
+  function attachEvents(){
+    var btn=$('gate-submit-btn');if(btn)btn.onclick=function(e){e.preventDefault();gateSubmit();};
+    var sbtn=$('gate-setup-btn');if(sbtn)sbtn.onclick=function(e){e.preventDefault();gateSetupPassword();};
+    var cbtn=$('gate-change-btn');if(cbtn)cbtn.onclick=function(e){e.preventDefault();gateChangePassword();};
+    var cla=$('gate-change-link-a');if(cla)cla.onclick=function(e){e.preventDefault();gateShowChangePassword();};
+    var rla=$('gate-reset-link-a');if(rla)rla.onclick=function(e){e.preventDefault();gateResetLocal();};
+    var bla=$('gate-back-link-a');if(bla)bla.onclick=function(e){e.preventDefault();gateBackToLogin();};
+    var inp=$('gate-password-input');if(inp)inp.onkeydown=function(e){if(e.key==='Enter')gateSubmit();};
+    var np=$('gate-new-password');if(np)np.onkeydown=function(e){if(e.key==='Enter'){var c=$('gate-confirm-password');if(c)c.focus();}};
+    var cp=$('gate-confirm-password');if(cp)cp.onkeydown=function(e){if(e.key==='Enter')gateSetupPassword();};
+    var co=$('gate-change-old');if(co)co.onkeydown=function(e){if(e.key==='Enter'){var n=$('gate-change-new');if(n)n.focus();}};
+    var cn=$('gate-change-new');if(cn)cn.onkeydown=function(e){if(e.key==='Enter'){var c=$('gate-change-confirm');if(c)c.focus();}};
+    var cc=$('gate-change-confirm');if(cc)cc.onkeydown=function(e){if(e.key==='Enter')gateChangePassword();};
+  }
+
+  function initGate(){
+    try{
+      attachEvents();
+      var unlocked=false;
+      try{unlocked=sessionStorage.getItem('kmz_unlocked')==='1';}catch(x){}
+      if(unlocked){
+        try{
+          var t=parseInt(sessionStorage.getItem('kmz_unlock_time')||'0');
+          if((Date.now()-t)<86400000){
+            window._gateUnlocked=true;
+            window._gateIsAdmin=sessionStorage.getItem('kmz_is_admin')==='1';
+            window.isAdminUser=window._gateIsAdmin;
+            window.isAppUnlocked=true;
+            window.currentUser={name:window._gateIsAdmin?'Admin':'Viewer',role:window._gateIsAdmin?'admin':'viewer'};
+            var g=$('password-gate');if(g)g.style.display='none';
+            return;
+          }
+        }catch(x){}
+      }
+      try{
+        var h=localStorage.getItem('kmz_app_password');if(h)window._gateHash=h;
+        var a=localStorage.getItem('kmz_app_admin');if(a)window._gateAdminId=a;
+        var v=localStorage.getItem('kmz_app_viewer_password');if(v)window._gateViewerHash=v;
+      }catch(x){}
+      if(window._gateHash){gateShowLogin();}else{gateShowSetup();}
+    }catch(err){
+      console.error('Gate init error:',err);
+      gateShowLogin();
+    }
+  }
+
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initGate);}else{initGate();}
+})();
+<\/script>
 
 <div id="app" class="flex flex-col h-screen w-screen overflow-hidden bg-gray-100">
 <!-- Header -->
@@ -2014,7 +2239,7 @@ function initSupabase(){
     console.warn('Supabase init error:',e);
     updateSyncStatus('offline','Local Mode');
   }
-  checkGateAndInit();
+  // Gate is handled by standalone engine above — no need to call checkGateAndInit here
 }
 
 // ==================== AUTH FUNCTIONS ====================
@@ -2050,7 +2275,7 @@ async function signInWithEmail(){showToast('Google login dihapus. Gunakan Passwo
 
 async function registerWithEmail(){showToast('Google login dihapus. Gunakan Password Gate.','error');}
 
-function signOutUser(){ isAppUnlocked=false; isAdminUser=false; currentUser=null; sessionStorage.removeItem('kmz_unlocked'); sessionStorage.removeItem('kmz_unlock_time'); sessionStorage.removeItem('kmz_is_admin'); sessionStorage.removeItem('kmz_user_role'); stopAllFirestoreListeners(); currentProjectId=null; document.getElementById('password-gate').classList.remove('hidden-gate'); gateShowLogin(); }
+function signOutUser(){ stopAllFirestoreListeners(); currentProjectId=null; if(typeof lockApp==='function')lockApp(); }
 
 // ==================== USER STATE MANAGEMENT ====================
 function onUserLoggedIn(user){
@@ -2328,78 +2553,36 @@ function showProjectError(msg){
   showToast(msg, 'error');
 }
 
-// ==================== PASSWORD GATE & ADMIN SETTINGS ====================
-let appPasswordHash = null;
-let appAdminUid = null;
-let appViewerPasswordHash = null;
-let isAppUnlocked = false;
-let isGateReady = false;
-let isAdminUser = false;
-
-// Simple SHA-256 hash with salt
+// ==================== PASSWORD GATE (handled by standalone engine) ====================
+// Gate functions (gateSubmit, gateShowLogin, etc.) are defined in the standalone <script> above.
+// Variables are set by the standalone engine onto window.*
+let appPasswordHash = window._gateHash || null;
+let appAdminUid = window._gateAdminId || null;
+let appViewerPasswordHash = window._gateViewerHash || null;
+let isAppUnlocked = window._gateUnlocked || false;
+let isGateReady = true;
+let isAdminUser = window._gateIsAdmin || false;
+// SHA-256 is defined in standalone engine as window.sha256 and window._gateSha256
 const AUTH_SALT = 'comsur-survey-v9-salt-2024';
-async function sha256(message){
-  const msgBuffer = new TextEncoder().encode(AUTH_SALT + message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');
-}
+async function sha256(m){return window._gateSha256?await window._gateSha256(m):'';}
 
-// ===== GATE INIT: Cek session lalu tentukan mode =====
-async function checkGateAndInit(){
-  // 1. Cek apakah sudah unlock di session ini (24 jam)
-  const unlocked = sessionStorage.getItem('kmz_unlocked');
-  const unlockTime = parseInt(sessionStorage.getItem('kmz_unlock_time') || '0');
-  const dayMs = 24 * 60 * 60 * 1000;
-  if(unlocked === '1' && (Date.now() - unlockTime) < dayMs){
-    isAppUnlocked = true;
-    isAdminUser = sessionStorage.getItem('kmz_is_admin') === '1';
-    const savedRole = sessionStorage.getItem('kmz_user_role') || 'admin';
-    document.getElementById('password-gate').classList.add('hidden-gate');
-    loadPasswordHash();
-    if(isAdminUser){
-      document.getElementById('btn-settings').classList.remove('hidden-settings');
-      currentUser = {name:'Admin',role:'admin'};
-    }else{
-      document.getElementById('btn-settings').classList.add('hidden-settings');
-      currentUser = {name:'Viewer',role:'viewer'};
-    }
-    onUserLoggedIn(currentUser);
-    if(!isAdminUser) enforceViewerRestrictions();
-    return;
-  }
+// Gate stubs (no-op, real logic in standalone engine)
+function checkGateAndInit(){/* handled by standalone engine */}
+function gateShowLogin(){window.gateShowLogin&&window.gateShowLogin();}
+function gateShowSetup(){window.gateShowSetup&&window.gateShowSetup();}
+function gateShowChangePassword(){window.gateShowChangePassword&&window.gateShowChangePassword();}
+function gateShowLoading(){window.gateShowLoading&&window.gateShowLoading();}
+function gateShowSetupOld(){window.gateShowSetupOld&&window.gateShowSetupOld();}
+async function gateResetLocal(){window.gateResetLocal&&window.gateResetLocal();}
+async function gateResetPassword(){window.gateResetLocal&&window.gateResetLocal();}
+async function gateResetAsAdmin(){window.gateResetLocal&&window.gateResetLocal();}
+async function gateSubmit(){window.gateSubmit&&window.gateSubmit();}
+async function gateSetupPassword(){window.gateSetupPassword&&window.gateSetupPassword();}
+async function gateChangePassword(){window.gateChangePassword&&window.gateChangePassword();}
+function unlockApp(){window.unlockApp&&window.unlockApp();}
+function unlockAppAsViewer(){window.unlockAppAsViewer&&window.unlockAppAsViewer();}
+function lockApp(){window.lockApp&&window.lockApp();}
 
-  // 2. Load hash dari localStorage (instant)
-  loadPasswordHash();
-
-  // 3. Tampilkan gate sesuai mode
-  if(appPasswordHash){
-    gateShowLogin();
-  }else{
-    // Password belum ada — cek Supabase sebentar
-    gateShowLoading();
-    let foundInSupabase = false;
-    if(isSupabaseReady){
-      try{
-        const {data} = await sb.from('app_settings').select('*').eq('id','security').maybeSingle();
-        if(data && data.password_hash){
-          appPasswordHash = data.password_hash;
-          appAdminUid = data.admin_uid || null;
-          if(data.viewer_password_hash) appViewerPasswordHash = data.viewer_password_hash;
-          savePasswordToLocal();
-          gateShowLogin();
-          foundInSupabase = true;
-        }
-      }catch(e){console.warn('Supabase read error:',e);}
-    }
-    if(!foundInSupabase){
-      gateShowSetup();
-    }
-  }
-  isGateReady = true;
-}
-
-// Load hash dari localStorage only
 function loadPasswordHash(){
   const localHash = localStorage.getItem('kmz_app_password');
   const localAdmin = localStorage.getItem('kmz_app_admin');
@@ -2414,13 +2597,7 @@ function loadPasswordHash(){
 }
 
 // Simpan hash ke localStorage untuk akses offline
-function savePasswordToLocal(){
-  if(appPasswordHash) localStorage.setItem('kmz_app_password', appPasswordHash);
-  if(appAdminUid) localStorage.setItem('kmz_app_admin', appAdminUid);
-  if(appViewerPasswordHash) localStorage.setItem('kmz_app_viewer_password', appViewerPasswordHash);
-}
 
-// Sync password ke Supabase di background (non-blocking)
 function syncPasswordToSupabase(hash, adminId){
   if(!isSupabaseReady) return;
   sb.from('app_settings').upsert({
@@ -2436,256 +2613,6 @@ function syncPasswordToSupabase(hash, adminId){
   });
 }
 
-// ===== GATE UI MODES =====
-// Helper: safe toggle class on optional elements
-function _gateCls(id, cls, add){
-  var el=document.getElementById(id); if(el){if(add)el.classList.add(cls);else el.classList.remove(cls);}
-}
-function gateShowLoading(){
-  document.getElementById('gate-subtitle-text').textContent = 'Memeriksa...';
-  document.getElementById('gate-mode-login').classList.add('hidden');
-  document.getElementById('gate-mode-setup').classList.add('hidden');
-  document.getElementById('gate-mode-change').classList.add('hidden');
-  _gateCls('gate-setup-hint','hidden',true);
-  _gateCls('gate-reset-hint','hidden',true);
-  _gateCls('gate-change-link','hidden',true);
-  _gateCls('gate-admin-badge','hidden',true);
-  _gateCls('gate-local-reset','hidden',true);
-  document.getElementById('gate-error').textContent = '';
-  var vHint = document.getElementById('gate-viewer-hint'); if(vHint) vHint.classList.add('hidden');
-}
-
-function gateShowLogin(){
-  document.getElementById('gate-subtitle-text').textContent = 'Masukkan password untuk melanjutkan';
-  document.getElementById('gate-mode-login').classList.remove('hidden');
-  document.getElementById('gate-mode-setup').classList.add('hidden');
-  document.getElementById('gate-mode-change').classList.add('hidden');
-  _gateCls('gate-setup-hint','hidden',true);
-  _gateCls('gate-reset-hint','hidden',false);
-  _gateCls('gate-change-link','hidden',false);
-  _gateCls('gate-admin-badge','hidden',true);
-  _gateCls('gate-local-reset','hidden',false);
-  document.getElementById('gate-error').textContent = '';
-  document.getElementById('gate-password-input').value = '';
-  document.getElementById('gate-password-input').placeholder = 'Password aplikasi';
-  setTimeout(()=>document.getElementById('gate-password-input').focus(), 100);
-}
-
-function gateShowSetup(){
-  document.getElementById('gate-subtitle-text').textContent = 'Buat password untuk mengamankan aplikasi';
-  document.getElementById('gate-mode-login').classList.add('hidden');
-  document.getElementById('gate-mode-setup').classList.remove('hidden');
-  document.getElementById('gate-mode-change').classList.add('hidden');
-  _gateCls('gate-setup-hint','hidden',true);
-  _gateCls('gate-reset-hint','hidden',true);
-  _gateCls('gate-change-link','hidden',true);
-  _gateCls('gate-admin-badge','hidden',false);
-  _gateCls('gate-local-reset','hidden',true);
-  document.getElementById('gate-error').textContent = '';
-  document.getElementById('gate-new-password').value = '';
-  document.getElementById('gate-confirm-password').value = '';
-  setTimeout(()=>document.getElementById('gate-new-password').focus(), 100);
-}
-
-function gateShowChangePassword(){
-  document.getElementById('gate-subtitle-text').textContent = 'Ubah password aplikasi';
-  document.getElementById('gate-mode-login').classList.add('hidden');
-  document.getElementById('gate-mode-setup').classList.add('hidden');
-  document.getElementById('gate-mode-change').classList.remove('hidden');
-  _gateCls('gate-setup-hint','hidden',true);
-  _gateCls('gate-reset-hint','hidden',true);
-  _gateCls('gate-change-link','hidden',true);
-  _gateCls('gate-admin-badge','hidden',true);
-  _gateCls('gate-local-reset','hidden',true);
-  document.getElementById('gate-error').textContent = '';
-  document.getElementById('gate-change-old').value = '';
-  document.getElementById('gate-change-new').value = '';
-  document.getElementById('gate-change-confirm').value = '';
-  setTimeout(()=>document.getElementById('gate-change-old').focus(), 100);
-}
-
-function gateBackToLogin(){
-  gateShowLogin();
-}
-
-// ===== GATE ACTIONS =====
-
-// Login dengan password
-async function gateSubmit(){
-  const input = document.getElementById('gate-password-input');
-  const errEl = document.getElementById('gate-error');
-  const btn = document.getElementById('gate-submit-btn');
-  const pwd = input.value.trim();
-  if(!pwd){errEl.textContent='Password tidak boleh kosong';return;}
-
-  if(!appPasswordHash){ gateShowSetup(); return; }
-
-  btn.disabled=true;
-  btn.textContent='Memverifikasi...';
-  errEl.textContent='';
-
-  try{
-    const hash = await sha256(pwd);
-    if(hash === appPasswordHash){
-      isAdminUser = true;
-      unlockApp();
-    }else if(appViewerPasswordHash && hash === appViewerPasswordHash){
-      isAdminUser = false;
-      unlockAppAsViewer();
-    }else{
-      errEl.textContent='Password salah!';
-      input.value='';
-      input.focus();
-      _gateCls('gate-reset-hint','hidden',false);
-    }
-  }catch(e){
-    errEl.textContent='Error: '+e.message;
-  }
-  btn.disabled=false;
-  btn.textContent='Masuk';
-}
-
-// Setup password pertama kali (admin pertama)
-async function gateSetupPassword(){
-  const newPwd = document.getElementById('gate-new-password').value.trim();
-  const confirmPwd = document.getElementById('gate-confirm-password').value.trim();
-  const errEl = document.getElementById('gate-error');
-  const btn = document.getElementById('gate-setup-btn');
-
-  if(!newPwd){errEl.textContent='Password tidak boleh kosong';return;}
-  if(newPwd.length<4){errEl.textContent='Password minimal 4 karakter';return;}
-  if(newPwd!==confirmPwd){errEl.textContent='Konfirmasi password tidak cocok!';return;}
-
-  btn.disabled=true;
-  btn.textContent='Menyimpan...';
-  errEl.textContent='';
-
-  try{
-    const hash = await sha256(newPwd);
-    // Login pertama = admin
-    const adminId = 'admin-local';
-
-    // Simpan ke localStorage DULU (utama)
-    appPasswordHash = hash;
-    appAdminUid = adminId;
-    isAdminUser = true;
-    savePasswordToLocal();
-
-    // Sync ke Supabase di background (non-blocking)
-    syncPasswordToSupabase(hash, adminId);
-
-    unlockApp();
-    showToast('Password berhasil dibuat! Kamu adalah Admin.','success');
-  }catch(e){
-    errEl.textContent='Gagal menyimpan: '+e.message;
-  }
-  btn.disabled=false;
-  btn.textContent='Simpan Password';
-}
-
-// Ubah password (dari gate screen — harus tahu password lama)
-async function gateChangePassword(){
-  const oldPwd = document.getElementById('gate-change-old').value.trim();
-  const newPwd = document.getElementById('gate-change-new').value.trim();
-  const confirmPwd = document.getElementById('gate-change-confirm').value.trim();
-  const errEl = document.getElementById('gate-error');
-  const btn = document.getElementById('gate-change-btn');
-
-  if(!oldPwd){errEl.textContent='Masukkan password lama';return;}
-  if(!newPwd){errEl.textContent='Masukkan password baru';return;}
-  if(newPwd.length<4){errEl.textContent='Password baru minimal 4 karakter';return;}
-  if(newPwd!==confirmPwd){errEl.textContent='Konfirmasi password tidak cocok!';return;}
-
-  // Verifikasi password lama
-  const oldHash = await sha256(oldPwd);
-  if(oldHash !== appPasswordHash){
-    errEl.textContent='Password lama salah!';
-    return;
-  }
-
-  btn.disabled=true;
-  btn.textContent='Menyimpan...';
-  errEl.textContent='';
-
-  try{
-    const newHash = await sha256(newPwd);
-
-    // Simpan ke localStorage DULU (utama)
-    appPasswordHash = newHash;
-    savePasswordToLocal();
-
-    // Sync ke Supabase di background (non-blocking)
-    syncPasswordToSupabase(newHash, appAdminUid);
-
-    errEl.textContent='';
-    showToast('Password berhasil diubah!','success');
-
-    // Kembali ke login
-    setTimeout(()=>{
-      gateShowLogin();
-    }, 1000);
-  }catch(e){
-    errEl.textContent='Gagal mengubah: '+e.message;
-  }
-  btn.disabled=false;
-  btn.textContent='Ubah Password';
-}
-
-function gateShowSetupOld(){
-  // Dipanggil dari hint link
-  gateShowSetup();
-}
-
-// Reset password lokal (hapus data password, buat ulang)
-async function gateResetLocal(){
-  const confirmed = await appConfirm('Reset password lokal?\n\nPassword akan dihapus dan kamu harus membuat password baru.\nData titik, polygon, dan folder TIDAK akan terhapus.');
-  if(!confirmed) return;
-  // Hapus password dari localStorage
-  localStorage.removeItem('kmz_app_password');
-  localStorage.removeItem('kmz_app_admin');
-  appPasswordHash = null;
-  appAdminUid = null;
-  isAdminUser = false;
-  // Tampilkan setup password baru
-  gateShowSetup();
-}
-
-// Reset password via local reset (no Firebase needed)
-async function gateResetPassword(){
-  await gateResetLocal();
-}
-
-async function gateResetAsAdmin(){
-  await gateResetLocal();
-}
-
-function unlockApp(){
-  isAppUnlocked = true;
-  isAdminUser = true;
-  document.getElementById('password-gate').classList.add('hidden-gate');
-  sessionStorage.setItem('kmz_unlocked','1');
-  sessionStorage.setItem('kmz_unlock_time', Date.now().toString());
-  sessionStorage.setItem('kmz_is_admin', '1');
-  sessionStorage.setItem('kmz_user_role', 'admin');
-  document.getElementById('btn-settings').classList.remove('hidden-settings');
-  currentUser = {name:'Admin',role:'admin'};
-  onUserLoggedIn(currentUser);
-}
-
-function unlockAppAsViewer(){
-  isAppUnlocked = true;
-  isAdminUser = false;
-  document.getElementById('password-gate').classList.add('hidden-gate');
-  sessionStorage.setItem('kmz_unlocked','1');
-  sessionStorage.setItem('kmz_unlock_time', Date.now().toString());
-  sessionStorage.setItem('kmz_is_admin', '0');
-  sessionStorage.setItem('kmz_user_role', 'viewer');
-  document.getElementById('btn-settings').classList.add('hidden-settings');
-  currentUser = {name:'Viewer',role:'viewer'};
-  onUserLoggedIn(currentUser);
-  enforceViewerRestrictions();
-}
-
 function enforceViewerRestrictions(){
   if(isAdminUser) return;
   document.querySelectorAll('.delete-project-btn').forEach(function(b){b.style.display='none';});
@@ -2699,15 +2626,7 @@ function enforceViewerRestrictions(){
 }
 
 // Admin determined by gate — no-op for Firebase
-function checkAdminStatus(){
-  // Admin status ditentukan oleh password gate, bukan Firebase
-  return;
-  if(isAdminUser){
-    document.getElementById('btn-settings').classList.remove('hidden-settings');
-  }
-}
 
-// ===== Settings Modal =====
 function openSettingsModal(){
   if(!isAdminUser){
     showToast('Hanya admin yang bisa mengakses pengaturan','error');
@@ -2740,28 +2659,6 @@ function openSettingsModal(){
   document.getElementById('settings-modal').classList.add('visible');
 }
 
-async function setViewerPassword(){
-  if(!isAdminUser){showToast('Hanya admin','error');return;}
-  var pwd = document.getElementById('settings-viewer-password').value.trim();
-  var errEl = document.getElementById('viewer-pw-error');
-  errEl.classList.add('hidden');
-  if(!pwd){errEl.textContent='Password viewer tidak boleh kosong';errEl.classList.remove('hidden');return;}
-  if(pwd.length<4){errEl.textContent='Password viewer minimal 4 karakter';errEl.classList.remove('hidden');return;}
-  try{
-    var hash = await sha256(pwd);
-    if(hash === appPasswordHash){errEl.textContent='Password viewer tidak boleh sama dengan password admin';errEl.classList.remove('hidden');return;}
-    appViewerPasswordHash = hash;
-    savePasswordToLocal();
-    syncPasswordToSupabase(appPasswordHash, appAdminUid);
-    showToast('Password viewer berhasil diatur!','success');
-    var vpStatus = document.getElementById('viewer-pw-status');
-    if(vpStatus) vpStatus.innerHTML = '<span class='text-emerald-600 font-medium'>&#x2713; Password viewer aktif</span>';
-    document.getElementById('settings-viewer-password').value='';
-  }catch(e){
-    errEl.textContent='Gagal: '+e.message;
-    errEl.classList.remove('hidden');
-  }
-}
 
 function removeViewerPassword(){
   if(!isAdminUser) return;
@@ -2772,11 +2669,7 @@ function removeViewerPassword(){
   if(vpStatus) vpStatus.innerHTML = '<span class='text-gray-400'>Belum diatur</span>';
   showToast('Password viewer dihapus','success');
 }
-function closeSettingsModal(){
-  document.getElementById('settings-modal').classList.remove('visible');
-}
 
-// ===== Supabase Config in Settings =====
 function saveSupabaseConfig(){
   var url = document.getElementById('settings-sb-url').value.trim();
   var key = document.getElementById('settings-sb-key').value.trim();
@@ -2792,20 +2685,6 @@ function saveSupabaseConfig(){
   if(cfgStatus) cfgStatus.innerHTML = '<span class="text-emerald-600 font-medium">&#x2713; Tersimpan (reload untuk apply)</span>';
 }
 
-function clearSupabaseConfig(){
-  localStorage.removeItem('kmz_supabase_url');
-  localStorage.removeItem('kmz_supabase_key');
-  document.getElementById('settings-sb-url').value = '';
-  document.getElementById('settings-sb-key').value = '';
-  isSupabaseReady = false;
-  sb = null;
-  currentProjectId = null;
-  stopAllFirestoreListeners();
-  updateSyncStatus('offline','Local Mode');
-  var cfgStatus = document.getElementById('sb-config-status');
-  if(cfgStatus) cfgStatus.innerHTML = '<span class="text-gray-400">Tidak dikonfigurasi</span>';
-  showToast('Konfigurasi Supabase dihapus','success');
-}
 
 async function changeAppPassword(){
   const oldPwd = document.getElementById('settings-old-password').value.trim();
@@ -2833,6 +2712,7 @@ async function changeAppPassword(){
     const newHash = await sha256(newPwd);
     // Simpan ke localStorage DULU (utama)
     appPasswordHash = newHash;
+    window._gateHash = newHash;
     savePasswordToLocal();
     // Sync ke Supabase di background (non-blocking)
     syncPasswordToSupabase(newHash, appAdminUid);
@@ -2845,17 +2725,6 @@ async function changeAppPassword(){
   }
 }
 
-// ===== Kunci aplikasi (logout dari gate) =====
-function lockApp(){
-  isAppUnlocked = false;
-  isAdminUser = false;
-  sessionStorage.removeItem('kmz_unlocked');
-  sessionStorage.removeItem('kmz_unlock_time');
-  sessionStorage.removeItem('kmz_is_admin');
-  // Tampilkan gate kembali
-  document.getElementById('password-gate').classList.remove('hidden-gate');
-  gateShowLogin();
-}
 
 // ===== Delete Project =====
 async function deleteProject(projectId, projectName){
