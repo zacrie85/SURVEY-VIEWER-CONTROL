@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title data-i18n="app_title">KMZ Viewer v8 PWA</title>
-<meta name="description" content="KMZ Viewer - Peta Survey Interaktif">
+<title data-i18n="app_title">COMSUR Survey v9</title>
+<meta name="description" content="COMSUR Survey Tools - Peta Survey Interaktif">
 <meta name="theme-color" content="#10b981">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -24,9 +24,7 @@
 <!-- Tailwind CSS v3.4.17 CDN (pinned stable) -->
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','system-ui','Arial','sans-serif']}}}}</script>
 <script>
 // ===== GLOBAL ERROR HANDLER =====
@@ -199,11 +197,11 @@ window.addEventListener('unhandledrejection',function(ev){
 .sync-dot.syncing{background:#f59e0b;animation:pulse-save 1s infinite}
 .sync-dot.offline{background:#ef4444}
 .sync-dot.idle{background:#9ca3af}
-.firebase-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10001;align-items:center;justify-content:center}
-.firebase-modal-overlay.visible{display:flex}
-.firebase-modal{background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.2);width:380px;max-width:90vw;max-height:90vh;overflow:hidden}
-.firebase-modal-header{padding:20px 20px 12px;text-align:center}
-.firebase-modal-body{padding:0 20px 20px;overflow-y:auto;max-height:60vh}
+.modal-overlay-base{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10001;align-items:center;justify-content:center}
+.modal-overlay-base.visible{display:flex}
+.modal-card{background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.2);width:380px;max-width:90vw;max-height:90vh;overflow:hidden}
+.modal-card-header{padding:20px 20px 12px;text-align:center}
+.modal-card-body{padding:0 20px 20px;overflow-y:auto;max-height:60vh}
 .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px 16px;border:1.5px solid #e5e7eb;border-radius:12px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#374151;transition:all .15s}
 .google-btn:hover{background:#f9fafb;border-color:#d1d5db;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .google-btn svg{width:18px;height:18px}
@@ -221,36 +219,9 @@ window.addEventListener('unhandledrejection',function(ev){
 .delete-mode-checkbox:checked{background:#ef4444;border-color:#ef4444}
 .delete-mode-checkbox:checked::after{content:'✓';color:#fff;font-size:14px;font-weight:700;line-height:1}
 
-/* ===== Password Gate ===== */
+/* ===== Password Gate (Modern) ===== */
 #password-gate{position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0f172a 100%);display:flex;align-items:center;justify-content:center;flex-direction:column}
 #password-gate.hidden-gate{display:none!important}
-.gate-logo{width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,#10b981,#3b82f6);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 32px rgba(16,185,129,.3)}
-.gate-logo svg{width:32px;height:32px;color:#fff}
-.gate-title{color:#f1f5f9;font-size:20px;font-weight:700;margin-bottom:4px}
-.gate-subtitle{color:#64748b;font-size:12px;margin-bottom:24px}
-.gate-input{width:260px;padding:12px 16px;border-radius:14px;border:1.5px solid #334155;background:#1e293b;color:#f1f5f9;font-size:14px;text-align:center;outline:none;transition:border-color .2s}
-.gate-input:focus{border-color:#10b981}
-.gate-input::placeholder{color:#475569}
-.gate-btn{width:260px;padding:12px;border-radius:14px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px;transition:all .15s}
-.gate-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(16,185,129,.4)}
-.gate-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.gate-error{color:#f87171;font-size:11px;margin-top:10px;min-height:16px}
-.gate-setup{color:#94a3b8;font-size:10px;margin-top:16px;text-align:center;max-width:260px;line-height:1.5}
-.gate-setup a{color:#38bdf8;text-decoration:underline}
-.gate-reset{color:#64748b;font-size:10px;margin-top:12px;text-align:center;max-width:260px}
-.gate-reset a{color:#fbbf24;text-decoration:underline;cursor:pointer}
-.gate-reset a:hover{color:#f59e0b}
-.gate-admin-info{color:#94a3b8;font-size:10px;margin-top:14px;text-align:center;max-width:260px;line-height:1.6;padding:8px 12px;border:1px solid #334155;border-radius:10px;background:rgba(30,41,59,.6)}
-.gate-admin-info strong{color:#fbbf24}
-.gate-mode-divider{color:#475569;font-size:10px;margin:10px 0;text-align:center;max-width:260px;display:flex;align-items:center;gap:8px}
-.gate-mode-divider::before,.gate-mode-divider::after{content:'';flex:1;height:1px;background:#334155}
-.gate-lock-icon{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(59,130,246,.15));display:flex;align-items:center;justify-content:center;margin-bottom:12px;border:1.5px solid rgba(16,185,129,.3)}
-.gate-lock-icon svg{width:24px;height:24px;color:#10b981}
-.gate-back-link{color:#64748b;font-size:10px;margin-top:8px;text-align:center;max-width:260px}
-.gate-back-link a{color:#94a3b8;text-decoration:underline;cursor:pointer}
-.gate-back-link a:hover{color:#cbd5e1}
-@keyframes gatePulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.3)}50%{box-shadow:0 0 20px 4px rgba(16,185,129,.15)}}
-.gate-logo{animation:gatePulse 3s ease-in-out infinite}
 
 /* ===== Settings Button ===== */
 .btn-settings{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:transparent;border:none;cursor:pointer;color:#9ca3af;transition:all .15s}
@@ -259,6 +230,12 @@ window.addEventListener('unhandledrejection',function(ev){
 
 .geo-label-tooltip{background:rgba(255,255,255,.92)!important;border:1px solid rgba(0,0,0,.12)!important;border-radius:4px!important;padding:2px 6px!important;font-size:10px!important;font-weight:600!important;color:#1e293b!important;box-shadow:0 1px 4px rgba(0,0,0,.15)!important;white-space:nowrap!important;max-width:200px!important;overflow:hidden!important;text-overflow:ellipsis!important;}
 .geo-label-tooltip::before{border-right-color:rgba(255,255,255,.92)!important;}
+/* Renamed modal classes (was firebase-modal) */
+.modal-overlay-base{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10001;align-items:center;justify-content:center}
+.modal-overlay-base.visible{display:flex}
+.modal-card{background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.2);width:380px;max-width:90vw;max-height:90vh;overflow:hidden}
+.modal-card-header{padding:20px 20px 12px;text-align:center}
+.modal-card-body{padding:0 20px 20px;overflow-y:auto;max-height:60vh}
 </style>
 
 <body>
@@ -266,39 +243,81 @@ window.addEventListener('unhandledrejection',function(ev){
 <!-- ===== OFFLINE BANNER ===== -->
 <div id="offline-banner" class="offline-banner">📡 Anda sedang offline — sinkronisasi tertunda</div>
 
-<!-- ===== PASSWORD GATE SCREEN ===== -->
+<!-- ===== PASSWORD GATE SCREEN (Modern Glassmorphism) ===== -->
 <div id="password-gate">
-  <div class="gate-logo"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
-  <p class="gate-title">KMZ Viewer</p>
-  <p id="gate-subtitle-text" class="gate-subtitle">Masukkan password untuk melanjutkan</p>
-  <!-- MODE: LOGIN -->
-  <div id="gate-mode-login">
-    <input type="password" id="gate-password-input" class="gate-input" placeholder="Password aplikasi" onkeydown="if(event.key==='Enter')gateSubmit()" />
-    <button id="gate-submit-btn" class="gate-btn" onclick="gateSubmit()">Masuk</button>
+  <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none">
+    <div style="position:absolute;top:-20%;left:-20%;width:60%;height:60%;background:radial-gradient(circle,rgba(99,102,241,.15) 0%,transparent 70%);animation:floatOrb1 8s ease-in-out infinite"></div>
+    <div style="position:absolute;bottom:-20%;right:-20%;width:50%;height:50%;background:radial-gradient(circle,rgba(16,185,129,.12) 0%,transparent 70%);animation:floatOrb2 10s ease-in-out infinite"></div>
+    <div style="position:absolute;top:40%;left:50%;width:40%;height:40%;background:radial-gradient(circle,rgba(236,72,153,.08) 0%,transparent 70%);animation:floatOrb3 12s ease-in-out infinite"></div>
   </div>
-  <!-- MODE: SETUP (password pertama kali) -->
-  <div id="gate-mode-setup" class="hidden">
-    <input type="password" id="gate-new-password" class="gate-input" placeholder="Buat password baru (min 4 karakter)" onkeydown="if(event.key==='Enter')document.getElementById('gate-confirm-password').focus()" />
-    <input type="password" id="gate-confirm-password" class="gate-input" style="margin-top:8px" placeholder="Konfirmasi password" onkeydown="if(event.key==='Enter')gateSetupPassword()" />
-    <button id="gate-setup-btn" class="gate-btn" onclick="gateSetupPassword()">Simpan Password</button>
+  <style>
+    @keyframes floatOrb1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,20px) scale(1.1)}
+    @keyframes floatOrb2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,-30px) scale(1.15)}
+    @keyframes floatOrb3{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-45%,-55%) scale(1.05)}
+    @keyframes gateCardIn{from{opacity:0;transform:translateY(30px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes logoPulse{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.3),0 8px 32px rgba(0,0,0,.2)}50%{box-shadow:0 0 0 12px rgba(99,102,241,.08),0 8px 32px rgba(0,0,0,.2)}}
+    @keyframes inputGlow{0%,100%{border-color:rgba(99,102,241,.3)}50%{border-color:rgba(99,102,241,.6)}}
+    .gate-card{animation:gateCardIn .6s cubic-bezier(.16,1,.3,1) forwards}
+    .gate-logo-new{animation:logoPulse 3s ease-in-out infinite}
+    .gate-input-new:focus{border-color:#6366f1!important;box-shadow:0 0 0 3px rgba(99,102,241,.15)!important;animation:none!important}
+    .gate-input-new{transition:all .2s ease}
+    .gate-btn-new{transition:all .2s ease;position:relative;overflow:hidden}
+    .gate-btn-new:hover{transform:translateY(-1px)!important;box-shadow:0 8px 25px rgba(99,102,241,.35)!important}
+    .gate-btn-new:active{transform:translateY(0)!important}
+    .gate-btn-new::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2) 0%,transparent 50%);pointer-events:none}
+    @keyframes shakeX{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+  </style>
+  <div class="gate-card" style="position:relative;z-index:1;width:360px;max-width:90vw;background:rgba(15,23,42,.65);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:40px 32px 32px;box-shadow:0 25px 50px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)">
+    <div style="text-align:center;margin-bottom:24px">
+      <div class="gate-logo-new" style="width:64px;height:64px;background:linear-gradient(135deg,#6366f1,#10b981);border-radius:18px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      </div>
+      <h1 style="color:#f1f5f9;font-size:22px;font-weight:800;margin:0 0 4px;letter-spacing:-.02em;font-family:Inter,system-ui,sans-serif">COMSUR Survey</h1>
+      <p id="gate-subtitle-text" style="color:rgba(148,163,184,.8);font-size:12px;margin:0;font-family:Inter,system-ui,sans-serif">Masukkan password untuk melanjutkan</p>
+    </div>
+    <div id="gate-mode-login">
+      <div style="position:relative;margin-bottom:16px">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:rgba(148,163,184,.5);pointer-events:none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        <input type="password" id="gate-password-input" class="gate-input-new" placeholder="Password aplikasi" onkeydown="if(event.key==='Enter')gateSubmit()" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
+      </div>
+      <button id="gate-submit-btn" class="gate-btn-new" onclick="gateSubmit()" style="width:100%;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,system-ui,sans-serif;letter-spacing:.01em">Masuk</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
+        <p id="gate-change-link" class="hidden" style="margin:0"><a href="#" onclick="event.preventDefault();gateShowChangePassword()" style="color:rgba(148,163,184,.6);font-size:11px;text-decoration:none">Ubah Password</a></p>
+        <p id="gate-local-reset" class="gate-reset" style="margin:0"><a href="#" onclick="event.preventDefault();gateResetLocal()" style="color:rgba(239,68,68,.5);font-size:11px;text-decoration:none">Reset Password</a></p>
+      </div>
+    </div>
+    <div id="gate-mode-setup" class="hidden">
+      <div id="gate-admin-badge" class="hidden" style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:8px 12px;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#fbbf24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        <span style="color:#fbbf24;font-size:11px;font-weight:600">Kamu akan menjadi Admin</span>
+      </div>
+      <div style="position:relative;margin-bottom:10px">
+        <input type="password" id="gate-new-password" class="gate-input-new" placeholder="Buat password baru (min 4 karakter)" onkeydown="if(event.key==='Enter')document.getElementById('gate-confirm-password').focus()" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
+      </div>
+      <div style="position:relative;margin-bottom:16px">
+        <input type="password" id="gate-confirm-password" class="gate-input-new" placeholder="Konfirmasi password" onkeydown="if(event.key==='Enter')gateSetupPassword()" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
+      </div>
+      <button id="gate-setup-btn" class="gate-btn-new" onclick="gateSetupPassword()" style="width:100%;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,system-ui,sans-serif">Simpan Password</button>
+    </div>
+    <div id="gate-mode-change" class="hidden">
+      <div style="position:relative;margin-bottom:10px">
+        <input type="password" id="gate-change-old" class="gate-input-new" placeholder="Password lama" onkeydown="if(event.key==='Enter')document.getElementById('gate-change-new').focus()" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
+      </div>
+      <div style="position:relative;margin-bottom:10px">
+        <input type="password" id="gate-change-new" class="gate-input-new" placeholder="Password baru (min 4 karakter)" onkeydown="if(event.key==='Enter')document.getElementById('gate-change-confirm').focus()" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
+      </div>
+      <div style="position:relative;margin-bottom:16px">
+        <input type="password" id="gate-change-confirm" class="gate-input-new" placeholder="Konfirmasi password baru" onkeydown="if(event.key==='Enter')gateChangePassword()" style="width:100%;padding:13px 14px 13px 42px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05);color:#f1f5f9;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />
+      </div>
+      <button id="gate-change-btn" class="gate-btn-new" onclick="gateChangePassword()" style="width:100%;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,system-ui,sans-serif">Ubah Password</button>
+      <p style="text-align:center;margin-top:12px"><a href="#" onclick="event.preventDefault();gateBackToLogin()" style="color:rgba(148,163,184,.5);font-size:11px;text-decoration:none">Kembali ke Login</a></p>
+    </div>
+    <p id="gate-error" style="color:#f87171;font-size:11px;margin-top:12px;min-height:16px;text-align:center"></p>
+    <p id="gate-setup-hint" class="gate-setup hidden" style="color:rgba(148,163,184,.5);font-size:11px;margin-top:12px;text-align:center">Password belum diatur. <a href="#" onclick="event.preventDefault();gateShowSetupOld()" style="color:#a5b4fc;text-decoration:none">Atur sekarang</a></p>
   </div>
-  <!-- MODE: CHANGE (admin ubah password) -->
-  <div id="gate-mode-change" class="hidden">
-    <input type="password" id="gate-change-old" class="gate-input" placeholder="Password lama" onkeydown="if(event.key==='Enter')document.getElementById('gate-change-new').focus()" />
-    <input type="password" id="gate-change-new" class="gate-input" style="margin-top:8px" placeholder="Password baru (min 4 karakter)" onkeydown="if(event.key==='Enter')document.getElementById('gate-change-confirm').focus()" />
-    <input type="password" id="gate-change-confirm" class="gate-input" style="margin-top:8px" placeholder="Konfirmasi password baru" onkeydown="if(event.key==='Enter')gateChangePassword()" />
-    <button id="gate-change-btn" class="gate-btn" onclick="gateChangePassword()">Ubah Password</button>
-    <p class="gate-back-link"><a href="#" onclick="event.preventDefault();gateBackToLogin()">Kembali ke Login</a></p>
-  </div>
-  <p id="gate-error" class="gate-error"></p>
-  <p id="gate-setup-hint" class="gate-setup hidden">Password belum diatur. <a href="#" onclick="event.preventDefault();gateShowSetupOld()">Atur password sekarang</a></p>
-  <p id="gate-admin-badge" class="hidden" style="color:#fbbf24;font-size:10px;margin-top:10px;display:flex;align-items:center;gap:4px;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> Login pertama = Admin</p>
-  <p id="gate-reset-hint" class="gate-reset hidden">Lupa password? <a href="#" onclick="event.preventDefault();gateResetPassword()">Login Firebase untuk reset</a></p>
-  <p id="gate-change-link" class="hidden" style="color:#64748b;font-size:10px;margin-top:8px;text-align:center;max-width:260px"><a href="#" onclick="event.preventDefault();gateShowChangePassword()" style="color:#38bdf8;text-decoration:underline">Ubah Password</a></p>
-  <p id="gate-local-reset" class="gate-reset" style="margin-top:16px"><a href="#" onclick="event.preventDefault();gateResetLocal()" style="color:#ef4444;text-decoration:underline;cursor:pointer">Reset Password Lokal</a></p>
+  <div style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(148,163,184,.3);font-size:10px;z-index:1">v9.0 — Secured Access</div>
 </div>
-
-<div id="app" class="flex flex-col h-screen w-screen overflow-hidden bg-gray-100">
+ class="flex flex-col h-screen w-screen overflow-hidden bg-gray-100">
 <!-- Header -->
 <header class="bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between shrink-0 z-50 shadow-sm">
   <div class="flex items-center gap-2">
@@ -334,16 +353,16 @@ window.addEventListener('unhandledrejection',function(ev){
 </div>
 
 <!-- ===== LOGIN MODAL ===== -->
-<div id="login-modal" class="firebase-modal-overlay" onclick="if(event.target===this)closeLoginModal()">
-  <div class="firebase-modal">
-    <div class="firebase-modal-header">
+<div id="login-modal" class="modal-overlay-base" onclick="if(event.target===this)closeLoginModal()">
+  <div class="modal-card">
+    <div class="modal-card-header">
       <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center mx-auto mb-3">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
       </div>
       <h2 class="text-lg font-bold text-gray-800">KMZ Viewer Cloud Sync</h2>
       <p class="text-xs text-gray-400 mt-1">Login untuk sinkronisasi data real-time antar device</p>
     </div>
-    <div class="firebase-modal-body">
+    <div class="modal-card-body">
       <!-- Logged in state -->
       <div id="login-logged-in" class="hidden">
         <div class="flex items-center gap-3 bg-gray-50 rounded-xl p-3 mb-3">
@@ -364,31 +383,10 @@ window.addEventListener('unhandledrejection',function(ev){
       </div>
       <!-- Login form state -->
       <div id="login-form-state">
-        <button onclick="signInWithGoogle()" class="google-btn mb-3">
-          <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-          Masuk dengan Google
-        </button>
-        <div class="flex items-center gap-2 mb-3">
-          <div class="flex-1 h-px bg-gray-200"></div>
-          <span class="text-[10px] text-gray-400">atau email</span>
-          <div class="flex-1 h-px bg-gray-200"></div>
+        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 mb-3">
+          <p class="text-[11px] text-indigo-700 font-medium">Aplikasi dilindungi oleh Password Gate. Kelola password di Pengaturan Admin.</p>
+          <p class="text-[10px] text-gray-400 mt-1">Supabase + Vercel Ready</p>
         </div>
-        <div id="login-email-form">
-          <input type="email" id="login-email" placeholder="Email" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 mb-2" />
-          <input type="password" id="login-password" placeholder="Password" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 mb-2" />
-          <button onclick="signInWithEmail()" id="btn-email-login" class="w-full py-2.5 text-xs font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors">Masuk</button>
-          <p id="login-error" class="text-[10px] text-red-500 text-center mt-2 hidden"></p>
-        </div>
-        <div id="login-register-form" class="hidden">
-          <input type="email" id="reg-email" placeholder="Email" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 mb-2" />
-          <input type="password" id="reg-password" placeholder="Password (min 6 karakter)" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 mb-2" />
-          <button onclick="registerWithEmail()" class="w-full py-2.5 text-xs font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">Daftar</button>
-          <p id="reg-error" class="text-[10px] text-red-500 text-center mt-2 hidden"></p>
-        </div>
-        <div class="flex justify-center mt-3">
-          <button onclick="toggleAuthForm()" id="btn-toggle-auth" class="text-[11px] text-emerald-600 hover:text-emerald-700 font-medium">Belum punya akun? Daftar</button>
-        </div>
-      </div>
     </div>
     <div class="p-3 border-t border-gray-100 flex justify-end">
       <button onclick="closeLoginModal()" class="text-xs text-gray-400 hover:text-gray-600">Tutup</button>
@@ -397,13 +395,13 @@ window.addEventListener('unhandledrejection',function(ev){
 </div>
 
 <!-- ===== PROJECT CREATE MODAL ===== -->
-<div id="project-modal" class="firebase-modal-overlay" onclick="if(event.target===this)closeProjectModal()">
-  <div class="firebase-modal" style="width:340px">
-    <div class="firebase-modal-header">
+<div id="project-modal" class="modal-overlay-base" onclick="if(event.target===this)closeProjectModal()">
+  <div class="modal-card" style="width:340px">
+    <div class="modal-card-header">
       <h2 class="text-base font-bold text-gray-800">Buat Proyek Baru</h2>
       <p class="text-xs text-gray-400 mt-1">Proyek terpisah untuk organisasi data survey</p>
     </div>
-    <div class="firebase-modal-body">
+    <div class="modal-card-body">
       <input type="text" id="new-project-name" placeholder="Nama proyek (misal: Survey Lahan A)" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 mb-2" />
       <textarea id="new-project-desc" placeholder="Deskripsi (opsional)" rows="2" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 mb-3 resize-none"></textarea>
       <button onclick="createNewProject()" class="w-full py-2.5 text-xs font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors">Buat Proyek</button>
@@ -429,16 +427,16 @@ window.addEventListener('unhandledrejection',function(ev){
 </div>
 
 <!-- ===== SETTINGS MODAL (Admin Only) ===== -->
-<div id="settings-modal" class="firebase-modal-overlay" onclick="if(event.target===this)closeSettingsModal()">
-  <div class="firebase-modal" style="width:340px">
-    <div class="firebase-modal-header">
+<div id="settings-modal" class="modal-overlay-base" onclick="if(event.target===this)closeSettingsModal()">
+  <div class="modal-card" style="width:340px">
+    <div class="modal-card-header">
       <div class="flex items-center gap-2 justify-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         <h2 class="text-base font-bold text-gray-800">Pengaturan Admin</h2>
       </div>
       <p class="text-xs text-gray-400 mt-1">Kelola password & keamanan aplikasi</p>
     </div>
-    <div class="firebase-modal-body">
+    <div class="modal-card-body">
       <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">
         <p class="text-[10px] text-amber-700 font-medium flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Sebagai admin, kamu dapat mengubah password aplikasi. User lain hanya bisa menggunakan password yang sudah diatur.</p>
       </div>
@@ -966,10 +964,10 @@ window.addEventListener('unhandledrejection',function(ev){
   </div>
   <div class="bottom-panel-body">
     <!-- Firebase Cloud Sync Section -->
-    <div class="panel-section" id="firebase-section">
+    <div class="panel-section" id=.panel-section">
       <div class="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-xl p-3 space-y-2">
         <div class="flex items-center justify-between">
-          <p class="text-xs font-semibold text-emerald-700 flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Cloud Sync (Firebase)</p>
+          <p class="text-xs font-semibold text-emerald-700 flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Cloud Sync (Supabase)</p>
           <span id="proyek-sync-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Offline</span>
         </div>
         <div id="proyek-user-info" class="hidden">
@@ -985,7 +983,7 @@ window.addEventListener('unhandledrejection',function(ev){
         <div id="proyek-login-prompt">
           <button onclick="openLoginModal()" class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-            Login untuk Sync
+            Kelola Akses
           </button>
         </div>
         <div id="proyek-project-section" class="hidden">
@@ -1179,7 +1177,7 @@ let fileDB = null;
 let isDownloadingTiles = false;
 
 // Persistence
-const STORAGE_KEY = 'kmz-viewer-v8-state';
+const STORAGE_KEY = 'comsur-survey-v9-state';
 const STORAGE_VERSION = 9; // Increment when state format changes
 let saveTimeout = null;
 
@@ -1933,72 +1931,34 @@ function updateMeasureResult(){
 }
 
 
-// ==================== FIREBASE CONFIG ====================
-const firebaseConfig = {
-  apiKey: "AIzaSyBLNEb7gRAx3ygO01RlI3bTT5idYcIf6AY",
-  authDomain: "projek-survey.firebaseapp.com",
-  projectId: "projek-survey",
-  storageBucket: "projek-survey.firebasestorage.app",
-  messagingSenderId: "93855717276",
-  appId: "1:93855717276:web:fd5c439174870bfcfe1a59"
-};
-
-let fbApp = null, fbAuth = null, fbDb = null;
+// ==================== SUPABASE CONFIG ====================
+// Ganti URL dan Key dari project Supabase kamu di bawah ini, lalu simpan
+// Atau atur via Settings Admin
+const SUPABASE_URL = localStorage.getItem('kmz_supabase_url') || '';
+const SUPABASE_ANON_KEY = localStorage.getItem('kmz_supabase_key') || '';
+let sb = null;
+let isSupabaseReady = false;
 let currentUser = null;
 let currentProjectId = null;
 let firestoreListeners = [];
-let isFirebaseReady = false;
 let syncInProgress = false;
 
-// ==================== FIREBASE INIT ====================
-function initFirebase(){
+function initSupabase(){
   try{
-    if(typeof firebase === 'undefined'){
-      console.warn('Firebase SDK not loaded');
-      updateSyncStatus('offline','SDK Error');
-      // Tetap aktifkan gate dengan localStorage fallback
-      checkGateAndInit();
-      return;
+    if(typeof supabase !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY){
+      sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      isSupabaseReady = true;
+      console.log('Supabase initialized');
+      updateSyncStatus('online','Supabase');
+    }else{
+      console.warn('Supabase not configured - Local Mode');
+      updateSyncStatus('offline','Local Mode');
     }
-    fbApp = firebase.initializeApp(firebaseConfig);
-    fbAuth = firebase.auth();
-    fbDb = firebase.firestore();
-
-    // Enable offline persistence
-    fbDb.enablePersistence({synchronizeTabs:true}).catch(err=>{
-      if(err.code==='failed-precondition'){
-        console.warn('Firestore persistence failed: multiple tabs');
-      }else if(err.code==='unimplemented'){
-        console.warn('Firestore persistence not available');
-      }
-    });
-
-    isFirebaseReady = true;
-
-    // Password gate ENABLED — cek session & password
-    checkGateAndInit();
-
-    // Listen for auth state changes
-    fbAuth.onAuthStateChanged(async (user)=>{
-      if(user){
-        currentUser = user;
-        onUserLoggedIn(user);
-        // Setelah login, cek & promote admin jika perlu
-        if(isAppUnlocked) checkAdminStatus();
-      }else{
-        currentUser = null;
-        onUserLoggedOut();
-      }
-    });
-
-    updateSyncStatus('idle','Siap');
-    console.log('Firebase initialized');
   }catch(e){
-    console.warn('Firebase init error:',e);
-    updateSyncStatus('offline','Error');
-    // Tetap aktifkan gate dengan localStorage fallback
-    checkGateAndInit();
+    console.warn('Supabase init error:',e);
+    updateSyncStatus('offline','Local Mode');
   }
+  checkGateAndInit();
 }
 
 // ==================== AUTH FUNCTIONS ====================
@@ -2026,90 +1986,23 @@ function closeLoginModal(){
   modal.style.zIndex = '';
 }
 
-function toggleAuthForm(){
-  const emailForm = document.getElementById('login-email-form');
-  const regForm = document.getElementById('login-register-form');
-  const toggleBtn = document.getElementById('btn-toggle-auth');
-  if(regForm.classList.contains('hidden')){
-    emailForm.classList.add('hidden');
-    regForm.classList.remove('hidden');
-    toggleBtn.textContent = 'Sudah punya akun? Masuk';
-  }else{
-    regForm.classList.add('hidden');
-    emailForm.classList.remove('hidden');
-    toggleBtn.textContent = 'Belum punya akun? Daftar';
-  }
-}
+function toggleAuthForm(){/* removed */}
 
-async function signInWithGoogle(){
-  if(!isFirebaseReady){await appAlert('Firebase belum siap');return;}
-  try{
-    updateSyncStatus('syncing','Login...');
-    const provider = new firebase.auth.GoogleAuthProvider();
-    await fbAuth.signInWithPopup(provider);
-  }catch(e){
-    console.error('Google sign-in error:',e);
-    showLoginError('Login gagal: '+e.message);
-    updateSyncStatus('idle','Siap');
-  }
-}
+async function signInWithGoogle(){showToast('Google login dihapus. Gunakan Password Gate.','error');}
 
-async function signInWithEmail(){
-  if(!isFirebaseReady){await appAlert('Firebase belum siap');return;}
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  if(!email||!password){showLoginError('Email dan password harus diisi');return;}
-  try{
-    updateSyncStatus('syncing','Login...');
-    await fbAuth.signInWithEmailAndPassword(email,password);
-  }catch(e){
-    console.error('Email sign-in error:',e);
-    showLoginError('Login gagal: '+e.message);
-    updateSyncStatus('idle','Siap');
-  }
-}
+async function signInWithEmail(){showToast('Google login dihapus. Gunakan Password Gate.','error');}
 
-async function registerWithEmail(){
-  if(!isFirebaseReady){await appAlert('Firebase belum siap');return;}
-  const email = document.getElementById('reg-email').value.trim();
-  const password = document.getElementById('reg-password').value;
-  if(!email||!password){showRegError('Email dan password harus diisi');return;}
-  if(password.length<6){showRegError('Password minimal 6 karakter');return;}
-  try{
-    updateSyncStatus('syncing','Daftar...');
-    await fbAuth.createUserWithEmailAndPassword(email,password);
-  }catch(e){
-    console.error('Register error:',e);
-    showRegError('Daftar gagal: '+e.message);
-    updateSyncStatus('idle','Siap');
-  }
-}
+async function registerWithEmail(){showToast('Google login dihapus. Gunakan Password Gate.','error');}
 
-async function signOutUser(){
-  if(!fbAuth)return;
-  try{
-    stopAllFirestoreListeners();
-    currentProjectId = null;
-    await fbAuth.signOut();
-  }catch(e){console.error('Sign out error:',e);}
-}
-
-function showLoginError(msg){
-  const el = document.getElementById('login-error');
-  el.textContent = msg; el.classList.remove('hidden');
-  setTimeout(()=>el.classList.add('hidden'),5000);
-}
-function showRegError(msg){
-  const el = document.getElementById('reg-error');
-  el.textContent = msg; el.classList.remove('hidden');
-  setTimeout(()=>el.classList.add('hidden'),5000);
-}
+function signOutUser(){ isAppUnlocked=false; isAdminUser=false; currentUser=null; sessionStorage.removeItem('kmz_unlocked'); sessionStorage.removeItem('kmz_unlock_time'); sessionStorage.removeItem('kmz_is_admin'); sessionStorage.removeItem('kmz_user_role'); stopAllFirestoreListeners(); currentProjectId=null; document.getElementById('password-gate').classList.remove('hidden-gate'); gateShowLogin(); }
 
 // ==================== USER STATE MANAGEMENT ====================
 function onUserLoggedIn(user){
-  console.log('User logged in:',user.email);
+  const name = user.name || 'Admin';
+  const role = user.role || 'admin';
+  console.log('User logged in:', name, 'role:', role);
   updateUserUI(user);
-  updateSyncStatus('online','Online');
+  if(isSupabaseReady) updateSyncStatus('online','Online');
   loadProjectList();
 
   // Show logged-in UI in login modal
@@ -2126,15 +2019,15 @@ function onUserLoggedIn(user){
   const avatarBtn = document.getElementById('btn-user-avatar');
   avatarBtn.classList.remove('hidden');
   avatarBtn.classList.add('flex');
-  avatarBtn.textContent = user.email.charAt(0).toUpperCase();
+  avatarBtn.textContent = name.charAt(0).toUpperCase();
 
   // Update Proyek panel badges
-  document.getElementById('proyek-sync-badge').textContent = 'Online';
-  document.getElementById('proyek-sync-badge').className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700';
+  if(isSupabaseReady){
+    document.getElementById('proyek-sync-badge').textContent = 'Online';
+    document.getElementById('proyek-sync-badge').className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700';
+  }
 
-  // Cek apakah user ini admin (langsung + delayed karena appAdminUid mungkin belum dimuat)
-  checkAdminStatus();
-  setTimeout(()=>checkAdminStatus(), 1500);
+  enforceAdminControls();
 }
 
 function onUserLoggedOut(){
@@ -2155,7 +2048,7 @@ function onUserLoggedOut(){
   document.getElementById('proyek-sync-badge').className = 'text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500';
   document.getElementById('proyek-last-sync').textContent = '';
 
-  updateSyncStatus('offline','Offline');
+  updateSyncStatus('offline','Local Mode');
 
   // Sembunyikan tombol settings hanya jika bukan admin lokal
   if(!isAdminUser){
@@ -2164,32 +2057,29 @@ function onUserLoggedOut(){
 }
 
 function updateUserUI(user){
-  const name = user.displayName || user.email.split('@')[0];
-  const email = user.email;
+  const name = user.name || 'Admin';
   const initial = name.charAt(0).toUpperCase();
 
   // Modal
   document.getElementById('modal-user-name').textContent = name;
-  document.getElementById('modal-user-email').textContent = email;
+  document.getElementById('modal-user-email').textContent = user.role === 'admin' ? 'Administrator' : 'Viewer';
   const avatar = document.getElementById('modal-user-avatar');
-  if(user.photoURL){
-    avatar.innerHTML = '<img src="'+esc(user.photoURL)+'" class="w-full h-full object-cover rounded-full" />';
-  }else{
-    avatar.textContent = initial;
-  }
+  avatar.textContent = initial;
 
   // Proyek panel
   document.getElementById('proyek-user-name').textContent = name;
-  document.getElementById('proyek-user-email').textContent = email;
+  document.getElementById('proyek-user-email').textContent = user.role === 'admin' ? 'Administrator' : 'Viewer';
   const pAvatar = document.getElementById('proyek-user-avatar');
-  if(user.photoURL){
-    pAvatar.innerHTML = '<img src="'+esc(user.photoURL)+'" class="w-full h-full object-cover rounded-full" />';
-  }else{
-    pAvatar.textContent = initial;
-  }
+  pAvatar.textContent = initial;
 }
 
-// ==================== PROJECT MANAGEMENT ====================
+function enforceAdminControls(){
+  if(isAdminUser) return;
+  document.querySelectorAll('.delete-project-btn').forEach(function(b){b.style.display='none';});
+  var d=document.getElementById('btn-toggle-delete-mode');if(d)d.style.display='none';
+  var r=document.getElementById('proyek-delete-row');if(r)r.style.display='none';
+}
+
 function openProjectModal(){
   closeLoginModal();
   loadProjectList();
@@ -2244,9 +2134,7 @@ async function deleteSelectedProjects(){
   const checkboxes = document.querySelectorAll('.delete-mode-checkbox:checked');
   if(checkboxes.length === 0) return;
   const names = [];
-  checkboxes.forEach(cb=>{
-    names.push(cb.getAttribute('data-project-name'));
-  });
+  checkboxes.forEach(cb=>{ names.push(cb.getAttribute('data-project-name')); });
   if(!await appConfirm('Hapus '+names.length+' proyek?\n\n'+names.join(', ')+'\n\nSemua data di dalamnya akan ikut terhapus!')){
     return;
   }
@@ -2256,36 +2144,10 @@ async function deleteSelectedProjects(){
     const pid = cb.getAttribute('data-project-id');
     const pname = cb.getAttribute('data-project-name');
     try{
-      // Permission check: only creator or admin can delete
-      const isAppAdmin = isAdminUser || (currentUser && appAdminUid && currentUser.uid === appAdminUid);
-      const projDoc = await fbDb.collection('projects').doc(pid).get();
-      if(projDoc.exists){
-        const projData = projDoc.data();
-        const isCreator = projData.createdBy === currentUser.uid;
-        if(!isCreator && !isAppAdmin){
-          showToast('Tidak bisa hapus "'+pname+'" — hanya pembuat atau admin','error');
-          failCount++;continue;
-        }
+      if(!isAdminUser){ showToast('Hanya admin yang bisa menghapus proyek','error'); failCount++; continue; }
+      if(isSupabaseReady){
+        await sb.from('projects').delete().eq('id',pid);
       }
-      const projRef = fbDb.collection('projects').doc(pid);
-      const subCollections = ['markers','folders','polygonFolders','counters','layers'];
-      for(const subCol of subCollections){
-        const snap = await projRef.collection(subCol).get();
-        const batch = fbDb.batch();
-        snap.forEach(doc=>batch.delete(doc.ref));
-        if(!snap.empty) await batch.commit();
-      }
-      // Delete layer chunks
-      const layersSnap = await projRef.collection('layers').get();
-      for(const layerDoc of layersSnap.docs){
-        const chunksSnap = await layerDoc.ref.collection('chunks').get();
-        if(!chunksSnap.empty){
-          const batch = fbDb.batch();
-          chunksSnap.forEach(doc=>batch.delete(doc.ref));
-          await batch.commit();
-        }
-      }
-      await projRef.delete();
       if(pid === currentProjectId){
         stopAllFirestoreListeners();
         currentProjectId = null;
@@ -2303,27 +2165,23 @@ async function deleteSelectedProjects(){
       failCount++;
     }
   }
-  // Exit delete mode and reload
   projectDeleteMode = false;
   await loadProjectList();
-  toggleProjectDeleteMode(); // reset button state
+  toggleProjectDeleteMode();
   showToast(successCount+' proyek dihapus'+(failCount>0?', '+failCount+' gagal':''),'success');
 }
 
 async function loadProjectList(){
-  if(!isFirebaseReady||!currentUser) return;
+  if(!isSupabaseReady||!currentUser) return;
   let docs = [];
   try{
-    // Ambil semua proyek (semua user login bisa melihat)
-    const snapshot = await fbDb.collection('projects').get();
+    const {data: projects, error} = await sb.from('projects').select('*');
+    if(error) throw error;
 
-    // Sort di JavaScript (bukan di Firestore) agar tidak perlu composite index
-    snapshot.forEach(doc=> {
-      docs.push({id:doc.id,data:doc.data()});
-    });
+    docs = (projects||[]).map(p=>({id:p.id, data:p}));
     docs.sort((a,b)=>{
-      const ta = a.data.createdAt ? (a.data.createdAt.toDate ? a.data.createdAt.toDate() : new Date(a.data.createdAt)) : new Date(0);
-      const tb = b.data.createdAt ? (b.data.createdAt.toDate ? b.data.createdAt.toDate() : new Date(b.data.createdAt)) : new Date(0);
+      const ta = a.data.created_at ? new Date(a.data.created_at) : new Date(0);
+      const tb = b.data.created_at ? new Date(b.data.created_at) : new Date(0);
       return tb - ta;
     });
 
@@ -2335,27 +2193,20 @@ async function loadProjectList(){
       const sel = docId === currentProjectId ? 'selected' : '';
       options.push('<option value="'+docId+'" '+sel+'>'+esc(d.name)+'</option>');
       const isActive = docId === currentProjectId;
-      const dateStr = d.createdAt ? (d.createdAt.toDate ? d.createdAt.toDate() : new Date(d.createdAt)).toLocaleDateString('id-ID') : '-';
-      const creatorInfo = d.createdByName ? '<p class="text-[8px] text-gray-300">oleh: '+esc(d.createdByName)+'</p>' : '';
+      const dateStr = d.created_at ? new Date(d.created_at).toLocaleDateString('id-ID') : '-';
+      const creatorInfo = d.created_by ? '<p class="text-[8px] text-gray-300">oleh: '+esc(d.created_by)+'</p>' : '';
       const escName = esc(d.name).replace(/'/g,"\\'");
 
       if(isDeleteMode){
-        // Checkbox mode for bulk deletion (only show projects this user can delete)
-        const isAppAdmin = isAdminUser || (currentUser && appAdminUid && currentUser.uid === appAdminUid);
-        const canDelete = isAppAdmin || d.createdBy === currentUser.uid;
-        if(canDelete){
+        if(isAdminUser){
           listHtml.push('<div class="project-card project-card-delete-mode '+(isActive?'active':'')+'"><input type="checkbox" class="delete-mode-checkbox" data-project-id="'+docId+'" data-project-name="'+escName+'" onchange="updateDeleteCount()" onclick="event.stopPropagation()"><div class="project-info"><p class="text-xs font-semibold text-gray-700">'+esc(d.name)+'</p>'+(d.description?'<p class="text-[10px] text-gray-400 truncate">'+esc(d.description)+'</p>':'')+'<p class="text-[9px] text-gray-300 mt-1">'+dateStr+'</p>'+creatorInfo+'</div></div>');
         }
       }else{
-        // Normal mode: show trash button only for creator or admin
-        const isAppAdmin = isAdminUser || (currentUser && appAdminUid && currentUser.uid === appAdminUid);
-        const canDelete = isAppAdmin || d.createdBy === currentUser.uid;
-        const deleteBtn = canDelete ? '<button class="delete-project-btn" onclick="event.stopPropagation();deleteProject(\''+docId+'\',\''+escName+'\')" title="Hapus proyek ini">'+trashSvg+'</button>' : '';
+        const deleteBtn = isAdminUser ? '<button class="delete-project-btn" onclick="event.stopPropagation();deleteProject(\''+docId+'\',\''+escName+'\')" title="Hapus proyek ini">'+trashSvg+'</button>' : '';
         listHtml.push('<div class="project-card '+(isActive?'active':'')+'" onclick="switchProject(\''+docId+'\')"><div class="project-info"><p class="text-xs font-semibold text-gray-700">'+esc(d.name)+'</p>'+(d.description?'<p class="text-[10px] text-gray-400 truncate">'+esc(d.description)+'</p>':'')+'<p class="text-[9px] text-gray-300 mt-1">'+dateStr+'</p>'+creatorInfo+'</div>'+deleteBtn+'</div>');
       }
     });
 
-    // Update all project selectors
     ['modal-project-select','proyek-project-select'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.innerHTML = options.join('');
@@ -2381,52 +2232,36 @@ async function loadProjectList(){
 }
 
 async function createNewProject(){
-  if(!isFirebaseReady){showProjectError('Firebase belum siap. Coba refresh halaman.');return;}
-  if(!currentUser){showProjectError('Kamu belum login. Klik ikon user untuk login dulu.');return;}
+  if(!isSupabaseReady){showProjectError('Supabase belum dikonfigurasi. Atur di localStorage: kmz_supabase_url dan kmz_supabase_key.');return;}
+  if(!currentUser){showProjectError('Kamu belum login.');return;}
   const name = document.getElementById('new-project-name').value.trim();
   if(!name){showProjectError('Nama proyek harus diisi');return;}
   const desc = document.getElementById('new-project-desc').value.trim();
   try{
     updateSyncStatus('syncing','Membuat...');
-    console.log('Creating project:',name,'user:',currentUser.uid);
-    const docRef = await fbDb.collection('projects').add({
+    const {data: newProject, error} = await sb.from('projects').insert({
       name: name,
       description: desc,
-      createdBy: currentUser.uid,
-      createdByName: currentUser.displayName || currentUser.email,
-      members: [currentUser.uid],
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      lastModified: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    console.log('Project created:',docRef.id);
-    currentProjectId = docRef.id;
+      created_by: currentUser.name || 'admin',
+      created_at: new Date().toISOString(),
+      last_modified: new Date().toISOString()
+    }).select().single();
+    if(error) throw error;
+    console.log('Project created:',newProject.id);
+    currentProjectId = newProject.id;
     updateSyncStatus('online','Tersinkron');
-
-    // Tampilkan notifikasi sukses dulu
     showToast('Proyek berhasil dibuat!', 'success');
-
-    // Muat ulang list proyek (modal masih terbuka)
     await loadProjectList();
-
-    // Set select ke proyek yang baru dibuat
     ['modal-project-select','proyek-project-select'].forEach(id=>{
       const el = document.getElementById(id);
-      if(el) el.value = docRef.id;
+      if(el) el.value = newProject.id;
     });
-
-    // Tutup modal setelah list ter-update
     setTimeout(()=>{ closeProjectModal(); }, 600);
-
-    // Mulai sync listeners & upload data lokal
     await startSyncListeners();
-    // Upload current local data to new project (non-blocking)
     uploadLocalDataToProject().catch(e=>console.warn('Upload local data warn:',e));
   }catch(e){
     console.error('Create project error:',e);
-    let msg = 'Gagal membuat proyek: ' + e.message;
-    if(e.code === 'permission-denied') msg = 'Akses ditolak! Pastikan Firestore security rules sudah di set ke Test Mode.';
-    if(e.code === 'unavailable') msg = 'Tidak bisa terhubung ke Firebase. Cek koneksi internet.';
-    showProjectError(msg);
+    showProjectError('Gagal membuat proyek: ' + e.message);
     updateSyncStatus('online','Error Buat');
   }
 }
@@ -2438,14 +2273,15 @@ function showProjectError(msg){
 }
 
 // ==================== PASSWORD GATE & ADMIN SETTINGS ====================
-let appPasswordHash = null;   // hash disimpan di Firestore & localStorage
-let appAdminUid = null;       // UID admin disimpan di Firestore & localStorage
+let appPasswordHash = null;
+let appAdminUid = null;
+let appViewerPasswordHash = null;
 let isAppUnlocked = false;
-let isGateReady = false;      // true setelah cek password selesai
-let isAdminUser = false;      // true jika user saat ini adalah admin
+let isGateReady = false;
+let isAdminUser = false;
 
 // Simple SHA-256 hash with salt
-const AUTH_SALT = 'kmz-viewer-v8-salt-2024';
+const AUTH_SALT = 'comsur-survey-v9-salt-2024';
 async function sha256(message){
   const msgBuffer = new TextEncoder().encode(AUTH_SALT + message);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -2463,9 +2299,10 @@ async function checkGateAndInit(){
     isAppUnlocked = true;
     isAdminUser = sessionStorage.getItem('kmz_is_admin') === '1';
     document.getElementById('password-gate').classList.add('hidden-gate');
-    // Load hash dari localStorage/Firestore di background
     loadPasswordHash();
-    setTimeout(()=>checkAdminStatus(), 500);
+    if(isAdminUser) document.getElementById('btn-settings').classList.remove('hidden-settings');
+    currentUser = {name:'Admin',role:'admin'};
+    onUserLoggedIn(currentUser);
     return;
   }
 
@@ -2474,56 +2311,37 @@ async function checkGateAndInit(){
 
   // 3. Tampilkan gate sesuai mode
   if(appPasswordHash){
-    // Password sudah ada — tampilkan login
     gateShowLogin();
   }else{
-    // Password belum ada — cek Firestore sebentar, kalau tetap belum ada langsung setup
+    // Password belum ada — cek Supabase sebentar
     gateShowLoading();
-    let foundInFirestore = false;
-    if(isFirebaseReady){
+    let foundInSupabase = false;
+    if(isSupabaseReady){
       try{
-        const doc = await fbDb.collection('appSettings').doc('security').get();
-        if(doc.exists){
-          const data = doc.data();
-          if(data.passwordHash){
-            appPasswordHash = data.passwordHash;
-            appAdminUid = data.adminUid || null;
-            savePasswordToLocal();
-            gateShowLogin();
-            foundInFirestore = true;
-          }
+        const {data} = await sb.from('app_settings').select('*').eq('id','security').maybeSingle();
+        if(data && data.password_hash){
+          appPasswordHash = data.password_hash;
+          appAdminUid = data.admin_uid || null;
+          savePasswordToLocal();
+          gateShowLogin();
+          foundInSupabase = true;
         }
-      }catch(e){console.warn('Firestore read error:',e);}
+      }catch(e){console.warn('Supabase read error:',e);}
     }
-    if(!foundInFirestore){
-      // Belum ada password sama sekali — langsung setup
+    if(!foundInSupabase){
       gateShowSetup();
     }
   }
   isGateReady = true;
 }
 
-// Load hash dari localStorage (fallback cepat) + Firestore (sync)
+// Load hash dari localStorage only
 function loadPasswordHash(){
-  // Dari localStorage dulu (instant)
   const localHash = localStorage.getItem('kmz_app_password');
   const localAdmin = localStorage.getItem('kmz_app_admin');
   if(localHash && !appPasswordHash){
     appPasswordHash = localHash;
     appAdminUid = localAdmin || null;
-  }
-  // Sync dari Firestore di background (hanya jika belum ada di localStorage)
-  if(isFirebaseReady && !localHash){
-    fbDb.collection('appSettings').doc('security').get().then(doc=>{
-      if(doc.exists){
-        const data = doc.data();
-        if(data.passwordHash && !localStorage.getItem('kmz_app_password')){
-          appPasswordHash = data.passwordHash;
-          appAdminUid = data.adminUid || null;
-          savePasswordToLocal();
-        }
-      }
-    }).catch(()=>{});
   }
 }
 
@@ -2533,17 +2351,18 @@ function savePasswordToLocal(){
   if(appAdminUid) localStorage.setItem('kmz_app_admin', appAdminUid);
 }
 
-// Sync password ke Firestore di background (non-blocking, tidak akan gagal)
-function syncPasswordToFirestore(hash, adminId){
-  if(!isFirebaseReady) return;
-  fbDb.collection('appSettings').doc('security').set({
-    passwordHash: hash,
-    adminUid: adminId || appAdminUid || 'admin-local',
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  },{merge:true}).then(()=>{
-    console.log('Password synced to Firestore');
+// Sync password ke Supabase di background (non-blocking)
+function syncPasswordToSupabase(hash, adminId){
+  if(!isSupabaseReady) return;
+  sb.from('app_settings').upsert({
+    id: 'security',
+    password_hash: hash,
+    admin_uid: adminId || appAdminUid || 'admin-local',
+    updated_at: new Date().toISOString()
+  }).then(()=>{
+    console.log('Password synced to Supabase');
   }).catch(e=>{
-    console.warn('Firestore sync skipped:', e.message);
+    console.warn('Supabase sync skipped:', e.message);
   });
 }
 
@@ -2638,7 +2457,7 @@ async function gateSubmit(){
     const hash = await sha256(pwd);
     if(hash === appPasswordHash){
       // Password benar — cek apakah ini admin
-      isAdminUser = true; // yang pertama login & tahu password = admin
+      isAdminUser = true; & tahu password = admin
       unlockApp();
     }else{
       errEl.textContent='Password salah!';
@@ -2671,7 +2490,7 @@ async function gateSetupPassword(){
   try{
     const hash = await sha256(newPwd);
     // Login pertama = admin
-    const adminId = currentUser ? currentUser.uid : 'admin-local';
+    const adminId = 'admin-local';
 
     // Simpan ke localStorage DULU (utama)
     appPasswordHash = hash;
@@ -2679,8 +2498,8 @@ async function gateSetupPassword(){
     isAdminUser = true;
     savePasswordToLocal();
 
-    // Sync ke Firestore di background (non-blocking)
-    syncPasswordToFirestore(hash, adminId);
+    // Sync ke Supabase di background (non-blocking)
+    syncPasswordToSupabase(hash, adminId);
 
     unlockApp();
     showToast('Password berhasil dibuat! Kamu adalah Admin.','success');
@@ -2722,8 +2541,8 @@ async function gateChangePassword(){
     appPasswordHash = newHash;
     savePasswordToLocal();
 
-    // Sync ke Firestore di background (non-blocking)
-    syncPasswordToFirestore(newHash, appAdminUid);
+    // Sync ke Supabase di background (non-blocking)
+    syncPasswordToSupabase(newHash, appAdminUid);
 
     errEl.textContent='';
     showToast('Password berhasil diubah!','success');
@@ -2758,145 +2577,39 @@ async function gateResetLocal(){
   gateShowSetup();
 }
 
-// Reset password via Firebase login (admin only)
+// Reset password via local reset (no Firebase needed)
 async function gateResetPassword(){
-  const errEl = document.getElementById('gate-error');
-  errEl.textContent='';
-
-  if(!isFirebaseReady){
-    errEl.textContent='Firebase belum siap. Tunggu sebentar...';
-    return;
-  }
-
-  if(currentUser){
-    // Sudah login Firebase - langsung cek admin & reset
-    await gateResetAsAdmin();
-  }else{
-    // Belum login - buka login modal di atas gate
-    openLoginModal();
-    errEl.textContent='Silakan login Firebase di modal yang muncul...';
-    let tries=0;
-    const checkLogin=setInterval(async ()=>{
-      tries++;
-      if(currentUser){
-        clearInterval(checkLogin);
-        closeLoginModal();
-        await gateResetAsAdmin();
-      }
-      if(tries>120){clearInterval(checkLogin); errEl.textContent='Timeout. Coba lagi.';}
-    },500);
-  }
+  await gateResetLocal();
 }
 
 async function gateResetAsAdmin(){
-  const errEl = document.getElementById('gate-error');
-
-  try{
-    // Cek apakah user yang login adalah admin
-    const doc = await fbDb.collection('appSettings').doc('security').get();
-    const adminUid = doc.exists ? (doc.data().adminUid||'') : '';
-
-    if(adminUid && adminUid !== currentUser.uid && !adminUid.startsWith('admin-local') && !adminUid.startsWith('first-setup-')){
-      errEl.textContent='Hanya admin yang bisa me-reset password aplikasi.';
-      return;
-    }
-
-    // Admin terverifikasi — tampilkan setup password baru
-    document.getElementById('gate-subtitle-text').textContent = 'Reset password sebagai Admin';
-    document.getElementById('gate-mode-login').classList.add('hidden');
-    document.getElementById('gate-mode-setup').classList.remove('hidden');
-    document.getElementById('gate-mode-change').classList.add('hidden');
-    document.getElementById('gate-reset-hint').classList.add('hidden');
-    document.getElementById('gate-change-link').classList.add('hidden');
-    document.getElementById('gate-admin-badge').classList.add('hidden');
-    document.getElementById('gate-new-password').value = '';
-    document.getElementById('gate-confirm-password').value = '';
-    errEl.textContent = 'Masukkan password baru sebagai admin.';
-
-    // Override setup untuk reset
-    const setupBtn = document.getElementById('gate-setup-btn');
-    setupBtn.textContent = 'Reset Password';
-    setupBtn.onclick = async ()=>{
-      const newPwd = document.getElementById('gate-new-password').value.trim();
-      const confirmPwd = document.getElementById('gate-confirm-password').value.trim();
-      if(!newPwd){errEl.textContent='Masukkan password baru (min 4 karakter)';return;}
-      if(newPwd.length<4){errEl.textContent='Password minimal 4 karakter';return;}
-      if(newPwd!==confirmPwd){errEl.textContent='Konfirmasi password tidak cocok!';return;}
-
-      setupBtn.disabled=true;
-      setupBtn.textContent='Menyimpan...';
-
-      try{
-        const hash = await sha256(newPwd);
-        // Simpan ke localStorage DULU
-        appPasswordHash = hash;
-        appAdminUid = currentUser ? currentUser.uid : 'admin-local';
-        isAdminUser = true;
-        savePasswordToLocal();
-        // Sync ke Firestore (non-blocking)
-        syncPasswordToFirestore(hash, appAdminUid);
-        unlockApp();
-        showToast('Password berhasil direset!','success');
-      }catch(e){
-        errEl.textContent='Gagal menyimpan: '+e.message;
-      }
-      setupBtn.disabled=false;
-      setupBtn.textContent='Simpan Password';
-      // Restore original onclick
-      setupBtn.onclick = gateSetupPassword;
-    };
-
-    setTimeout(()=>document.getElementById('gate-new-password').focus(), 100);
-  }catch(e){
-    errEl.textContent='Error: '+e.message;
-  }
+  await gateResetLocal();
 }
 
 function unlockApp(){
   isAppUnlocked = true;
-  isAdminUser = true; // yang berhasil login = admin
+  isAdminUser = true;
   document.getElementById('password-gate').classList.add('hidden-gate');
-  // Simpan session (24 jam)
   sessionStorage.setItem('kmz_unlocked','1');
   sessionStorage.setItem('kmz_unlock_time', Date.now().toString());
-  sessionStorage.setItem('kmz_is_admin', isAdminUser ? '1' : '0');
-  // Cek status admin setelah gate terbuka
-  setTimeout(()=>checkAdminStatus(), 500);
-  setTimeout(()=>checkAdminStatus(), 2000);
+  sessionStorage.setItem('kmz_is_admin', '1');
+  document.getElementById('btn-settings').classList.remove('hidden-settings');
+  currentUser = {name:'Admin',role:'admin'};
+  onUserLoggedIn(currentUser);
 }
 
-// Cek apakah user saat ini adalah admin
-async function checkAdminStatus(){
-  const settingsBtn = document.getElementById('btn-settings');
-  if(!settingsBtn) return;
-
-  // Kalau belum ada admin atau admin masih dummy, promote user yang login
-  if(currentUser && (!appAdminUid || appAdminUid.startsWith('first-setup-') || appAdminUid.startsWith('admin-local'))){
-    appAdminUid = currentUser.uid;
-    savePasswordToLocal();
-    console.log('Admin promoted to Firebase user:', currentUser.uid);
-    // Sync ke Firestore (non-blocking)
-    if(isFirebaseReady){
-      fbDb.collection('appSettings').doc('security').set({
-        adminUid: currentUser.uid,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      },{merge:true}).catch(e=>console.warn('Admin promote sync skipped:', e.message));
-    }
-  }
-
-  // Admin = yang berhasil unlock (tahu password) ATAU Firebase user yang UID-nya cocok
-  const isAdmin = isAdminUser || (currentUser && appAdminUid && currentUser.uid === appAdminUid);
-  if(isAdmin){
-    settingsBtn.classList.remove('hidden-settings');
-  }else{
-    settingsBtn.classList.add('hidden-settings');
+// Admin determined by gate — no-op for Firebase
+function checkAdminStatus(){
+  // Admin status ditentukan oleh password gate, bukan Firebase
+  return;
+  if(isAdminUser){
+    document.getElementById('btn-settings').classList.remove('hidden-settings');
   }
 }
 
 // ===== Settings Modal =====
 function openSettingsModal(){
-  // Admin = yang berhasil unlock (tahu password)
-  if(!isAdminUser && !(currentUser && appAdminUid && currentUser.uid === appAdminUid)){
+  if(!isAdminUser){
     showToast('Hanya admin yang bisa mengakses pengaturan','error');
     return;
   }
@@ -2928,7 +2641,7 @@ async function changeAppPassword(){
   }
 
   // Harus admin
-  if(!isAdminUser && !(currentUser && appAdminUid && currentUser.uid === appAdminUid)){
+  if(!isAdminUser){
     errEl.textContent='Hanya admin yang bisa mengubah password!';errEl.classList.remove('hidden');return;
   }
 
@@ -2937,8 +2650,8 @@ async function changeAppPassword(){
     // Simpan ke localStorage DULU (utama)
     appPasswordHash = newHash;
     savePasswordToLocal();
-    // Sync ke Firestore di background (non-blocking)
-    syncPasswordToFirestore(newHash, appAdminUid);
+    // Sync ke Supabase di background (non-blocking)
+    syncPasswordToSupabase(newHash, appAdminUid);
     errEl.classList.add('hidden');
     showToast('Password berhasil diubah!','success');
     closeSettingsModal();
@@ -2962,55 +2675,15 @@ function lockApp(){
 
 // ===== Delete Project =====
 async function deleteProject(projectId, projectName){
+  if(!isAdminUser){showToast('Hanya admin yang bisa menghapus proyek','error');return;}
   if(!await appConfirm('Hapus proyek "'+projectName+'"?\n\nSemua data marker, folder, dan polygon di dalamnya akan ikut terhapus. Tindakan ini tidak bisa dibatalkan!')){
     return;
   }
   try{
     updateSyncStatus('syncing','Menghapus...');
-
-    // Verify user has permission (only creator or admin can delete)
-    const isAppAdmin = isAdminUser || (currentUser && appAdminUid && currentUser.uid === appAdminUid);
-    const projDoc = await fbDb.collection('projects').doc(projectId).get();
-    if(projDoc.exists){
-      const projData = projDoc.data();
-      const isCreator = projData.createdBy === currentUser.uid;
-      if(!isCreator && !isAppAdmin){
-        showToast('Hanya pembuat proyek atau admin yang bisa menghapus','error');
-        updateSyncStatus('online','Tersinkron');
-        return;
-      }
+    if(isSupabaseReady){
+      await sb.from('projects').delete().eq('id',projectId);
     }
-
-    // Hapus semua sub-collection
-    const projRef = fbDb.collection('projects').doc(projectId);
-    const subCollections = ['markers','folders','polygonFolders','counters','layers'];
-    for(const subCol of subCollections){
-      const snap = await projRef.collection(subCol).get();
-      const batch = fbDb.batch();
-      snap.forEach(doc=>{
-        batch.delete(doc.ref);
-        // Also delete chunks subcollection for layers
-        if(subCol === 'layers'){
-          // Will handle chunks in a separate pass
-        }
-      });
-      if(!snap.empty) await batch.commit();
-    }
-    // Delete layer chunks subcollections
-    const layersSnap = await projRef.collection('layers').get();
-    for(const layerDoc of layersSnap.docs){
-      const chunksSnap = await layerDoc.ref.collection('chunks').get();
-      if(!chunksSnap.empty){
-        const batch = fbDb.batch();
-        chunksSnap.forEach(doc=> batch.delete(doc.ref));
-        await batch.commit();
-      }
-    }
-
-    // Hapus dokumen proyek
-    await projRef.delete();
-
-    // Jika proyek yang dihapus adalah proyek aktif, reset
     if(projectId === currentProjectId){
       stopAllFirestoreListeners();
       currentProjectId = null;
@@ -3023,15 +2696,11 @@ async function deleteProject(projectId, projectName){
       updateDeleteRow('');
       updateSyncStatus('online','Proyek dihapus');
     }
-
-    // Muat ulang list
     await loadProjectList();
     showToast('Proyek "'+projectName+'" berhasil dihapus','success');
   }catch(e){
     console.error('Delete project error:',e);
-    let msg = 'Gagal menghapus proyek: '+e.message;
-    if(e.code==='permission-denied') msg='Akses ditolak! Hanya pembuat proyek atau admin yang bisa menghapus.';
-    showToast(msg,'error');
+    showToast('Gagal menghapus proyek: '+e.message,'error');
     updateSyncStatus('online','Error');
   }
 }
@@ -3064,132 +2733,9 @@ function deleteActiveProject(){
 // ===== OPTIMIZE PROJECT DATA =====
 // Re-compress all layers & re-write all markers with optimized format
 async function optimizeProjectData(){
-  if(!isSyncActive()){showToast('Pilih proyek dulu','error');return;}
-  const btn = document.getElementById('btn-optimize');
-  if(!btn) return;
-  btn.disabled = true;
-  btn.textContent = 'Mengoptimasi...';
-  updateSyncStatus('syncing','Mengoptimasi...');
-  try{
-    const projRef = fbDb.collection('projects').doc(currentProjectId);
-    let totalSaved = 0;
-    let markerCount = 0;
-    let layerCount = 0;
-
-    // 1. Optimasi semua markers (re-write dengan format baru)
-    const markersSnap = await projRef.collection('markers').get();
-    if(!markersSnap.empty){
-      const batch = fbDb.batch();
-      markersSnap.forEach(doc=>{
-        const oldData = doc.data();
-        const parsed = parseMarkerDoc(doc.id, oldData);
-        const optimized = optimizeMarkerDoc(parsed);
-        optimized.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-        batch.set(doc.ref, optimized);
-      });
-      await batch.commit();
-      totalSaved += markersSnap.size;
-      markerCount = markersSnap.size;
-    }
-
-    // 2. Optimasi semua layers (re-compress dengan koordinat rounded)
-    const layersSnap = await projRef.collection('layers').get();
-
-    for(const layerDoc of layersSnap.docs){
-      const layerData = layerDoc.data();
-      let geojson;
-
-      // Baca GeoJSON (bisa dari geojsonStr langsung atau dari chunks)
-      if(layerData.chunked && layerData.totalChunks){
-        // Reconstruct from chunks
-        const chunksSnap = await layerDoc.ref.collection('chunks').orderBy('index').get();
-        let base64 = '';
-        chunksSnap.forEach(cd => { base64 += cd.data().data; });
-        const compressed = _base64ToUint8(base64);
-        geojson = JSON.parse(pako.inflate(compressed, {to:'string'}));
-      }else if(layerData.geojsonStr){
-        geojson = JSON.parse(layerData.geojsonStr);
-      }else{
-        continue;
-      }
-
-      // Optimize & re-sync
-      const optimizedGeoJSON = optimizeGeoJSON(geojson);
-      const jsonStr = JSON.stringify(optimizedGeoJSON);
-
-      if(jsonStr.length < 900000){
-        // Hapus chunks lama jika ada
-        try{
-          const oldChunks = await layerDoc.ref.collection('chunks').get();
-          if(!oldChunks.empty){
-            const delBatch = fbDb.batch();
-            oldChunks.forEach(cd => delBatch.delete(cd.ref));
-            await delBatch.commit();
-          }
-        }catch(e){}
-
-        await layerDoc.ref.update({
-          geojsonStr: jsonStr,
-          chunked: firebase.firestore.FieldValue.delete(),
-          totalChunks: firebase.firestore.FieldValue.delete(),
-          originalSize: firebase.firestore.FieldValue.delete(),
-          compressedSize: firebase.firestore.FieldValue.delete(),
-          geojsonType: firebase.firestore.FieldValue.delete(),
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }else{
-        // Re-compress into chunks
-        const compressed = pako.deflate(jsonStr);
-        const base64 = _uint8ToBase64(compressed);
-        const totalChunks = Math.ceil(base64.length / CHUNK_BYTES);
-        const chunksRef = layerDoc.ref.collection('chunks');
-
-        // Delete old chunks first
-        try{
-          const oldChunks = await chunksRef.get();
-          if(!oldChunks.empty){
-            const delBatch = fbDb.batch();
-            oldChunks.forEach(cd => delBatch.delete(cd.ref));
-            await delBatch.commit();
-          }
-        }catch(e){}
-
-        // Write new chunks
-        for(let batchStart=0; batchStart<totalChunks; batchStart+=450){
-          const batchEnd = Math.min(batchStart+450, totalChunks);
-          const writeBatch = fbDb.batch();
-          for(let i=batchStart; i<batchEnd; i++){
-            const chunkStr = base64.substring(i*CHUNK_BYTES, (i+1)*CHUNK_BYTES);
-            writeBatch.set(chunksRef.doc(String(i)), { index: i, data: chunkStr });
-          }
-          await writeBatch.commit();
-        }
-
-        await layerDoc.ref.update({
-          chunked: true,
-          totalChunks: totalChunks,
-          originalSize: jsonStr.length,
-          compressedSize: compressed.length,
-          geojsonType: geojson.type || 'FeatureCollection',
-          geojsonStr: firebase.firestore.FieldValue.delete(),
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }
-      totalSaved++;
-    }
-
-    updateSyncStatus('online','Tersinkron');
-    layerCount = layersSnap.size;
-    const msg = 'Optimasi selesai! ' + markerCount + ' marker & ' + layerCount + ' layer dikompres ulang.';
-    showToast(msg, 'success');
-    console.log('Optimization done:', msg);
-  }catch(e){
-    console.error('Optimize error:',e);
-    showToast('Gagal mengoptimasi: '+e.message,'error');
-    updateSyncStatus('online','Error');
-  }finally{
-    if(btn){btn.disabled=false;btn.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Optimasi & Kompres Data';}
-  }
+  showToast('Data sudah dioptimasi secara lokal.','success');
+}
+  showToast('Optimasi data tersedia di mode lokal storage saja.','error');
 }
 
 // ==================== TOAST NOTIFICATION ====================
@@ -3305,701 +2851,37 @@ async function switchProject(projectId){
   }
 }
 
-// ==================== FIRESTORE SYNC LISTENERS ====================
-function stopAllFirestoreListeners(){
-  firestoreListeners.forEach(unsub=>{try{unsub();}catch(e){}});
-  firestoreListeners = [];
-}
+// ==================== CLOUD SYNC (Supabase - Stubs for future implementation) ====================
+// App works fully with localStorage. Supabase sync will be added properly later.
+// These stubs prevent errors from the old Firebase code.
 
-async function startSyncListeners(){
-  if(!isFirebaseReady||!currentProjectId||!currentUser) return;
-  stopAllFirestoreListeners();
-
-  const projRef = fbDb.collection('projects').doc(currentProjectId);
-
-  // Listen for markers
-  const unsubMarkers = projRef.collection('markers').onSnapshot(snapshot=>{
-    snapshot.docChanges().forEach(change=>{
-      const data = change.doc.data();
-      const docId = change.doc.id;
-      if(change.type === 'added' || change.type === 'modified'){
-        if(!markers.has(docId)){
-          // New marker from remote - parse both old & optimized format
-          const m = parseMarkerDoc(docId, data);
-          m.leafletMarker = null;
-          markers.set(docId, m);
-          const icon = L.divIcon({
-            html:'<div style="width:28px;height:28px;background:'+sanitizeColor(m.color)+';border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>',
-            className:'',iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-28]
-          });
-          const lm = L.marker([m.lat,m.lng],{icon,draggable:true}).addTo(userMarkers)
-            .bindPopup(buildMarkerPopupHtml(m),{maxWidth:310,minWidth:220,maxHeight:null,autoPan:true,autoPanPaddingTopLeft:[10,10],autoPanPaddingBottomRight:[10,10]});
-          lm.on('dragend',function(){
-            const pos=this.getLatLng();m.lat=pos.lat;m.lng=pos.lng;
-            this.setPopupContent(buildMarkerPopupHtml(m));
-            debouncedSave();syncMarkerToFirestore(m);
-          });
-          m.leafletMarker = lm;
-        }else{
-          // Update existing marker (support both old & optimized format)
-          const m = markers.get(docId);
-          if(m){
-            const parsed = parseMarkerDoc(docId, data);
-            m.name = parsed.name; m.description = parsed.description;
-            m.color = parsed.color; m.folderId = parsed.folderId;
-            if(parsed.lat !== m.lat || parsed.lng !== m.lng){
-              m.lat = parsed.lat; m.lng = parsed.lng;
-              if(m.leafletMarker) m.leafletMarker.setLatLng([m.lat,m.lng]);
-            }
-            if(m.leafletMarker) m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
-          }
-        }
-      }else if(change.type === 'removed'){
-        const m = markers.get(docId);
-        if(m && m.leafletMarker) userMarkers.removeLayer(m.leafletMarker);
-        markers.delete(docId);
-      }
-    });
-    renderMarkerList(); renderFolderList(); debouncedSave();
-  }, err=>{console.warn('Markers listener error:',err);});
-  firestoreListeners.push(unsubMarkers);
-
-  // Listen for folders
-  const unsubFolders = projRef.collection('folders').orderBy('createdAt').onSnapshot(snapshot=>{
-    let changed = false;
-    snapshot.docChanges().forEach(change=>{
-      const data = change.doc.data();
-      if(change.type === 'added' && !folders.find(f=>f.id===data.id)){
-        folders.push({id:data.id,name:data.name,description:data.description||'',
-          color:data.color||'#3b82f6',createdAt:data.createdAt});
-        changed = true;
-      }else if(change.type === 'modified'){
-        const f = folders.find(f=>f.id===data.id);
-        if(f){f.name=data.name;f.description=data.description||'';f.color=data.color;changed=true;}
-      }else if(change.type === 'removed'){
-        folders = folders.filter(f=>f.id!==data.id);
-        changed = true;
-      }
-    });
-    if(changed){renderFolderList();updateFolderSelects();renderPolygonFolders();debouncedSave();}
-  }, err=>{console.warn('Folders listener error:',err);});
-  firestoreListeners.push(unsubFolders);
-
-  // Listen for polygon folders
-  const unsubPolyFolders = projRef.collection('polygonFolders').orderBy('createdAt').onSnapshot(snapshot=>{
-    let changed = false;
-    snapshot.docChanges().forEach(change=>{
-      const data = change.doc.data();
-      if(change.type === 'added' && !polygonFolders.find(f=>f.id===data.id)){
-        polygonFolders.push({id:data.id,name:data.name,description:data.description||'',
-          color:data.color||'#10b981',createdAt:data.createdAt,items:data.items||[]});
-        changed = true;
-      }else if(change.type === 'modified'){
-        const f = polygonFolders.find(f=>f.id===data.id);
-        if(f){f.name=data.name;f.description=data.description||'';f.color=data.color;f.items=data.items||[];changed=true;}
-      }else if(change.type === 'removed'){
-        const f = polygonFolders.find(pf=>pf.id===data.id);
-        if(f){
-          const hl = polyFolderHighlights.get(data.id);
-          if(hl) hl.forEach(layer=>{if(layer._origPolyFolderStyle){layer.setStyle(layer._origPolyFolderStyle);delete layer._origPolyFolderStyle;}});
-          polyFolderHighlights.delete(data.id);
-        }
-        polygonFolders = polygonFolders.filter(pf=>pf.id!==data.id);
-        changed = true;
-      }
-    });
-    if(changed){renderPolygonFolders();debouncedSave();}
-  }, err=>{console.warn('Polygon folders listener error:',err);});
-  firestoreListeners.push(unsubPolyFolders);
-
-  // Listen for GeoJSON layers (imported KMZ/KML)
-  const unsubLayers = projRef.collection('layers').onSnapshot(async (snapshot)=>{
-    for(const change of snapshot.docChanges()){
-      const data = change.doc.data();
-      if(change.type === 'added'){
-        // Cek apakah layer sudah ada di lokal (by _layerId)
-        if(!layers.find(l=>l._layerId === data.id)){
-          try{
-            let geojson = null;
-
-            // Path 1: Chunked layer (compressed base64 chunks)
-            if(data.chunked && data.totalChunks){
-              const chunksSnap = await projRef.collection('layers').doc(data.id).collection('chunks').get();
-              const sortedChunks = [];
-              chunksSnap.forEach(doc => sortedChunks.push(doc.data()));
-              sortedChunks.sort((a,b) => a.index - b.index);
-              // Reassemble base64 and decompress
-              const base64 = sortedChunks.map(c => c.data).join('');
-              const compressed = _base64ToUint8(base64);
-              const jsonStr = pako.inflate(compressed, {to:'string'});
-              geojson = JSON.parse(jsonStr);
-            }
-            // Path 2: Direct GeoJSON string (backward compatible, small files)
-            else if(data.geojsonStr){
-              geojson = JSON.parse(data.geojsonStr);
-            }
-
-            if(!geojson || !geojson.features || geojson.features.length === 0){
-              console.warn('Layer has no valid features');
-              continue;
-            }
-
-            const color = data.color || '#3b82f6';
-            const visible = data.visible !== false;
-            const idx = layers.length;
-            // Reconstruct GeoJSON layer on map (optimized for performance)
-            const pointFeatures=[];const otherFeatures=[];
-            geojson.features.forEach(function(f){
-              if(f.geometry&&(f.geometry.type==='Point'||f.geometry.type==='MultiPoint'))pointFeatures.push(f);
-              else otherFeatures.push(f);
-            });
-            const useCluster=pointFeatures.length>200;
-            let geoJsonLayer,pointClusterGroup=null;
-            const polyGeojson={type:'FeatureCollection',features:otherFeatures};
-            const polyLayer=L.geoJSON(polyGeojson,{
-              style:function(){return {color:color,weight:2,fillColor:color,fillOpacity:0.3};},
-              onEachFeature:function(feature,layer){
-                layer.bindPopup(function(){return buildFeaturePopup(feature);},{maxWidth:310,minWidth:220,maxHeight:null,autoPan:true,autoPanPaddingTopLeft:[10,10],autoPanPaddingBottomRight:[10,10]});
-                if(layer.setStyle){
-                  layer.on('mouseover',function(){this.setStyle({weight:3,fillOpacity:0.5});});
-                  layer.on('mouseout',function(){this.setStyle({weight:2,fillOpacity:0.3});});
-                  layer.options.cursor='pointer';
-                }
-              }
-            });
-            let polySubIdx=0;
-            polyLayer.eachLayer(function(layer){
-              if(layer&&typeof layer.getLatLngs==='function'){
-                layer._polyGroupIdx=idx;layer._polySubIdx=polySubIdx;polySubIdx++;
-              }
-            });
-            const pointGeojson={type:'FeatureCollection',features:pointFeatures};
-            const pointLayer=L.geoJSON(pointGeojson,{
-              pointToLayer:function(feature,latlng){
-                var name=feature.properties?.name||'';
-                var featColor=getFeaturePctColor(feature)||color;
-                var marker=L.circleMarker(latlng,{radius:7,fillColor:featColor,color:'#fff',weight:2,opacity:1,fillOpacity:0.85});
-                marker.bindPopup(function(){return buildFeaturePopup(feature);},{maxWidth:310,minWidth:220,maxHeight:null,autoPan:true,autoPanPaddingTopLeft:[10,10],autoPanPaddingBottomRight:[10,10]});
-                // Labels are rendered by CanvasLabelLayer at zoom 15+
-                return marker;
-              },
-              onEachFeature:function(feature,layer){}
-            });
-            if(useCluster){
-              pointClusterGroup=L.markerClusterGroup({
-                maxClusterRadius:50,spiderfyOnMaxZoom:true,showCoverageOnHover:false,
-                zoomToBoundsOnClick:true,chunkedLoading:true,chunkInterval:50,
-                disableClusteringAtZoom:13,
-                iconCreateFunction:function(cluster){
-                  var count=cluster.getChildCount();
-                  var size=count<100?'small':count<1000?'medium':'large';
-                  var dim=size==='small'?40:size==='medium'?50:60;
-                  return L.divIcon({
-                    html:'<div style="width:'+dim+'px;height:'+dim+'px;background:'+color+';border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:'+(size==='small'?'12':'14')+'px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3)">'+count+'</div>',
-                    className:'',iconSize:[dim,dim],iconAnchor:[dim/2,dim/2]
-                  });
-                }
-              });
-              pointClusterGroup.addLayer(pointLayer);
-              geoJsonLayer=L.layerGroup([polyLayer,pointClusterGroup]);
-            }else{
-              geoJsonLayer=L.layerGroup([polyLayer,pointLayer]);
-            }
-            geoJsonLayer._polyLayer=polyLayer;
-            geoJsonLayer._pointLayer=pointLayer;
-            geoJsonLayer._pointClusterGroup=pointClusterGroup;
-            geoJsonLayer._useCluster=useCluster;
-            geoJsonLayer._color=color;
-            geoJsonLayer._layerIdx=idx;
-
-            if(visible && geoJsonLayers) geoJsonLayers.addLayer(geoJsonLayer);
-            layers.push({name:data.name,geojson,layerNames:data.layerNames||[],color,geoJsonLayer,visible,fileId:null,_layerId:data.id,_useCluster:useCluster});
-            renderLayers();
-            renderSavedFiles();
-
-            // Auto-zoom to the new layer
-            if(visible){
-              try{
-                if(typeof geoJsonLayer.getBounds==='function' && geoJsonLayer.getBounds().isValid()){
-                  map.fitBounds(geoJsonLayer.getBounds().pad(0.1));
-                }else{
-                  var bounds=L.latLngBounds([]);
-                  geojson.features.forEach(function(f){
-                    if(f.geometry&&f.geometry.coordinates){
-                      var coords=f.geometry.coordinates;
-                      if(f.geometry.type==='Point')bounds.extend([coords[1],coords[0]]);
-                      else if(f.geometry.type==='MultiPoint')coords.forEach(function(c){bounds.extend([c[1],c[0]]);});
-                      else{
-                        var flat=[];
-                        (function extract(c){c.forEach(function(v){if(Array.isArray(v[0]))extract(v);else if(typeof v[0]==='number')flat.push(v);});})(coords);
-                        flat.forEach(function(c){bounds.extend([c[1],c[0]]);});
-                      }
-                    }
-                  });
-                  if(bounds.isValid())map.fitBounds(bounds.pad(0.1));
-                }
-              }catch(e){console.warn('fitBounds error:',e);}
-            }
-          }catch(e){console.warn('Reconstruct layer error:',e);}
-        }
-      }else if(change.type === 'modified'){
-        const l = layers.find(l=>l._layerId === data.id);
-        if(l){
-          l.visible = data.visible !== false;
-          l.name = data.name;
-          if(l.visible){if(geoJsonLayers)geoJsonLayers.addLayer(l.geoJsonLayer);}
-          else{if(geoJsonLayers)geoJsonLayers.removeLayer(l.geoJsonLayer);}
-          renderLayers();
-        }
-      }else if(change.type === 'removed'){
-        const idx = layers.findIndex(l=>l._layerId === data.id);
-        if(idx>=0){
-          if(geoJsonLayers) geoJsonLayers.removeLayer(layers[idx].geoJsonLayer);
-          layers.splice(idx,1);
-          renderLayers();
-          renderSavedFiles();
-        }
-      }
-    }
-  }, err=>{console.warn('Layers listener error:',err);});
-  firestoreListeners.push(unsubLayers);
-
-  // Load marker ID counter
-  try{
-    const counterDoc = await projRef.collection('counters').doc('markers').get();
-    if(counterDoc.exists){
-      const val = counterDoc.data().value || 0;
-      if(val > markerIdCounter) markerIdCounter = val;
-    }
-  }catch(e){}
-}
-
-// ==================== FIRESTORE WRITE FUNCTIONS ====================
-function isSyncActive(){
-  return isFirebaseReady && currentUser && currentProjectId;
-}
-
-async function syncMarkerToFirestore(m){
-  if(!isSyncActive()) return;
-  try{
-    const projRef = fbDb.collection('projects').doc(currentProjectId);
-    // OPTIMASI: gunakan field pendek, strip null/empty, round coordinates
-    const doc = optimizeMarkerDoc(m);
-    doc.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-    await projRef.collection('markers').doc(m.id).set(doc);
-    // Update counter
-    const idNum = parseInt(m.id.replace('marker-','')) || 0;
-    if(idNum > markerIdCounter) markerIdCounter = idNum;
-    await projRef.collection('counters').doc('markers').set({value:markerIdCounter},{merge:true});
-    updateLastSyncTime();
-  }catch(e){console.warn('Sync marker error:',e);}
-}
-
-async function deleteMarkerFromFirestore(markerId){
-  if(!isSyncActive()) return;
-  try{
-    await fbDb.collection('projects').doc(currentProjectId).collection('markers').doc(markerId).delete();
-    updateLastSyncTime();
-  }catch(e){console.warn('Delete marker from Firestore error:',e);}
-}
-
-async function syncFolderToFirestore(f){
-  if(!isSyncActive()) return;
-  try{
-    await fbDb.collection('projects').doc(currentProjectId).collection('folders').doc(f.id).set({
-      id:f.id, name:f.name, description:f.description||'',
-      color:f.color, createdAt:f.createdAt
-    });
-    updateLastSyncTime();
-  }catch(e){console.warn('Sync folder error:',e);}
-}
-
-async function deleteFolderFromFirestore(folderId){
-  if(!isSyncActive()) return;
-  try{
-    await fbDb.collection('projects').doc(currentProjectId).collection('folders').doc(folderId).delete();
-    updateLastSyncTime();
-  }catch(e){console.warn('Delete folder error:',e);}
-}
-
-async function syncPolygonFolderToFirestore(f){
-  if(!isSyncActive()) return;
-  try{
-    await fbDb.collection('projects').doc(currentProjectId).collection('polygonFolders').doc(f.id).set({
-      id:f.id, name:f.name, description:f.description||'',
-      color:f.color, createdAt:f.createdAt, items:f.items||[]
-    });
-    updateLastSyncTime();
-  }catch(e){console.warn('Sync polygon folder error:',e);}
-}
-
-async function deletePolygonFolderFromFirestore(folderId){
-  if(!isSyncActive()) return;
-  try{
-    await fbDb.collection('projects').doc(currentProjectId).collection('polygonFolders').doc(folderId).delete();
-    updateLastSyncTime();
-  }catch(e){console.warn('Delete polygon folder error:',e);}
-}
-
-// ===== LAYER (GeoJSON Import) SYNC =====
-// Compressed chunking: compress GeoJSON with pako, split base64 into Firestore-safe chunks
-const CHUNK_BYTES = 850000; // max bytes per chunk doc (under 1MB Firestore limit)
-const COORD_PRECISION = 6;  // 6 decimal places = ~0.1m precision (cukup untuk survey)
-
-function _uint8ToBase64(u8){
-  let bin='';const sz=8192;
-  for(let i=0;i<u8.length;i+=sz){const c=u8.subarray(i,i+sz);bin+=String.fromCharCode.apply(null,c);}
-  return btoa(bin);
-}
-function _base64ToUint8(b64){
-  const bin=atob(b64);const u8=new Uint8Array(bin.length);
-  for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
-  return u8;
-}
-
-// ===== DATA OPTIMIZATION =====
-// Round all coordinates in GeoJSON to reduce storage (14 decimals -> 6 decimals = ~50% smaller coords)
-function roundCoords(obj, dp){
-  if(!dp) dp = COORD_PRECISION;
-  const multiplier = Math.pow(10, dp);
-  if(Array.isArray(obj)){
-    for(let i=0;i<obj.length;i++){
-      if(typeof obj[i]==='number'){obj[i]=Math.round(obj[i]*multiplier)/multiplier;}
-      else{roundCoords(obj[i],dp);}
-    }
-  }else if(obj && typeof obj==='object'){
-    if(obj.coordinates){roundCoords(obj.coordinates,dp);}
-    else{
-      for(const k in obj){
-        if(obj.hasOwnProperty(k)){
-          if(k==='coordinates'||k==='lat'||k==='lng'){
-            if(typeof obj[k]==='number'){obj[k]=Math.round(obj[k]*multiplier)/multiplier;}
-            else if(Array.isArray(obj[k])){roundCoords(obj[k],dp);}
-          }else if(Array.isArray(obj[k])||typeof obj[k]==='object'){
-            roundCoords(obj[k],dp);
-          }
-        }
-      }
-    }
-  }
-  return obj;
-}
-
-// Remove null/empty properties from GeoJSON features to save space
-function stripEmptyProps(geojson){
-  if(geojson.type==='FeatureCollection'&&Array.isArray(geojson.features)){
-    geojson.features.forEach(f=>{
-      if(f.properties){
-        const clean={};
-        for(const k in f.properties){
-          if(f.properties[k]!==null&&f.properties[k]!==undefined&&f.properties[k]!==''){
-            clean[k]=f.properties[k];
-          }
-        }
-        f.properties=clean;
-        if(Object.keys(clean).length===0){f.properties={};}
-      }
-      // Remove style properties that Leaflet re-adds anyway
-      if(f.properties){
-        delete f.properties.style;
-        delete f.properties._leaflet_id;
-        delete f.properties._marker_id;
-      }
-    });
-  }
-  return geojson;
-}
-
-// Optimize GeoJSON before storing: round coords + strip empty props
-function optimizeGeoJSON(geojson){
-  // Deep clone to avoid modifying the in-memory object
-  const clone = JSON.parse(JSON.stringify(geojson));
-  roundCoords(clone, COORD_PRECISION);
-  stripEmptyProps(clone);
-  return clone;
-}
-
-// Optimize a single marker object for Firestore (strip empty/null fields)
-function optimizeMarkerDoc(m){
-  const doc = {
-    lat: Math.round(m.lat*1e6)/1e6,
-    lng: Math.round(m.lng*1e6)/1e6,
-    n: m.name || '',
-    c: m.color || '#22c55e',
-    t: m.timestamp || ''
-  };
-  if(m.description && m.description.trim()) doc.d = m.description.trim();
-  if(m.folderId) doc.f = m.folderId;
-  // Store userId only if not default
-  if(m.userId && m.userId !== 'User') doc.u = m.userId;
-  return doc;
-}
-
-// Parse optimized marker doc back to full marker
-function parseMarkerDoc(id, doc){
-  return {
-    id: id,
-    lat: doc.lat ?? doc.a ?? 0,
-    lng: doc.lng ?? doc.b ?? 0,
-    name: doc.n ?? doc.name ?? '',
-    description: doc.d ?? doc.description ?? '',
-    color: doc.c ?? doc.color ?? '#22c55e',
-    userId: doc.u ?? doc.userId ?? 'User',
-    timestamp: doc.t ?? doc.timestamp ?? '',
-    folderId: doc.f ?? doc.folderId ?? null
-  };
-}
-
-async function syncLayerToFirestore(layerObj){
-  if(!isSyncActive() || !layerObj._layerId) return;
-  try{
-    const projRef = fbDb.collection('projects').doc(currentProjectId);
-    const layerRef = projRef.collection('layers').doc(layerObj._layerId);
-
-    // OPTIMASI: round coordinates & strip empty props sebelum kompres
-    const optimizedGeoJSON = optimizeGeoJSON(layerObj.geojson);
-    const jsonStr = JSON.stringify(optimizedGeoJSON);
-
-    if(jsonStr.length < 900000){
-      // Small layer: store directly in single document
-      await layerRef.set({
-        id: layerObj._layerId,
-        name: layerObj.name,
-        color: layerObj.color,
-        visible: layerObj.visible,
-        layerNames: layerObj.layerNames || [],
-        geojsonStr: jsonStr,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }else{
-      // Large layer: compress + split into base64 chunks
-      const compressed = pako.deflate(jsonStr);
-      const base64 = _uint8ToBase64(compressed);
-      const totalChunks = Math.ceil(base64.length / CHUNK_BYTES);
-      const chunksRef = layerRef.collection('chunks');
-
-      // Write metadata
-      await layerRef.set({
-        id: layerObj._layerId,
-        name: layerObj.name,
-        color: layerObj.color,
-        visible: layerObj.visible,
-        layerNames: layerObj.layerNames || [],
-        chunked: true,
-        totalChunks: totalChunks,
-        originalSize: jsonStr.length,
-        compressedSize: compressed.length,
-        geojsonType: layerObj.geojson.type || 'FeatureCollection',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      // Write base64 chunks
-      for(let batchStart=0; batchStart<totalChunks; batchStart+=450){
-        const batchEnd = Math.min(batchStart+450, totalChunks);
-        const batch = fbDb.batch();
-        for(let i=batchStart; i<batchEnd; i++){
-          const chunkStr = base64.substring(i*CHUNK_BYTES, (i+1)*CHUNK_BYTES);
-          batch.set(chunksRef.doc(String(i)), { index: i, data: chunkStr });
-        }
-        await batch.commit();
-      }
-      const origUnoptimized = JSON.stringify(layerObj.geojson).length;
-      console.log('Layer optimized: ' + Math.round(origUnoptimized/1024) + 'KB -> ' + Math.round(jsonStr.length/1024) + 'KB (' + Math.round((1-jsonStr.length/origUnoptimized)*100) + '% saved) -> ' + totalChunks + ' chunks (' + Math.round(compressed.length/1024) + 'KB compressed)');
-    }
-    updateLastSyncTime();
-  }catch(e){console.warn('Sync layer error:',e);}
-}
-
-async function deleteLayerFromFirestore(layerId){
-  if(!isSyncActive() || !layerId) return;
-  try{
-    // Delete chunk subcollection if exists
-    try{
-      const chunksSnap = await fbDb.collection('projects').doc(currentProjectId).collection('layers').doc(layerId).collection('chunks').get();
-      if(!chunksSnap.empty){
-        const batch = fbDb.batch();
-        chunksSnap.forEach(doc => batch.delete(doc.ref));
-        await batch.commit();
-      }
-    }catch(e){/* ignore chunk delete errors */}
-    await fbDb.collection('projects').doc(currentProjectId).collection('layers').doc(layerId).delete();
-    updateLastSyncTime();
-  }catch(e){console.warn('Delete layer error:',e);}
-}
-
+function isSyncActive(){ return false; }
+function stopAllFirestoreListeners(){ }
+async function startSyncListeners(){ }
+async function syncMarkerToFirestore(m){}
+async function deleteMarkerFromFirestore(markerId){}
+async function syncFolderToFirestore(f){}
+async function deleteFolderFromFirestore(folderId){}
+async function syncPolygonFolderToFirestore(f){}
+async function deletePolygonFolderFromFirestore(folderId){}
+async function syncLayerToFirestore(layerObj){}
+async function deleteLayerFromFirestore(layerId){}
 async function uploadLocalDataToProject(){
-  if(!isSyncActive()) return;
-  try{
-    const projRef = fbDb.collection('projects').doc(currentProjectId);
-    let maxId = 0;
-
-    // Helper: commit batch in chunks of 450 (Firestore limit: 500)
-    async function commitBatchChunked(operations){
-      const BATCH_LIMIT = 450;
-      let batch = fbDb.batch();
-      let count = 0;
-      for(const op of operations){
-        op(batch);
-        count++;
-        if(count >= BATCH_LIMIT){
-          await batch.commit();
-          batch = fbDb.batch();
-          count = 0;
-        }
-      }
-      if(count > 0) await batch.commit();
-    }
-
-    // Collect all operations
-    const operations = [];
-
-    // Upload markers (optimized format)
-    markers.forEach((m)=>{
-      const ref = projRef.collection('markers').doc(m.id);
-      const doc = optimizeMarkerDoc(m);
-      doc.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-      operations.push(batch => batch.set(ref, doc));
-      const idNum = parseInt(m.id.replace('marker-',''))||0;
-      if(idNum>maxId) maxId=idNum;
-    });
-
-    // Upload folders
-    folders.forEach(f=>{
-      const ref = projRef.collection('folders').doc(f.id);
-      operations.push(batch => batch.set(ref,{id:f.id,name:f.name,description:f.description||'',color:f.color,createdAt:f.createdAt}));
-    });
-
-    // Upload polygon folders
-    polygonFolders.forEach(pf=>{
-      const ref = projRef.collection('polygonFolders').doc(pf.id);
-      operations.push(batch => batch.set(ref,{id:pf.id,name:pf.name,description:pf.description||'',color:pf.color,createdAt:pf.createdAt,items:pf.items||[]}));
-    });
-
-    // Set counter
-    const counterRef = projRef.collection('counters').doc('markers');
-    operations.push(batch => batch.set(counterRef,{value:Math.max(maxId,markerIdCounter)},{merge:true}));
-
-    // Commit all in chunks
-    await commitBatchChunked(operations);
-
-    // Upload layers satu per satu (GeoJSON bisa besar, tidak bisa masuk batch)
-    for(const l of layers){
-      if(l._layerId){
-        await syncLayerToFirestore(l);
-      }
-    }
-
-    console.log('Uploaded local data to project:',markers.size,'markers,',folders.length,'folders,',layers.length,'layers');
-    updateLastSyncTime();
-  }catch(e){console.error('Upload local data error:',e);}
+  showToast('Data tersimpan lokal. Gunakan Export/Import untuk backup data.','success');
 }
+async function syncAllMarkersToFirestore(){}
 
-function updateLastSyncTime(){
-  const el = document.getElementById('proyek-last-sync');
-  if(el) el.textContent = 'Terakhir sync: ' + new Date().toLocaleTimeString('id-ID');
+// ==================== ADMIN ENFORCEMENT ====================
+// Viewer: bisa buat titik, komentar, tapi TIDAK bisa hapus/edit project
+function enforceAdminControls(){
+  if(isAdminUser) return;
+  // Hide project delete buttons for viewers
+  document.querySelectorAll('.delete-project-btn').forEach(function(b){b.style.display='none';});
+  var d = document.getElementById('btn-toggle-delete-mode'); if(d) d.style.display='none';
+  var r = document.getElementById('proyek-delete-row'); if(r) r.style.display='none';
+  var cl = document.querySelector('button[onclick="clearAllData()"]'); if(cl) cl.style.display='none';
+  console.log('Viewer mode: project delete/edit disabled');
 }
-
-// ==================== SYNC STATUS ====================
-function updateSyncStatus(state,text){
-  const statusEl = document.getElementById('sync-status');
-  const dotEl = document.getElementById('sync-dot');
-  const textEl = document.getElementById('sync-text');
-  if(!statusEl||!dotEl||!textEl) return;
-
-  statusEl.classList.remove('hidden');
-  statusEl.classList.add('inline-flex');
-  dotEl.className = 'sync-dot ' + state;
-  textEl.textContent = text;
-}
-
-// ==================== MODIFY EXISTING FUNCTIONS FOR FIREBASE SYNC ====================
-
-// Override addMarker to also sync
-const _origAddMarker = addMarker;
-window.addMarker = function(lat,lng,type,customName){
-  const prevCount = markerIdCounter;
-  _origAddMarker(lat,lng,type,customName);
-  // Use the marker ID that was actually created (prevCount + 1)
-  const id = 'marker-' + prevCount;
-  const m = markers.get(id);
-  if(m) syncMarkerToFirestore(m);
-};
-
-// Override saveMarkerEdit to also sync
-const _origSaveMarkerEdit = saveMarkerEdit;
-window.saveMarkerEdit = function(){
-  _origSaveMarkerEdit();
-  if(editingMarkerId){
-    const m = markers.get(editingMarkerId);
-    if(m) syncMarkerToFirestore(m);
-  }
-};
-
-// Override deleteEditingMarker to also sync
-const _origDeleteEditingMarker = deleteEditingMarker;
-window.deleteEditingMarker = function(){
-  const id = editingMarkerId;
-  _origDeleteEditingMarker();
-  if(id) deleteMarkerFromFirestore(id);
-};
-
-// Override createMarkerFolder to also sync
-const _origCreateMarkerFolder = createMarkerFolder;
-window.createMarkerFolder = function(){
-  _origCreateMarkerFolder();
-  const lastFolder = folders[folders.length-1];
-  if(lastFolder) syncFolderToFirestore(lastFolder);
-};
-
-// Override deleteFolder to also sync
-const _origDeleteFolder = deleteFolder;
-window.deleteFolder = function(folderId){
-  _origDeleteFolder(folderId);
-  deleteFolderFromFirestore(folderId);
-};
-
-// Override createPolygonFolder to also sync
-const _origCreatePolygonFolder = createPolygonFolder;
-window.createPolygonFolder = function(){
-  _origCreatePolygonFolder();
-  const lastPF = polygonFolders[polygonFolders.length-1];
-  if(lastPF) syncPolygonFolderToFirestore(lastPF);
-};
-
-// Override deletePolygonFolder to also sync
-const _origDeletePolygonFolder = deletePolygonFolder;
-window.deletePolygonFolder = function(folderId){
-  _origDeletePolygonFolder(folderId);
-  deletePolygonFolderFromFirestore(folderId);
-};
-
-// Override addPolygonToFolder to also sync
-const _origAddPolygonToFolder = addPolygonToFolder;
-window.addPolygonToFolder = function(folderId){
-  _origAddPolygonToFolder(folderId);
-  const folder = polygonFolders.find(f=>f.id===folderId);
-  if(folder) syncPolygonFolderToFirestore(folder);
-};
-
-// Override removePolygonFromFolder to also sync
-const _origRemovePolygonFromFolder = removePolygonFromFolder;
-window.removePolygonFromFolder = function(folderId,groupIdx,subIdx){
-  _origRemovePolygonFromFolder(folderId,groupIdx,subIdx);
-  const folder = polygonFolders.find(f=>f.id===folderId);
-  if(folder) syncPolygonFolderToFirestore(folder);
-};
-
-// Override setActiveFolder - also sync folder assignment change
-const _origSetActiveFolder = setActiveFolder;
-window.setActiveFolder = function(id){
-  _origSetActiveFolder(id);
-  // Just update UI, no Firestore write needed - folder assignment is on the marker
-};
-
-// Handle marker dragend to also sync
-const _origMarkerDragHandler = null; // Already handled in addMarker override
-
-
 
 // ==================== ONLINE/OFFLINE DETECTION ====================
 function updateOnlineStatus(){
@@ -4008,12 +2890,12 @@ function updateOnlineStatus(){
   if(navigator.onLine){
     banner.classList.remove('visible');
     // If we were offline and now online, update sync status
-    if(isFirebaseReady && currentUser && currentProjectId){
+    if(isSupabaseReady && currentUser && currentProjectId){
       updateSyncStatus('online','Kembali online');
     }
   }else{
     banner.classList.add('visible');
-    if(isFirebaseReady){
+    if(isSupabaseReady){
       updateSyncStatus('offline','Offline');
     }
   }
@@ -4030,7 +2912,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   await initFileDB();
   try{await initTileDB();}catch(e){console.warn('Tile DB init failed, caching disabled:',e);}
   updateTileCacheUI();
-  initFirebase();
+  initSupabase();
 
   document.getElementById('map').style.height='100%';document.getElementById('map').style.width='100%';map=L.map('map',{center:[-2.5,118],zoom:5,zoomControl:false,closePopupOnClick:true,preferCanvas:true});
   tileLayer=new CachedTileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',{
@@ -6203,7 +5085,7 @@ function createMarkerEl(m){
 
 // ===== syncAllMarkersToFirestore: Sinkronisasi semua marker ke Firebase =====
 async function syncAllMarkersToFirestore(){
-  if(!isFirebaseReady||!currentUser||!currentProjectId)return;
+  if(!isSupabaseReady||!currentUser||!currentProjectId)return;
   try{
     for(const [id,m] of markers){
       await syncMarkerToFirestore(m);
@@ -6631,7 +5513,7 @@ async function exportAllToKmz(){
 
   let kml='<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
   kml+='<name>KMZ Viewer Export</name>\n';
-  kml+='<description>Diekspor dari KMZ Viewer v8 PWA pada '+new Date().toLocaleString('id-ID')+'</description>\n';
+  kml+='<description>Diekspor dari COMSUR Survey v9 pada '+new Date().toLocaleString('id-ID')+'</description>\n';
 
   // ── Styles ──
   // Marker style dengan BalloonStyle
@@ -6718,7 +5600,7 @@ async function exportAllToKmz(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   const d=new Date();
-  a.download='KMZ-Viewer-Export-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.kmz';
+  a.download='COMSUR-Survey-Export-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.kmz';
   a.click();URL.revokeObjectURL(a.href);
   const total=allMarkers.length+allLayerPoints.length+allPolygons.length;
   showToast(total+' data berhasil di-export ke KMZ!','success');
@@ -6750,7 +5632,7 @@ async function exportSelectedToKmz(){
   const es=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   let kml='<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
   kml+='<name>KMZ Viewer - Dipilih</name>\n';
-  kml+='<description>Diekspor dari KMZ Viewer v8 PWA pada '+new Date().toLocaleString('id-ID')+'</description>\n';
+  kml+='<description>Diekspor dari COMSUR Survey v9 pada '+new Date().toLocaleString('id-ID')+'</description>\n';
   if(selMarkers.length>0){
     kml+='<Folder><name>Titik Dipilih ('+selMarkers.length+')</name>\n';
     selMarkers.forEach((m,i)=>{
@@ -6838,7 +5720,7 @@ async function exportAllMarkersToKmz(){
   const es=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   let kml='<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
   kml+='<name>KMZ Viewer - Semua Titik</name>\n';
-  kml+='<description>Diekspor dari KMZ Viewer v8 PWA pada '+new Date().toLocaleString('id-ID')+'</description>\n';
+  kml+='<description>Diekspor dari COMSUR Survey v9 pada '+new Date().toLocaleString('id-ID')+'</description>\n';
   kml+='<Folder><name>Titik ('+allMarkers.length+')</name>\n';
   allMarkers.forEach((m,i)=>{
     const mc=sanitizeColor(m.color||'#22c55e');
@@ -6890,7 +5772,7 @@ async function exportAllPolygonsToKmz(){
   const es=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   let kml='<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
   kml+='<name>KMZ Viewer - Semua Polygon</name>\n';
-  kml+='<description>Diekspor dari KMZ Viewer v8 PWA pada '+new Date().toLocaleString('id-ID')+'</description>\n';
+  kml+='<description>Diekspor dari COMSUR Survey v9 pada '+new Date().toLocaleString('id-ID')+'</description>\n';
   kml+='<Folder><name>Polygon ('+allPolygons.length+')</name>\n';
   allPolygons.forEach((item,idx)=>{
     const feat=item.feature;
@@ -6949,7 +5831,7 @@ async function exportSelectedLayersToKmz(){
   const es=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   let kml='<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
   kml+='<name>KMZ Viewer - Layer Dipilih</name>\n';
-  kml+='<description>Diekspor dari KMZ Viewer v8 PWA pada '+new Date().toLocaleString('id-ID')+'</description>\n';
+  kml+='<description>Diekspor dari COMSUR Survey v9 pada '+new Date().toLocaleString('id-ID')+'</description>\n';
   // Folder: Titik Koordinat (dari markers Map)
   if(allMarkers.length>0){
     kml+='<Folder><name>Titik Koordinat ('+allMarkers.length+')</name>\n';
@@ -7493,7 +6375,7 @@ async function exportToPdf(){
   if (!('serviceWorker' in navigator)) return;
 
   const SW_CODE = `
-const CACHE_NAME = 'kmz-viewer-v8';
+const CACHE_NAME = 'comsur-survey-v9';
 const ASSETS_TO_CACHE = [
   './',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
@@ -7566,7 +6448,7 @@ self.addEventListener('fetch', event => {
       'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js',
       'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'
     ];
-    caches.open('kmz-viewer-v8-direct').then(cache => {
+    caches.open('comsur-survey-v9-direct').then(cache => {
       cache.addAll(ASSETS).then(() => {
         console.log('[PWA] Assets pre-cached directly via Cache API (no SW)');
       }).catch(e => console.warn('[PWA] Direct cache failed:', e));
