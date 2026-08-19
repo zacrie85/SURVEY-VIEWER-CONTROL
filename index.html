@@ -790,7 +790,7 @@ window.addEventListener('unhandledrejection',function(ev){
           <div class="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></div>
           <div>
             <p class="text-xs font-semibold text-gray-700">Password Viewer</p>
-            <p class="text-[9px] text-gray-400">Viewer bisa edit titik, upload foto & komentar. Hapus dibatasi.</p>
+            <p class="text-[9px] text-gray-400">Viewer bisa buat/edit titik, folder, foto, komentar. Semua hapus dibatasi.</p>
           </div>
         </div>
         <div id="viewer-pw-status" class="text-[10px] mb-2 px-2 py-1.5 rounded-lg bg-gray-50 border border-gray-200"></div>
@@ -1971,6 +1971,7 @@ async function loadState(){
 }
 
 async function clearAllData(){
+  if(!isAdminUser){showToast('Viewer tidak bisa menghapus semua data','error');return;}
   if(!await appConfirm('Hapus SEMUA data? (titik, folder, file, cache)'))return;
   localStorage.removeItem(STORAGE_KEY);
   clearFileDB();clearTileCache();
@@ -2963,10 +2964,10 @@ function showToast(message, type){
 
 
 // ===== Async Confirm Wrappers (for inline onclick handlers) =====
-async function confirmClearAllFiles(){if(!await appConfirm('Hapus SEMUA file tersimpan?'))return;clearAllSavedFiles();}
-async function confirmDeleteFile(id){if(!await appConfirm('Hapus file?'))return;deleteSavedFile(id);}
-async function confirmDeleteFolder(id){if(!await appConfirm('Hapus folder ini?'))return;deleteFolder(id);}
-async function confirmDeletePolyFolder(id){if(!await appConfirm('Hapus folder polygon ini?'))return;deletePolygonFolder(id);}
+async function confirmClearAllFiles(){if(!isAdminUser){showToast('Viewer tidak bisa menghapus file','error');return;}if(!await appConfirm('Hapus SEMUA file tersimpan?'))return;clearAllSavedFiles();}
+async function confirmDeleteFile(id){if(!isAdminUser){showToast('Viewer tidak bisa menghapus file','error');return;}if(!await appConfirm('Hapus file?'))return;deleteSavedFile(id);}
+async function confirmDeleteFolder(id){if(!isAdminUser){showToast('Viewer tidak bisa menghapus folder','error');return;}if(!await appConfirm('Hapus folder ini?'))return;deleteFolder(id);}
+async function confirmDeletePolyFolder(id){if(!isAdminUser){showToast('Viewer tidak bisa menghapus folder','error');return;}if(!await appConfirm('Hapus folder polygon ini?'))return;deletePolygonFolder(id);}
 
 // ==================== CUSTOM ALERT & CONFIRM (non-blocking, PWA-friendly) ====================
 function appAlert(message){
@@ -3495,8 +3496,8 @@ window.__editMarker=(id)=>{
   // Load comments
   renderEditComments(m);
   // Sembunyikan tombol Hapus untuk viewer
-  var editBtns = document.querySelectorAll('#edit-modal .flex.gap-2.pt-2 button');
-  editBtns.forEach(function(b){if(b.textContent.trim()==='Hapus') b.style.display = isAdminUser ? '' : 'none';});
+  var editBtns = document.querySelectorAll('#edit-modal button');
+  editBtns.forEach(function(b){if(b.getAttribute('onclick')==='deleteEditingMarker()') b.style.display = isAdminUser ? '' : 'none';});
   document.getElementById('edit-modal').classList.remove('hidden');
 };
 
@@ -5045,6 +5046,7 @@ function updateSelectionUI(){
 }
 
 async function deleteSelectedMarkers(){
+  if(!isAdminUser){showToast('Viewer tidak bisa menghapus titik','error');return;}
   if(selectedMarkerIds.size===0){appAlert('Tidak ada titik yang dipilih.');return;}
   if(!await appConfirm('Hapus '+selectedMarkerIds.size+' titik yang dipilih?'))return;
   const idsToDelete = [...selectedMarkerIds];
@@ -5244,10 +5246,11 @@ function updateFolderSelects(){
 function renderFolderList(){
   const c=document.getElementById('folder-list');
   if(folders.length===0){c.innerHTML='';return;}
+  const showDel=isAdminUser;
   c.innerHTML=folders.map(f=>{
     const count=Array.from(markers.values()).filter(m=>m.folderId===f.id).length;
     const isActive=activeFolderId===f.id;
-    return '<div class="p-2 rounded-lg border '+(isActive?'border-blue-300 bg-blue-50':'border-gray-100 hover:bg-gray-50')+' transition-all"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm shrink-0" style="background:'+f.color+'"></div><div class="flex-1 min-w-0"><p class="text-xs font-semibold text-gray-700 truncate">'+esc(f.name)+'</p>'+(f.description?'<p class="text-[10px] text-gray-400 truncate">'+esc(f.description)+'</p>':'')+'</div><span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full '+(isActive?'bg-blue-200 text-blue-700':'bg-gray-100 text-gray-500')+'">'+count+'</span></div><div class="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-gray-100"><button onclick="flyToFolder(\''+f.id+'\')" class="flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-blue-600 px-1.5 py-0.5 rounded hover:bg-blue-50"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>Lihat</button><button onclick="exportFolderToKmz(\''+f.id+'\')" class="flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-teal-600 px-1.5 py-0.5 rounded hover:bg-teal-50"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>KMZ</button><button onclick="confirmDeleteFolder(\''+f.id+'\')" class="flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-red-600 px-1.5 py-0.5 rounded hover:bg-red-50 ml-auto"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div>';
+    return '<div class="p-2 rounded-lg border '+(isActive?'border-blue-300 bg-blue-50':'border-gray-100 hover:bg-gray-50')+' transition-all"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm shrink-0" style="background:'+f.color+'"></div><div class="flex-1 min-w-0"><p class="text-xs font-semibold text-gray-700 truncate">'+esc(f.name)+'</p>'+(f.description?'<p class="text-[10px] text-gray-400 truncate">'+esc(f.description)+'</p>':'')+'</div><span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full '+(isActive?'bg-blue-200 text-blue-700':'bg-gray-100 text-gray-500')+'">'+count+'</span></div><div class="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-gray-100"><button onclick="flyToFolder(\''+f.id+'\')" class="flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-blue-600 px-1.5 py-0.5 rounded hover:bg-blue-50"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>Lihat</button><button onclick="exportFolderToKmz(\''+f.id+'\')" class="flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-teal-600 px-1.5 py-0.5 rounded hover:bg-teal-50"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>KMZ</button>'+(showDel?'<button onclick="confirmDeleteFolder(\''+f.id+'\')" class="flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-red-600 px-1.5 py-0.5 rounded hover:bg-red-50 ml-auto"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>':'')+'</div></div>';
   }).join('');
 }
 
@@ -6337,9 +6340,10 @@ async function exportSelectedLayersToKmz(){
 
 function renderPolygonFolders(){
   const c=document.getElementById('polyfolder-list');
+  const showDel=isAdminUser;
   if(polygonFolders.length===0){c.innerHTML='<div class="text-center py-4 text-gray-400"><p class="text-xs">Belum ada folder polygon</p><p class="text-[10px] mt-0.5">Buat folder untuk mengelompokkan polygon</p></div>';return;}
   c.innerHTML=polygonFolders.map(f=>{
-    return '<div class="p-2 rounded-lg border border-gray-100 hover:bg-gray-50 transition-all"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm shrink-0" style="background:'+f.color+'"></div><div class="flex-1 min-w-0"><p class="text-xs font-semibold text-gray-700 truncate">'+esc(f.name)+'</p>'+(f.description?'<p class="text-[10px] text-gray-400 truncate">'+esc(f.description)+'</p>':'')+'</div><span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">'+f.items.length+'</span></div><div class="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-gray-100"><button onclick="flyToPolygonFolder(\''+f.id+'\')" class="flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-blue-600 px-1.5 py-0.5 rounded hover:bg-blue-50">Lihat</button><button onclick="exportPolygonFolderToKmz(\''+f.id+'\')" class="flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-teal-600 px-1.5 py-0.5 rounded hover:bg-teal-50">KMZ</button><button onclick="confirmDeletePolyFolder(\''+f.id+'\')" class="flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-red-600 px-1.5 py-0.5 rounded hover:bg-red-50 ml-auto">Hapus</button></div>'+(f.items.length>0?'<div class="mt-1.5 pt-1.5 border-t border-gray-100 space-y-0.5">'+f.items.map((item,idx)=>{const layer=findPolyLayer(item.layerGroupIdx,item.subLayerIdx);let polyName='Polygon '+(idx+1);if(layer?.feature?.properties?.name)polyName=layer.feature.properties.name;return '<div class="flex items-center gap-1.5 py-0.5 px-1 rounded hover:bg-red-50 cursor-pointer text-[10px] group" onclick="removePolygonFromFolder(\''+f.id+'\','+item.layerGroupIdx+','+item.subLayerIdx+')"><span class="font-bold text-gray-400 w-4 text-right">'+(idx+1)+'.</span><div class="w-2 h-2 rounded-full shrink-0" style="background:'+f.color+'"></div><span class="text-gray-600 truncate flex-1">'+esc(polyName)+'</span><span class="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity text-red-400">x</span></div>';}).join('')+'</div>':'<div class="mt-1.5 pt-1.5 border-t border-gray-100"><p class="text-[10px] text-gray-400 text-center py-1">Klik polygon lalu tekan "Masukkan ke Folder"</p></div>')+'</div>';
+    return '<div class="p-2 rounded-lg border border-gray-100 hover:bg-gray-50 transition-all"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm shrink-0" style="background:'+f.color+'"></div><div class="flex-1 min-w-0"><p class="text-xs font-semibold text-gray-700 truncate">'+esc(f.name)+'</p>'+(f.description?'<p class="text-[10px] text-gray-400 truncate">'+esc(f.description)+'</p>':'')+'</div><span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">'+f.items.length+'</span></div><div class="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-gray-100"><button onclick="flyToPolygonFolder(\''+f.id+'\')" class="flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-blue-600 px-1.5 py-0.5 rounded hover:bg-blue-50">Lihat</button><button onclick="exportPolygonFolderToKmz(\''+f.id+'\')" class="flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-teal-600 px-1.5 py-0.5 rounded hover:bg-teal-50">KMZ</button>'+(showDel?'<button onclick="confirmDeletePolyFolder(\''+f.id+'\')" class="flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-red-600 px-1.5 py-0.5 rounded hover:bg-red-50 ml-auto">Hapus</button>':'')+'</div>'+(f.items.length>0?'<div class="mt-1.5 pt-1.5 border-t border-gray-100 space-y-0.5">'+f.items.map((item,idx)=>{const layer=findPolyLayer(item.layerGroupIdx,item.subLayerIdx);let polyName='Polygon '+(idx+1);if(layer?.feature?.properties?.name)polyName=layer.feature.properties.name;return '<div class="flex items-center gap-1.5 py-0.5 px-1 rounded hover:bg-red-50 cursor-pointer text-[10px] group" onclick="removePolygonFromFolder(\''+f.id+'\','+item.layerGroupIdx+','+item.subLayerIdx+')"><span class="font-bold text-gray-400 w-4 text-right">'+(idx+1)+'.</span><div class="w-2 h-2 rounded-full shrink-0" style="background:'+f.color+'"></div><span class="text-gray-600 truncate flex-1">'+esc(polyName)+'</span><span class="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity text-red-400">x</span></div>';}).join('')+'</div>':'<div class="mt-1.5 pt-1.5 border-t border-gray-100"><p class="text-[10px] text-gray-400 text-center py-1">Klik polygon lalu tekan "Masukkan ke Folder"</p></div>')+'</div>';
   }).join('');
 }
 
