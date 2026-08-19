@@ -284,6 +284,7 @@ window.addEventListener('unhandledrejection',function(ev){
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
         <p id="gate-change-link" class="hidden" style="margin:0"><a href="#" onclick="event.preventDefault();gateShowChangePassword()" style="color:rgba(148,163,184,.6);font-size:11px;text-decoration:none">Ubah Password</a></p>
         <p id="gate-local-reset" class="gate-reset" style="margin:0"><a href="#" onclick="event.preventDefault();gateResetLocal()" style="color:rgba(239,68,68,.5);font-size:11px;text-decoration:none">Reset Password</a></p>
+        <p id="gate-reset-hint" class="hidden" style="margin:0;margin-top:6px"><a href="#" onclick="event.preventDefault();gateResetLocal()" style="color:rgba(239,68,68,.5);font-size:11px;text-decoration:none">Reset Password</a></p>
       </div>
     </div>
     <div id="gate-mode-setup" class="hidden">
@@ -2436,16 +2437,20 @@ function syncPasswordToSupabase(hash, adminId){
 }
 
 // ===== GATE UI MODES =====
+// Helper: safe toggle class on optional elements
+function _gateCls(id, cls, add){
+  var el=document.getElementById(id); if(el){if(add)el.classList.add(cls);else el.classList.remove(cls);}
+}
 function gateShowLoading(){
   document.getElementById('gate-subtitle-text').textContent = 'Memeriksa...';
   document.getElementById('gate-mode-login').classList.add('hidden');
   document.getElementById('gate-mode-setup').classList.add('hidden');
   document.getElementById('gate-mode-change').classList.add('hidden');
-  document.getElementById('gate-setup-hint').classList.add('hidden');
-  document.getElementById('gate-reset-hint').classList.add('hidden');
-  document.getElementById('gate-change-link').classList.add('hidden');
-  document.getElementById('gate-admin-badge').classList.add('hidden');
-  document.getElementById('gate-local-reset').classList.add('hidden');
+  _gateCls('gate-setup-hint','hidden',true);
+  _gateCls('gate-reset-hint','hidden',true);
+  _gateCls('gate-change-link','hidden',true);
+  _gateCls('gate-admin-badge','hidden',true);
+  _gateCls('gate-local-reset','hidden',true);
   document.getElementById('gate-error').textContent = '';
   var vHint = document.getElementById('gate-viewer-hint'); if(vHint) vHint.classList.add('hidden');
 }
@@ -2455,11 +2460,11 @@ function gateShowLogin(){
   document.getElementById('gate-mode-login').classList.remove('hidden');
   document.getElementById('gate-mode-setup').classList.add('hidden');
   document.getElementById('gate-mode-change').classList.add('hidden');
-  document.getElementById('gate-setup-hint').classList.add('hidden');
-  document.getElementById('gate-reset-hint').classList.remove('hidden');
-  document.getElementById('gate-change-link').classList.remove('hidden');
-  document.getElementById('gate-admin-badge').classList.add('hidden');
-  document.getElementById('gate-local-reset').classList.remove('hidden');
+  _gateCls('gate-setup-hint','hidden',true);
+  _gateCls('gate-reset-hint','hidden',false);
+  _gateCls('gate-change-link','hidden',false);
+  _gateCls('gate-admin-badge','hidden',true);
+  _gateCls('gate-local-reset','hidden',false);
   document.getElementById('gate-error').textContent = '';
   document.getElementById('gate-password-input').value = '';
   document.getElementById('gate-password-input').placeholder = 'Password aplikasi';
@@ -2471,11 +2476,11 @@ function gateShowSetup(){
   document.getElementById('gate-mode-login').classList.add('hidden');
   document.getElementById('gate-mode-setup').classList.remove('hidden');
   document.getElementById('gate-mode-change').classList.add('hidden');
-  document.getElementById('gate-setup-hint').classList.add('hidden');
-  document.getElementById('gate-reset-hint').classList.add('hidden');
-  document.getElementById('gate-change-link').classList.add('hidden');
-  document.getElementById('gate-admin-badge').classList.remove('hidden');
-  document.getElementById('gate-local-reset').classList.add('hidden');
+  _gateCls('gate-setup-hint','hidden',true);
+  _gateCls('gate-reset-hint','hidden',true);
+  _gateCls('gate-change-link','hidden',true);
+  _gateCls('gate-admin-badge','hidden',false);
+  _gateCls('gate-local-reset','hidden',true);
   document.getElementById('gate-error').textContent = '';
   document.getElementById('gate-new-password').value = '';
   document.getElementById('gate-confirm-password').value = '';
@@ -2487,11 +2492,11 @@ function gateShowChangePassword(){
   document.getElementById('gate-mode-login').classList.add('hidden');
   document.getElementById('gate-mode-setup').classList.add('hidden');
   document.getElementById('gate-mode-change').classList.remove('hidden');
-  document.getElementById('gate-setup-hint').classList.add('hidden');
-  document.getElementById('gate-reset-hint').classList.add('hidden');
-  document.getElementById('gate-change-link').classList.add('hidden');
-  document.getElementById('gate-admin-badge').classList.add('hidden');
-  document.getElementById('gate-local-reset').classList.add('hidden');
+  _gateCls('gate-setup-hint','hidden',true);
+  _gateCls('gate-reset-hint','hidden',true);
+  _gateCls('gate-change-link','hidden',true);
+  _gateCls('gate-admin-badge','hidden',true);
+  _gateCls('gate-local-reset','hidden',true);
   document.getElementById('gate-error').textContent = '';
   document.getElementById('gate-change-old').value = '';
   document.getElementById('gate-change-new').value = '';
@@ -2531,7 +2536,7 @@ async function gateSubmit(){
       errEl.textContent='Password salah!';
       input.value='';
       input.focus();
-      document.getElementById('gate-reset-hint').classList.remove('hidden');
+      _gateCls('gate-reset-hint','hidden',false);
     }
   }catch(e){
     errEl.textContent='Error: '+e.message;
