@@ -313,11 +313,13 @@ window.addEventListener('unhandledrejection',function(ev){
       <p style="text-align:center;margin-top:12px"><a href="#" onclick="event.preventDefault();gateBackToLogin()" style="color:rgba(148,163,184,.5);font-size:11px;text-decoration:none">Kembali ke Login</a></p>
     </div>
     <p id="gate-error" style="color:#f87171;font-size:11px;margin-top:12px;min-height:16px;text-align:center"></p>
+    <div id="gate-viewer-hint" class="hidden" style="margin-top:8px;text-align:center"><span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2);border-radius:8px;color:rgba(147,197,253,.8);font-size:10px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>Akses Viewer tersedia</span></div>
     <p id="gate-setup-hint" class="gate-setup hidden" style="color:rgba(148,163,184,.5);font-size:11px;margin-top:12px;text-align:center">Password belum diatur. <a href="#" onclick="event.preventDefault();gateShowSetupOld()" style="color:#a5b4fc;text-decoration:none">Atur sekarang</a></p>
   </div>
   <div style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(148,163,184,.3);font-size:10px;z-index:1">v9.0 — Secured Access</div>
 </div>
- class="flex flex-col h-screen w-screen overflow-hidden bg-gray-100">
+
+<div id="app" class="flex flex-col h-screen w-screen overflow-hidden bg-gray-100">
 <!-- Header -->
 <header class="bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between shrink-0 z-50 shadow-sm">
   <div class="flex items-center gap-2">
@@ -438,18 +440,33 @@ window.addEventListener('unhandledrejection',function(ev){
     </div>
     <div class="modal-card-body">
       <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">
-        <p class="text-[10px] text-amber-700 font-medium flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Sebagai admin, kamu dapat mengubah password aplikasi. User lain hanya bisa menggunakan password yang sudah diatur.</p>
+        <p class="text-[10px] text-amber-700 font-medium flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Sebagai admin, kamu dapat mengubah password dan mengatur akses viewer.</p>
       </div>
-      <!-- Ganti Password -->
+      <!-- Ganti Password Admin -->
       <div id="settings-password-section">
-        <label class="text-[11px] font-semibold text-gray-500 uppercase block mb-1.5">Password Lama</label>
-        <input type="password" id="settings-old-password" placeholder="Masukkan password lama" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 mb-2" />
-        <label class="text-[11px] font-semibold text-gray-500 uppercase block mb-1.5">Password Baru</label>
-        <input type="password" id="settings-new-password" placeholder="Password baru (min 4 karakter)" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 mb-2" />
-        <label class="text-[11px] font-semibold text-gray-500 uppercase block mb-1.5">Konfirmasi Password Baru</label>
-        <input type="password" id="settings-confirm-password" placeholder="Ulangi password baru" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 mb-3" />
-        <button onclick="changeAppPassword()" class="w-full py-2.5 text-xs font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>Simpan Password Baru</button>
+        <label class="text-[11px] font-semibold text-gray-500 uppercase block mb-1.5">Password Admin Lama</label>
+        <input type="password" id="settings-old-password" placeholder="Masukkan password admin lama" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 mb-2" />
+        <label class="text-[11px] font-semibold text-gray-500 uppercase block mb-1.5">Password Admin Baru</label>
+        <input type="password" id="settings-new-password" placeholder="Password admin baru (min 4 karakter)" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 mb-2" />
+        <label class="text-[11px] font-semibold text-gray-500 uppercase block mb-1.5">Konfirmasi Password Admin</label>
+        <input type="password" id="settings-confirm-password" placeholder="Ulangi password admin baru" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 mb-3" />
+        <button onclick="changeAppPassword()" class="w-full py-2.5 text-xs font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>Simpan Password Admin</button>
         <p id="settings-error" class="text-[10px] text-red-500 text-center mt-2 hidden"></p>
+      </div>
+      <!-- Viewer Password Section -->
+      <div class="mt-3 pt-3 border-t border-gray-100">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></div>
+          <div>
+            <p class="text-xs font-semibold text-gray-700">Password Viewer</p>
+            <p class="text-[9px] text-gray-400">Viewer bisa lihat & komentar, tidak bisa edit/hapus</p>
+          </div>
+        </div>
+        <div id="viewer-pw-status" class="text-[10px] mb-2 px-2 py-1.5 rounded-lg bg-gray-50 border border-gray-200"></div>
+        <input type="password" id="settings-viewer-password" placeholder="Password viewer (min 4 karakter)" class="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-50 mb-2" />
+        <button onclick="setViewerPassword()" class="w-full py-2.5 text-xs font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>Atur Password Viewer</button>
+        <button onclick="removeViewerPassword()" class="w-full mt-1.5 py-2 text-xs font-medium bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition-colors">Hapus Password Viewer</button>
+        <p id="viewer-pw-error" class="text-[10px] text-red-500 text-center mt-2 hidden"></p>
       </div>
       <!-- Kunci Aplikasi -->
       <div class="mt-3 pt-3 border-t border-gray-100">
@@ -2298,11 +2315,18 @@ async function checkGateAndInit(){
   if(unlocked === '1' && (Date.now() - unlockTime) < dayMs){
     isAppUnlocked = true;
     isAdminUser = sessionStorage.getItem('kmz_is_admin') === '1';
+    const savedRole = sessionStorage.getItem('kmz_user_role') || 'admin';
     document.getElementById('password-gate').classList.add('hidden-gate');
     loadPasswordHash();
-    if(isAdminUser) document.getElementById('btn-settings').classList.remove('hidden-settings');
-    currentUser = {name:'Admin',role:'admin'};
+    if(isAdminUser){
+      document.getElementById('btn-settings').classList.remove('hidden-settings');
+      currentUser = {name:'Admin',role:'admin'};
+    }else{
+      document.getElementById('btn-settings').classList.add('hidden-settings');
+      currentUser = {name:'Viewer',role:'viewer'};
+    }
     onUserLoggedIn(currentUser);
+    if(!isAdminUser) enforceViewerRestrictions();
     return;
   }
 
@@ -2322,6 +2346,7 @@ async function checkGateAndInit(){
         if(data && data.password_hash){
           appPasswordHash = data.password_hash;
           appAdminUid = data.admin_uid || null;
+          if(data.viewer_password_hash) appViewerPasswordHash = data.viewer_password_hash;
           savePasswordToLocal();
           gateShowLogin();
           foundInSupabase = true;
@@ -2339,9 +2364,13 @@ async function checkGateAndInit(){
 function loadPasswordHash(){
   const localHash = localStorage.getItem('kmz_app_password');
   const localAdmin = localStorage.getItem('kmz_app_admin');
+  const localViewerHash = localStorage.getItem('kmz_app_viewer_password');
   if(localHash && !appPasswordHash){
     appPasswordHash = localHash;
     appAdminUid = localAdmin || null;
+  }
+  if(localViewerHash && !appViewerPasswordHash){
+    appViewerPasswordHash = localViewerHash;
   }
 }
 
@@ -2349,6 +2378,7 @@ function loadPasswordHash(){
 function savePasswordToLocal(){
   if(appPasswordHash) localStorage.setItem('kmz_app_password', appPasswordHash);
   if(appAdminUid) localStorage.setItem('kmz_app_admin', appAdminUid);
+  if(appViewerPasswordHash) localStorage.setItem('kmz_app_viewer_password', appViewerPasswordHash);
 }
 
 // Sync password ke Supabase di background (non-blocking)
@@ -2357,6 +2387,7 @@ function syncPasswordToSupabase(hash, adminId){
   sb.from('app_settings').upsert({
     id: 'security',
     password_hash: hash,
+    viewer_password_hash: appViewerPasswordHash || null,
     admin_uid: adminId || appAdminUid || 'admin-local',
     updated_at: new Date().toISOString()
   }).then(()=>{
@@ -2378,6 +2409,7 @@ function gateShowLoading(){
   document.getElementById('gate-admin-badge').classList.add('hidden');
   document.getElementById('gate-local-reset').classList.add('hidden');
   document.getElementById('gate-error').textContent = '';
+  var vHint = document.getElementById('gate-viewer-hint'); if(vHint) vHint.classList.add('hidden');
 }
 
 function gateShowLogin(){
@@ -2443,11 +2475,7 @@ async function gateSubmit(){
   const pwd = input.value.trim();
   if(!pwd){errEl.textContent='Password tidak boleh kosong';return;}
 
-  // Jika belum ada hash (belum diatur), arahkan ke setup
-  if(!appPasswordHash){
-    gateShowSetup();
-    return;
-  }
+  if(!appPasswordHash){ gateShowSetup(); return; }
 
   btn.disabled=true;
   btn.textContent='Memverifikasi...';
@@ -2456,9 +2484,11 @@ async function gateSubmit(){
   try{
     const hash = await sha256(pwd);
     if(hash === appPasswordHash){
-      // Password benar — cek apakah ini admin
-      isAdminUser = true; & tahu password = admin
+      isAdminUser = true;
       unlockApp();
+    }else if(appViewerPasswordHash && hash === appViewerPasswordHash){
+      isAdminUser = false;
+      unlockAppAsViewer();
     }else{
       errEl.textContent='Password salah!';
       input.value='';
@@ -2593,9 +2623,36 @@ function unlockApp(){
   sessionStorage.setItem('kmz_unlocked','1');
   sessionStorage.setItem('kmz_unlock_time', Date.now().toString());
   sessionStorage.setItem('kmz_is_admin', '1');
+  sessionStorage.setItem('kmz_user_role', 'admin');
   document.getElementById('btn-settings').classList.remove('hidden-settings');
   currentUser = {name:'Admin',role:'admin'};
   onUserLoggedIn(currentUser);
+}
+
+function unlockAppAsViewer(){
+  isAppUnlocked = true;
+  isAdminUser = false;
+  document.getElementById('password-gate').classList.add('hidden-gate');
+  sessionStorage.setItem('kmz_unlocked','1');
+  sessionStorage.setItem('kmz_unlock_time', Date.now().toString());
+  sessionStorage.setItem('kmz_is_admin', '0');
+  sessionStorage.setItem('kmz_user_role', 'viewer');
+  document.getElementById('btn-settings').classList.add('hidden-settings');
+  currentUser = {name:'Viewer',role:'viewer'};
+  onUserLoggedIn(currentUser);
+  enforceViewerRestrictions();
+}
+
+function enforceViewerRestrictions(){
+  if(isAdminUser) return;
+  document.querySelectorAll('.delete-project-btn').forEach(function(b){b.style.display='none';});
+  var d=document.getElementById('btn-toggle-delete-mode');if(d)d.style.display='none';
+  var r=document.getElementById('proyek-delete-row');if(r)r.style.display='none';
+  var cl=document.querySelector('button[onclick="clearAllData()"]');if(cl)cl.style.display='none';
+  document.getElementById('btn-settings').classList.add('hidden-settings');
+  var da=document.getElementById('btn-delete-all-markers');if(da)da.style.display='none';
+ updateSyncStatus('online','Viewer Mode');
+  console.log('Viewer mode active: delete/edit project disabled, comments allowed');
 }
 
 // Admin determined by gate — no-op for Firebase
@@ -2617,7 +2674,50 @@ function openSettingsModal(){
   document.getElementById('settings-new-password').value='';
   document.getElementById('settings-confirm-password').value='';
   document.getElementById('settings-error').classList.add('hidden');
+  document.getElementById('settings-viewer-password').value='';
+  document.getElementById('viewer-pw-error').classList.add('hidden');
+  var vpStatus = document.getElementById('viewer-pw-status');
+  if(vpStatus){
+    if(appViewerPasswordHash){
+      vpStatus.innerHTML = '<span class='text-emerald-600 font-medium'>&#x2713; Password viewer aktif</span>';
+    }else{
+      vpStatus.innerHTML = '<span class='text-gray-400'>Belum diatur</span>';
+    }
+  }
   document.getElementById('settings-modal').classList.add('visible');
+}
+
+async function setViewerPassword(){
+  if(!isAdminUser){showToast('Hanya admin','error');return;}
+  var pwd = document.getElementById('settings-viewer-password').value.trim();
+  var errEl = document.getElementById('viewer-pw-error');
+  errEl.classList.add('hidden');
+  if(!pwd){errEl.textContent='Password viewer tidak boleh kosong';errEl.classList.remove('hidden');return;}
+  if(pwd.length<4){errEl.textContent='Password viewer minimal 4 karakter';errEl.classList.remove('hidden');return;}
+  try{
+    var hash = await sha256(pwd);
+    if(hash === appPasswordHash){errEl.textContent='Password viewer tidak boleh sama dengan password admin';errEl.classList.remove('hidden');return;}
+    appViewerPasswordHash = hash;
+    savePasswordToLocal();
+    syncPasswordToSupabase(appPasswordHash, appAdminUid);
+    showToast('Password viewer berhasil diatur!','success');
+    var vpStatus = document.getElementById('viewer-pw-status');
+    if(vpStatus) vpStatus.innerHTML = '<span class='text-emerald-600 font-medium'>&#x2713; Password viewer aktif</span>';
+    document.getElementById('settings-viewer-password').value='';
+  }catch(e){
+    errEl.textContent='Gagal: '+e.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+function removeViewerPassword(){
+  if(!isAdminUser) return;
+  appViewerPasswordHash = null;
+  localStorage.removeItem('kmz_app_viewer_password');
+  syncPasswordToSupabase(appPasswordHash, appAdminUid);
+  var vpStatus = document.getElementById('viewer-pw-status');
+  if(vpStatus) vpStatus.innerHTML = '<span class='text-gray-400'>Belum diatur</span>';
+  showToast('Password viewer dihapus','success');
 }
 function closeSettingsModal(){
   document.getElementById('settings-modal').classList.remove('visible');
@@ -2734,8 +2834,6 @@ function deleteActiveProject(){
 // Re-compress all layers & re-write all markers with optimized format
 async function optimizeProjectData(){
   showToast('Data sudah dioptimasi secara lokal.','success');
-}
-  showToast('Optimasi data tersedia di mode lokal storage saja.','error');
 }
 
 // ==================== TOAST NOTIFICATION ====================
@@ -2875,12 +2973,13 @@ async function syncAllMarkersToFirestore(){}
 // Viewer: bisa buat titik, komentar, tapi TIDAK bisa hapus/edit project
 function enforceAdminControls(){
   if(isAdminUser) return;
-  // Hide project delete buttons for viewers
   document.querySelectorAll('.delete-project-btn').forEach(function(b){b.style.display='none';});
   var d = document.getElementById('btn-toggle-delete-mode'); if(d) d.style.display='none';
   var r = document.getElementById('proyek-delete-row'); if(r) r.style.display='none';
   var cl = document.querySelector('button[onclick="clearAllData()"]'); if(cl) cl.style.display='none';
-  console.log('Viewer mode: project delete/edit disabled');
+  var da = document.getElementById('btn-delete-all-markers'); if(da) da.style.display='none';
+  updateSyncStatus('online','Viewer Mode');
+  console.log('Viewer mode enforced');
 }
 
 // ==================== ONLINE/OFFLINE DETECTION ====================
@@ -4763,6 +4862,7 @@ function closeEditModal(){
 
 function saveMarkerEdit(){
   if(!editingMarkerId)return;
+  if(!isAdminUser){showToast('Viewer tidak bisa mengedit titik','error');closeEditModal();return;}
   const m=markers.get(editingMarkerId);if(!m)return;
   m.name=document.getElementById('edit-name').value.trim()||m.name;
   m.description=document.getElementById('edit-desc').value;
@@ -4783,6 +4883,7 @@ function saveMarkerEdit(){
 }
 
 function deleteEditingMarker(){
+  if(!isAdminUser){showToast('Viewer tidak bisa menghapus titik','error');return;}
   if(!editingMarkerId)return;
   const m=markers.get(editingMarkerId);
   if(m&&m.leafletMarker)userMarkers.removeLayer(m.leafletMarker);
@@ -6321,53 +6422,6 @@ function finishDrawLine(){
 }
 
 // ==================== FEATURE 8: EXPORT PDF ====================
-async function exportToPdf(){
-  if(markers.size===0){showToast('Tidak ada data titik','error');return;}
-  var btn=document.getElementById('btn-export-pdf');
-  var prog=document.getElementById('pdf-progress');
-  var bar=document.getElementById('pdf-progress-bar');
-  btn.disabled=true;btn.textContent='Membuat PDF...';
-  prog.classList.remove('hidden');bar.style.width='20%';
-  try{
-    if(typeof jspdf==='undefined'||typeof html2canvas==='undefined'){showToast('Library PDF belum dimuat, coba refresh','error');return;}
-    var {jsPDF}=jspdf;
-    var doc=new jsPDF('p','mm','a4');
-    bar.style.width='30%';
-    doc.setFillColor(99,102,241);doc.rect(0,0,210,28,'F');
-    doc.setTextColor(255,255,255);doc.setFontSize(16);doc.text('LAPORAN SURVEY',15,12);
-    doc.setFontSize(10);doc.text(currentProjectId||'COMSUR Survey Tools',15,18);
-    doc.setFontSize(8);doc.text('Tanggal: '+new Date().toLocaleString('id-ID'),15,24);
-    bar.style.width='40%';
-    try{
-      var mapEl=document.getElementById('map');
-      var canvas=await html2canvas(mapEl,{useCORS:true,allowTaint:true,scale:1,logging:false,width:mapEl.clientWidth,height:mapEl.clientHeight});
-      var imgData=canvas.toDataURL('image/jpeg',0.7);
-      var mapW=180;var mapH=(canvas.height/canvas.width)*mapW;if(mapH>80) mapH=80;
-      doc.addImage(imgData,'JPEG',15,32,mapW,mapH);
-      var y=32+mapH+5;
-    }catch(e){var y=35;}
-    bar.style.width='60%';
-    doc.setTextColor(0,0,0);doc.setFontSize(11);doc.text('Data Titik ('+markers.size+')',15,y);y+=6;
-    var hdrs=['No','Nama','Lat','Lng','Folder'];var cw=[10,55,35,35,35];
-    doc.setFillColor(241,245,249);doc.rect(15,y,190,7,'F');
-    doc.setFontSize(8);doc.setTextColor(55,65,81);var xx=15;hdrs.forEach(function(h,i){doc.text(h,xx+2,y+5);xx+=cw[i];});
-    y+=7;doc.setTextColor(75,85,99);
-    Array.from(markers.values()).slice(0,100).forEach(function(m,i){
-      if(y>275){doc.addPage();y=15;}
-      var fld=folders.find(function(f){return f.id===m.folderId;});
-      var rd=[String(i+1),(m.name||'').substring(0,25),m.lat.toFixed(5),m.lng.toFixed(5),(fld?fld.name:'-').substring(0,15)];
-      xx=15;rd.forEach(function(d,j){doc.text(d,xx+2,y+4);xx+=cw[j];});y+=6;
-    });
-    if(markers.size>100){y+=4;doc.setFontSize(8);doc.text('... dan '+(markers.size-100)+' titik lainnya',15,y);}
-    bar.style.width='80%';
-    var pc=doc.internal.getNumberOfPages();
-    for(var p=1;p<=pc;p++){doc.setPage(p);doc.setFontSize(7);doc.setTextColor(156,163,175);doc.text('Halaman '+p+'/'+pc,15,290);}
-    bar.style.width='100%';
-    doc.save('laporan-survey-'+new Date().toISOString().slice(0,10)+'.pdf');
-    showToast('PDF berhasil diexport!','success');
-  }catch(e){showToast('Export PDF gagal: '+e.message,'error');console.error(e);}
-  finally{btn.disabled=false;btn.innerHTML='Export ke PDF (Peta + Data)';setTimeout(function(){prog.classList.add('hidden');bar.style.width='0';},2000);}
-}
 
 
 // ==================== PWA SERVICE WORKER ====================
