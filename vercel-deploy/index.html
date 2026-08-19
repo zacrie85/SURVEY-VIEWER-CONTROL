@@ -5143,11 +5143,13 @@ async function handleMarkerPhotoSelect(e) {
 }
 
 function removeMarkerPhoto() {
-  editingPhotoData = null;
+  editingPhotoData = '';
   var previewEl = document.getElementById('edit-photo-preview');
   var imgEl = document.getElementById('edit-photo-img');
+  var sizeEl = document.getElementById('edit-photo-size');
   if (previewEl) previewEl.classList.add('hidden');
   if (imgEl) imgEl.src = '';
+  if (sizeEl) sizeEl.textContent = '';
 }
 
 function viewMarkerPhoto() {
@@ -5194,9 +5196,9 @@ function saveMarkerEdit(){
     if(m.leafletMarker)m.leafletMarker.setLatLng([lat,lng]);
   }
   m.folderId=document.getElementById('edit-folder').value||null;
-  // Save photo
+  // Save photo (empty string = user removed photo → set to null)
   if(editingPhotoData !== null){
-    m.photo = editingPhotoData;
+    m.photo = editingPhotoData || null;
   }
   // Comments are already saved in-place via addCommentToMarker/deleteComment
   if(m.leafletMarker)m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
