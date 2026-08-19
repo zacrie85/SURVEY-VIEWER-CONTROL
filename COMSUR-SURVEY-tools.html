@@ -2643,9 +2643,9 @@ function openSettingsModal(){
   var vpStatus = document.getElementById('viewer-pw-status');
   if(vpStatus){
     if(appViewerPasswordHash){
-      vpStatus.innerHTML = '<span class='text-emerald-600 font-medium'>&#x2713; Password viewer aktif</span>';
+      vpStatus.innerHTML = '<span class="text-emerald-600 font-medium">&#x2713; Password viewer aktif</span>';
     }else{
-      vpStatus.innerHTML = '<span class='text-gray-400'>Belum diatur</span>';
+      vpStatus.innerHTML = '<span class="text-gray-400">Belum diatur</span>';
     }
   }
   document.getElementById('settings-modal').classList.add('visible');
@@ -2658,7 +2658,7 @@ function removeViewerPassword(){
   localStorage.removeItem('kmz_app_viewer_password');
   syncPasswordToSupabase(appPasswordHash, appAdminUid);
   var vpStatus = document.getElementById('viewer-pw-status');
-  if(vpStatus) vpStatus.innerHTML = '<span class='text-gray-400'>Belum diatur</span>';
+  if(vpStatus) vpStatus.innerHTML = '<span class="text-gray-400">Belum diatur</span>';
   showToast('Password viewer dihapus','success');
 }
 
