@@ -1676,8 +1676,9 @@ async function downloadTilesForView(extraZoomLevels){
   updateTileCacheUI();
 }
 
+var CachedTileLayer;
 if(typeof L!=='undefined'){
-class CachedTileLayer extends L.TileLayer{
+CachedTileLayer=class CachedTileLayer extends L.TileLayer{
   createTile(coords,done){
     const key=coords.z+'/'+coords.x+'/'+coords.y;
     const tile=document.createElement('img');
