@@ -2374,12 +2374,7 @@ function updateUserUI(user){
   pAvatar.textContent = initial;
 }
 
-function enforceAdminControls(){
-  if(isAdminUser) return;
-  document.querySelectorAll('.delete-project-btn').forEach(function(b){b.style.display='none';});
-  var d=document.getElementById('btn-toggle-delete-mode');if(d)d.style.display='none';
-  var r=document.getElementById('proyek-delete-row');if(r)r.style.display='none';
-}
+// enforceAdminControls defined below after gate init
 
 function openProjectModal(){
   closeLoginModal();
@@ -3137,7 +3132,11 @@ async function syncAllMarkersToFirestore(){ await saveStateToSupabase(); }
 // ==================== ADMIN ENFORCEMENT ====================
 // Viewer: bisa buat titik, komentar, tapi TIDAK bisa hapus/edit project
 function enforceAdminControls(){
-  if(isAdminUser) return;
+  if(isAdminUser){
+    // Admin: tampilkan gear settings
+    var s=document.getElementById('btn-settings');if(s)s.classList.remove('hidden-settings');
+    return;
+  }
   document.querySelectorAll('.delete-project-btn').forEach(function(b){b.style.display='none';});
   var d = document.getElementById('btn-toggle-delete-mode'); if(d) d.style.display='none';
   var r = document.getElementById('proyek-delete-row'); if(r) r.style.display='none';
