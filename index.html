@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>if(typeof L==='undefined'){document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"><\/script>');}</script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
@@ -35,7 +36,7 @@ window.onerror=function(msg,src,line,col,err){
 };
 window.addEventListener('unhandledrejection',function(ev){
   console.error('[Unhandled Promise]',ev.reason);
-  if(typeof showToast==='function')showToast('Promise error: '+String(ev.reason).substring(0,60),'error');
+  if(window._gateUnlocked && typeof showToast==='function')showToast('Promise error: '+String(ev.reason).substring(0,60),'error');
 });
 </script>
 <style>
