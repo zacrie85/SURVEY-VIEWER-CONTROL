@@ -2936,7 +2936,7 @@ function serializeState(){
     drawnLines: (typeof drawnLines !== 'undefined' ? drawnLines : []).map(dl => {
       const {leafletLayer, ...rest} = dl;
       return rest;
-    })),
+    }),
     markerIdCounter: markerIdCounter,
     activeFolderId: activeFolderId
   };
