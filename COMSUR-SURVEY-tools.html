@@ -543,7 +543,7 @@ window.addEventListener('unhandledrejection',function(ev){
 
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initGate);}else{initGate();}
 })();
-<\/script>
+</script>
 
 <div id="app" class="flex flex-col h-screen w-screen overflow-hidden bg-gray-100">
 <!-- Header -->
@@ -2566,22 +2566,14 @@ let isAdminUser = window._gateIsAdmin || false;
 const AUTH_SALT = 'comsur-survey-v9-salt-2024';
 async function sha256(m){return window._gateSha256?await window._gateSha256(m):'';}
 
-// Gate stubs (no-op, real logic in standalone engine)
+// Gate stubs — real logic is in the standalone <script> engine above.
+// Do NOT redeclare gateSubmit/gateShowLogin/etc. here; they are already on window.*
+// from the standalone engine and redeclaring them causes infinite recursion.
 function checkGateAndInit(){/* handled by standalone engine */}
-function gateShowLogin(){window.gateShowLogin&&window.gateShowLogin();}
-function gateShowSetup(){window.gateShowSetup&&window.gateShowSetup();}
-function gateShowChangePassword(){window.gateShowChangePassword&&window.gateShowChangePassword();}
-function gateShowLoading(){window.gateShowLoading&&window.gateShowLoading();}
-function gateShowSetupOld(){window.gateShowSetupOld&&window.gateShowSetupOld();}
-async function gateResetLocal(){window.gateResetLocal&&window.gateResetLocal();}
-async function gateResetPassword(){window.gateResetLocal&&window.gateResetLocal();}
-async function gateResetAsAdmin(){window.gateResetLocal&&window.gateResetLocal();}
-async function gateSubmit(){window.gateSubmit&&window.gateSubmit();}
-async function gateSetupPassword(){window.gateSetupPassword&&window.gateSetupPassword();}
-async function gateChangePassword(){window.gateChangePassword&&window.gateChangePassword();}
-function unlockApp(){window.unlockApp&&window.unlockApp();}
-function unlockAppAsViewer(){window.unlockAppAsViewer&&window.unlockAppAsViewer();}
-function lockApp(){window.lockApp&&window.lockApp();}
+// gateSubmit, gateShowLogin, gateShowSetup, gateShowChangePassword,
+// gateShowLoading, gateShowSetupOld, gateResetLocal, gateResetPassword,
+// gateResetAsAdmin, gateSetupPassword, gateChangePassword,
+// unlockApp, unlockAppAsViewer, lockApp — all available via window.*
 
 function loadPasswordHash(){
   const localHash = localStorage.getItem('kmz_app_password');
