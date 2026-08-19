@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Firebase (migrated to Supabase)
+.firebase/
+firebase.json
+.firebaseRC
+.firebaserc
+firebase-token.json
+functions/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Vercel
+.vercel/
