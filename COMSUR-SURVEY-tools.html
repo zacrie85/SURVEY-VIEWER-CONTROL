@@ -30,7 +30,7 @@
 // ===== GLOBAL ERROR HANDLER =====
 window.onerror=function(msg,src,line,col,err){
   console.error('[Global Error]',msg,src,line,col,err);
-  if(typeof showToast==='function')showToast('Terjadi kesalahan: '+String(msg).substring(0,60),'error');
+  if(window._gateUnlocked && typeof showToast==='function')showToast('Terjadi kesalahan: '+String(msg).substring(0,60),'error');
   return false;
 };
 window.addEventListener('unhandledrejection',function(ev){
@@ -1675,7 +1675,7 @@ async function downloadTilesForView(extraZoomLevels){
   updateTileCacheUI();
 }
 
-// Offline-capable tile layer
+if(typeof L!=='undefined'){
 class CachedTileLayer extends L.TileLayer{
   createTile(coords,done){
     const key=coords.z+'/'+coords.x+'/'+coords.y;
@@ -1713,6 +1713,7 @@ class CachedTileLayer extends L.TileLayer{
       tile.onload=()=>done(null,tile);
       tile.onerror=()=>done(new Error('Tile failed'));
     });
+  }
   }
 }
 
