@@ -2559,12 +2559,12 @@ function showProjectError(msg){
 // ==================== PASSWORD GATE (handled by standalone engine) ====================
 // Gate functions (gateSubmit, gateShowLogin, etc.) are defined in the standalone <script> above.
 // Variables are set by the standalone engine onto window.*
-let appPasswordHash = window._gateHash || null;
-let appAdminUid = window._gateAdminId || null;
-let appViewerPasswordHash = window._gateViewerHash || null;
-let isAppUnlocked = window._gateUnlocked || false;
-let isGateReady = true;
-let isAdminUser = window._gateIsAdmin || false;
+var appPasswordHash = window._gateHash || null;
+var appAdminUid = window._gateAdminId || null;
+var appViewerPasswordHash = window._gateViewerHash || null;
+var isAppUnlocked = window._gateUnlocked || false;
+var isGateReady = true;
+var isAdminUser = window._gateIsAdmin || false;
 // SHA-256 is defined in standalone engine as window.sha256 and window._gateSha256
 const AUTH_SALT = 'comsur-survey-v9-salt-2024';
 async function sha256(m){return window._gateSha256?await window._gateSha256(m):'';}
