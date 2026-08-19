@@ -327,6 +327,27 @@ window.addEventListener('unhandledrejection',function(ev){
   var GATE_SALT='comsur-survey-v9-salt-2024';
   window._gateHash=null; window._gateViewerHash=null; window._gateAdminId=null;
   window._gateUnlocked=false; window._gateIsAdmin=false;
+  window._gateFromCloud=false; // true when password fetched from Supabase (shared device)
+  window._gateViewerMode=(new URLSearchParams(location.search)).get('viewer')==='1'; // viewer-only link
+
+  // If viewer mode, transform gate UI immediately
+  if(window._gateViewerMode){
+    // Change title
+    var titleEl=document.querySelector('#password-gate h1');
+    if(titleEl) titleEl.textContent='SURVEY VIEWER';
+    // Hide admin-only elements permanently
+    var adminBadge=document.getElementById('gate-admin-badge');if(adminBadge)adminBadge.remove();
+    var changeLink=document.getElementById('gate-change-link');if(changeLink)changeLink.remove();
+    var resetLink=document.getElementById('gate-local-reset');if(resetLink)resetLink.remove();
+    var changeMode=document.getElementById('gate-mode-change');if(changeMode)changeMode.remove();
+    var setupMode=document.getElementById('gate-mode-setup');if(setupMode)setupMode.remove();
+    // Change placeholder text
+    var pwInput=document.getElementById('gate-password-input');
+    if(pwInput) pwInput.placeholder='Password viewer';
+    // Change button text
+    var submitBtn=document.getElementById('gate-submit-btn');
+    if(submitBtn) submitBtn.textContent='Masuk sebagai Viewer';
+  }
 
   async function _sha256(msg){
     try{
@@ -348,10 +369,20 @@ window.addEventListener('unhandledrejection',function(ev){
 
   window.gateShowLogin=function(){
     try{
-      var t=$('gate-subtitle-text');if(t)t.textContent='Masukkan password untuk melanjutkan';
-      show($('gate-mode-login'));hide($('gate-mode-setup'));hide($('gate-mode-change'));
-      show($('gate-change-link'));show($('gate-local-reset'));
-      hide($('gate-viewer-hint'));
+      if(window._gateViewerMode){
+        var t=$('gate-subtitle-text');if(t)t.textContent='Masukkan password viewer untuk melanjutkan';
+        show($('gate-mode-login'));
+        hide($('gate-change-link'));hide($('gate-local-reset'));hide($('gate-viewer-hint'));
+      }else{
+        var t=$('gate-subtitle-text');if(t)t.textContent='Masukkan password untuk melanjutkan';
+        show($('gate-mode-login'));hide($('gate-mode-setup'));hide($('gate-mode-change'));
+        if(window._gateFromCloud){
+          hide($('gate-change-link'));hide($('gate-local-reset'));
+        }else{
+          show($('gate-change-link'));show($('gate-local-reset'));
+        }
+        if(window._gateViewerHash){show($('gate-viewer-hint'));}else{hide($('gate-viewer-hint'));}
+      }
       var e=$('gate-error');if(e)e.textContent='';
       var inp=$('gate-password-input');if(inp){inp.value='';setTimeout(function(){inp.focus();},100);}
     }catch(err){console.error('gateShowLogin:',err);}
@@ -394,6 +425,20 @@ window.addEventListener('unhandledrejection',function(ev){
       if(!input||!btn)return;
       var pwd=input.value.trim();
       if(!pwd){if(errEl)errEl.textContent='Password tidak boleh kosong';return;}
+      // Viewer mode: only check viewer password, never admin
+      if(window._gateViewerMode){
+        btn.disabled=true;btn.textContent='Memverifikasi...';if(errEl)errEl.textContent='';
+        var hash=await _sha256(pwd);
+        if(window._gateViewerHash && hash===window._gateViewerHash){
+          window._gateIsAdmin=false;window._doUnlock(false);
+        }else{
+          if(errEl)errEl.textContent='Password viewer salah!';
+          input.value='';input.focus();
+        }
+        btn.disabled=false;btn.textContent='Masuk sebagai Viewer';
+        return;
+      }
+      // Admin mode: check admin password first, then viewer
       if(!window._gateHash){gateShowSetup();return;}
       btn.disabled=true;btn.textContent='Memverifikasi...';if(errEl)errEl.textContent='';
       var hash=await _sha256(pwd);
@@ -409,7 +454,7 @@ window.addEventListener('unhandledrejection',function(ev){
     }catch(err){
       console.error('gateSubmit:',err);
       var e=$('gate-error');if(e)e.textContent='Error: '+err.message;
-      var b=$('gate-submit-btn');if(b){b.disabled=false;b.textContent='Masuk';}
+      var b=$('gate-submit-btn');if(b){b.disabled=false;b.textContent=window._gateViewerMode?'Masuk sebagai Viewer':'Masuk';}
     }
   };
 
@@ -425,6 +470,15 @@ window.addEventListener('unhandledrejection',function(ev){
       var hash=await _sha256(np);
       window._gateHash=hash;window._gateAdminId='admin-local';window._gateIsAdmin=true;
       try{localStorage.setItem('kmz_app_password',hash);localStorage.setItem('kmz_app_admin','admin-local');}catch(x){}
+      // Sync to Supabase so shared devices can login
+      try{
+        var _su=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
+        var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
+        if(typeof supabase!=='undefined'){
+          var _sc=supabase.createClient(_su,_sk);
+          _sc.from('project_data').upsert({project_id:'__app_settings__',data:{type:'app_settings',password_hash:hash,viewer_password_hash:window._gateViewerHash||null,admin_uid:'admin-local'},updated_at:new Date().toISOString()});
+        }
+      }catch(_se){console.warn('Gate setup Supabase sync skipped:',_se.message);}
       window._doUnlock(true);
       if(typeof showToast==='function')showToast('Password berhasil dibuat! Kamu adalah Admin.','success');
     }catch(err){
@@ -449,6 +503,15 @@ window.addEventListener('unhandledrejection',function(ev){
       var nh=await _sha256(np);
       window._gateHash=nh;
       try{localStorage.setItem('kmz_app_password',nh);}catch(x){}
+      // Sync new password to Supabase
+      try{
+        var _su=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
+        var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
+        if(typeof supabase!=='undefined'){
+          var _sc=supabase.createClient(_su,_sk);
+          _sc.from('project_data').upsert({project_id:'__app_settings__',data:{type:'app_settings',password_hash:nh,viewer_password_hash:window._gateViewerHash||null,admin_uid:window._gateAdminId||'admin-local'},updated_at:new Date().toISOString()});
+        }
+      }catch(_se){console.warn('Gate change Supabase sync skipped:',_se.message);}
       if(typeof showToast==='function')showToast('Password berhasil diubah!','success');
       setTimeout(gateShowLogin,800);
     }catch(err){
@@ -511,9 +574,15 @@ window.addEventListener('unhandledrejection',function(ev){
     var cc=$('gate-change-confirm');if(cc)cc.onkeydown=function(e){if(e.key==='Enter')gateChangePassword();};
   }
 
-  function initGate(){
+  async function initGate(){
     try{
       attachEvents();
+      // Always load hashes from localStorage FIRST (needed even for auto-unlock)
+      try{
+        var h=localStorage.getItem('kmz_app_password');if(h)window._gateHash=h;
+        var a=localStorage.getItem('kmz_app_admin');if(a)window._gateAdminId=a;
+        var v=localStorage.getItem('kmz_app_viewer_password');if(v)window._gateViewerHash=v;
+      }catch(x){}
       var unlocked=false;
       try{unlocked=sessionStorage.getItem('kmz_unlocked')==='1';}catch(x){}
       if(unlocked){
@@ -530,11 +599,44 @@ window.addEventListener('unhandledrejection',function(ev){
           }
         }catch(x){}
       }
+      // Viewer mode: always fetch from Supabase, never show setup
+      if(window._gateViewerMode){
+        gateShowLoading();
+        try{
+          var _sbUrl=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
+          var _sbKey=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
+          if(typeof supabase!=='undefined'&&_sbUrl&&_sbKey){
+            var _tmpSb=supabase.createClient(_sbUrl,_sbKey);
+            var _res=await _tmpSb.from('project_data').select('data').eq('project_id','__app_settings__').maybeSingle();
+            if(_res&&_res.data&&_res.data.data&&_res.data.data.viewer_password_hash){
+              window._gateViewerHash=_res.data.data.viewer_password_hash;
+            }
+          }
+        }catch(_e){console.warn('Viewer mode Supabase check skipped:',_e.message);}
+        gateShowLogin();
+        return;
+      }
+      // Admin mode: SELALU fetch dari Supabase sebagai source of truth
+      // (jangan short-circuit dari localStorage — password bisa saja sudah diubah di device lain)
+      gateShowLoading();
       try{
-        var h=localStorage.getItem('kmz_app_password');if(h)window._gateHash=h;
-        var a=localStorage.getItem('kmz_app_admin');if(a)window._gateAdminId=a;
-        var v=localStorage.getItem('kmz_app_viewer_password');if(v)window._gateViewerHash=v;
-      }catch(x){}
+        var _sbUrl=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
+        var _sbKey=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
+        if(typeof supabase!=='undefined'&&_sbUrl&&_sbKey){
+          var _tmpSb=supabase.createClient(_sbUrl,_sbKey);
+          var _res=await _tmpSb.from('project_data').select('data').eq('project_id','__app_settings__').maybeSingle();
+          if(_res&&_res.data&&_res.data.data){
+            var _d=_res.data.data;
+            window._gateFromCloud=true;
+            // Supabase adalah source of truth — selalu overwrite localStorage
+            if(_d.password_hash){window._gateHash=_d.password_hash;try{localStorage.setItem('kmz_app_password',_d.password_hash);}catch(x){}}
+            else{window._gateHash=null;try{localStorage.removeItem('kmz_app_password');}catch(x){}}
+            if(_d.admin_uid){window._gateAdminId=_d.admin_uid;try{localStorage.setItem('kmz_app_admin',_d.admin_uid);}catch(x){}}
+            if(_d.viewer_password_hash){window._gateViewerHash=_d.viewer_password_hash;try{localStorage.setItem('kmz_app_viewer_password',_d.viewer_password_hash);}catch(x){}}
+            else{window._gateViewerHash=null;try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}}
+          }
+        }
+      }catch(_e){console.warn('Gate Supabase check skipped:',_e.message);}
       if(window._gateHash){gateShowLogin();}else{gateShowSetup();}
     }catch(err){
       console.error('Gate init error:',err);
@@ -618,6 +720,7 @@ window.addEventListener('unhandledrejection',function(ev){
           <p class="text-[10px] text-gray-400 mt-1">Supabase + Vercel Ready</p>
         </div>
     </div>
+  </div><!-- /modal-card-body -->
     <div class="p-3 border-t border-gray-100 flex justify-end">
       <button onclick="closeLoginModal()" class="text-xs text-gray-400 hover:text-gray-600">Tutup</button>
     </div>
@@ -2211,13 +2314,14 @@ function updateSyncStatus(status, text) {
 }
 
 // ==================== SUPABASE CONFIG ====================
-// Ganti URL dan Key dari project Supabase kamu di bawah ini, lalu simpan
-// Atau atur via Settings Admin
-const SUPABASE_URL = localStorage.getItem('kmz_supabase_url') || '';
-const SUPABASE_ANON_KEY = localStorage.getItem('kmz_supabase_key') || '';
+// Pre-configured for deployment — can be overridden via Settings Admin
+const _SUPABASE_URL_DEFAULT = 'https://rhmcorcyeyuqzufvdpue.supabase.co';
+const _SUPABASE_KEY_DEFAULT = 'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
+const SUPABASE_URL = localStorage.getItem('kmz_supabase_url') || _SUPABASE_URL_DEFAULT;
+const SUPABASE_ANON_KEY = localStorage.getItem('kmz_supabase_key') || _SUPABASE_KEY_DEFAULT;
 let sb = null;
 let isSupabaseReady = false;
-let currentUser = null;
+var currentUser = window.currentUser || null;
 let currentProjectId = null;
 let firestoreListeners = [];
 let syncInProgress = false;
@@ -2227,13 +2331,13 @@ let lastSyncVersion = 0;
 
 function initSupabase(){
   try{
-    // Load config from localStorage (set via Settings modal)
-    const url = localStorage.getItem('kmz_supabase_url') || '';
-    const key = localStorage.getItem('kmz_supabase_key') || '';
+    // Use pre-configured defaults, allow override from localStorage (set via Settings modal)
+    const url = localStorage.getItem('kmz_supabase_url') || _SUPABASE_URL_DEFAULT;
+    const key = localStorage.getItem('kmz_supabase_key') || _SUPABASE_KEY_DEFAULT;
     if(typeof supabase !== 'undefined' && url && key){
       sb = supabase.createClient(url, key);
       isSupabaseReady = true;
-      console.log('Supabase initialized');
+      console.log('Supabase initialized —', url);
       updateSyncStatus('online','Supabase');
     }else{
       console.warn('Supabase not configured - Local Mode');
@@ -2607,11 +2711,9 @@ function loadPasswordHash(){
 
 function syncPasswordToSupabase(hash, adminId){
   if(!isSupabaseReady) return;
-  sb.from('app_settings').upsert({
-    id: 'security',
-    password_hash: hash,
-    viewer_password_hash: appViewerPasswordHash || null,
-    admin_uid: adminId || appAdminUid || 'admin-local',
+  sb.from('project_data').upsert({
+    project_id: '__app_settings__',
+    data: {type:'app_settings', password_hash: hash, viewer_password_hash: appViewerPasswordHash || null, admin_uid: adminId || appAdminUid || 'admin-local'},
     updated_at: new Date().toISOString()
   }).then(()=>{
     console.log('Password synced to Supabase');
@@ -2628,8 +2730,10 @@ function enforceViewerRestrictions(){
   var cl=document.querySelector('button[onclick="clearAllData()"]');if(cl)cl.style.display='none';
   document.getElementById('btn-settings').classList.add('hidden-settings');
   var da=document.getElementById('btn-delete-all-markers');if(da)da.style.display='none';
- updateSyncStatus('online','Viewer Mode');
-  console.log('Viewer mode active: delete/edit project disabled, comments allowed');
+  // Viewer bisa edit titik, upload foto, tambah komentar
+  // Yang diblokir hanya: hapus proyek, hapus semua titik, pengaturan
+  updateSyncStatus('online','Viewer Mode');
+  console.log('Viewer mode active: edit/foto/komentar diizinkan, hapus proyek/titik dibatasi');
 }
 
 // Admin determined by gate — no-op for Firebase
@@ -2666,6 +2770,10 @@ function openSettingsModal(){
   document.getElementById('settings-modal').classList.add('visible');
 }
 
+function closeSettingsModal(){
+  document.getElementById('settings-modal').classList.remove('visible');
+}
+
 
 function removeViewerPassword(){
   if(!isAdminUser) return;
@@ -2675,6 +2783,43 @@ function removeViewerPassword(){
   var vpStatus = document.getElementById('viewer-pw-status');
   if(vpStatus) vpStatus.innerHTML = '<span class="text-gray-400">Belum diatur</span>';
   showToast('Password viewer dihapus','success');
+}
+
+async function setViewerPassword(){
+  if(!isAdminUser) return;
+  var pwInput = document.getElementById('settings-viewer-password');
+  var errEl = document.getElementById('viewer-pw-error');
+  var vpStatus = document.getElementById('viewer-pw-status');
+  var pw = pwInput ? pwInput.value.trim() : '';
+  if(!pw){
+    if(errEl){errEl.textContent='Masukkan password viewer';errEl.classList.remove('hidden');}
+    return;
+  }
+  if(pw.length<4){
+    if(errEl){errEl.textContent='Password viewer minimal 4 karakter';errEl.classList.remove('hidden');}
+    return;
+  }
+  try{
+    var hash = await sha256(pw);
+    appViewerPasswordHash = hash;
+    window._gateViewerHash = hash;
+    try{localStorage.setItem('kmz_app_viewer_password', hash);}catch(x){}
+    syncPasswordToSupabase(appPasswordHash, appAdminUid);
+    if(errEl) errEl.classList.add('hidden');
+    if(vpStatus) vpStatus.innerHTML = '<span class="text-emerald-600 font-medium">&#x2713; Password viewer aktif</span>';
+    if(pwInput) pwInput.value = '';
+    showToast('Password viewer berhasil diatur!','success');
+  }catch(e){
+    if(errEl){errEl.textContent='Gagal: '+e.message;errEl.classList.remove('hidden');}
+  }
+}
+
+function savePasswordToLocal(){
+  try{
+    if(appPasswordHash) localStorage.setItem('kmz_app_password', appPasswordHash);
+    if(appAdminUid) localStorage.setItem('kmz_app_admin', appAdminUid);
+    if(appViewerPasswordHash) localStorage.setItem('kmz_app_viewer_password', appViewerPasswordHash);
+  }catch(x){}
 }
 
 function saveSupabaseConfig(){
@@ -3130,7 +3275,8 @@ async function uploadLocalDataToProject(){
 async function syncAllMarkersToFirestore(){ await saveStateToSupabase(); }
 
 // ==================== ADMIN ENFORCEMENT ====================
-// Viewer: bisa buat titik, komentar, tapi TIDAK bisa hapus/edit project
+// Viewer: bisa edit titik, upload foto, komentar
+// Viewer TIDAK bisa: hapus proyek, hapus semua titik, akses pengaturan
 function enforceAdminControls(){
   if(isAdminUser){
     // Admin: tampilkan gear settings
@@ -3176,6 +3322,13 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   try{await initTileDB();}catch(e){console.warn('Tile DB init failed, caching disabled:',e);}
   updateTileCacheUI();
   initSupabase();
+
+  // Fix Bug #10: If gate already auto-unlocked from sessionStorage,
+  // onUserLoggedIn was never called. Call it now so admin controls,
+  // gear icon, project list, and delete buttons all initialize.
+  if(isAppUnlocked && currentUser && typeof onUserLoggedIn === 'function'){
+    onUserLoggedIn(currentUser);
+  }
 
   document.getElementById('map').style.height='100%';document.getElementById('map').style.width='100%';map=L.map('map',{center:[-2.5,118],zoom:5,zoomControl:false,closePopupOnClick:true,preferCanvas:true});
   tileLayer=new CachedTileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',{
@@ -3341,6 +3494,9 @@ window.__editMarker=(id)=>{
   }
   // Load comments
   renderEditComments(m);
+  // Sembunyikan tombol Hapus untuk viewer
+  var editBtns = document.querySelectorAll('#edit-modal .flex.gap-2.pt-2 button');
+  editBtns.forEach(function(b){if(b.textContent.trim()==='Hapus') b.style.display = isAdminUser ? '' : 'none';});
   document.getElementById('edit-modal').classList.remove('hidden');
 };
 
@@ -5026,7 +5182,8 @@ function closeEditModal(){
 
 function saveMarkerEdit(){
   if(!editingMarkerId)return;
-  if(!isAdminUser){showToast('Viewer tidak bisa mengedit titik','error');closeEditModal();return;}
+  // Viewer juga bisa edit titik (koordinat, foto, nama, deskripsi, komentar)
+  // Hanya hapus titik dan hapus proyek yang dibatasi untuk admin saja
   const m=markers.get(editingMarkerId);if(!m)return;
   m.name=document.getElementById('edit-name').value.trim()||m.name;
   m.description=document.getElementById('edit-desc').value;
