@@ -6919,11 +6919,16 @@ function finishDrawLine(){
 // ==================== PWA SERVICE WORKER ====================
 (function initPWA() {
   if (!('serviceWorker' in navigator)) return;
+  // UNREGISTER semua SW lama + hapus semua cache — fix PWA stale cache
+  // Terutama penting untuk viewer yang selalu butuh code terbaru
+  if(caches){caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k);});});}
+  if(navigator.serviceWorker){navigator.serviceWorker.getRegistrations().then(function(regs){regs.forEach(function(r){r.unregister();});});}
+  // Skip PWA untuk viewer mode — viewer selalu butuh data fresh
+  if(window._gateViewerMode){console.log('[PWA] Viewer mode — skip SW registration');return;}
 
   const SW_CODE = `
-const CACHE_NAME = 'comsur-survey-v9';
+const CACHE_NAME = 'comsur-survey-v10';
 const ASSETS_TO_CACHE = [
-  './',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
