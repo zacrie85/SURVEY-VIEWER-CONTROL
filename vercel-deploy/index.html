@@ -1835,7 +1835,8 @@ function saveState(){
     const sl=layers.map(l=>({
       name:l.name,color:l.color,visible:l.visible,layerNames:l.layerNames,
       fileId:l.fileId||null,
-      geojson:l.fileId?null:l.geojson||null
+      _importUrl:l._importUrl||null,
+      geojson:(l.fileId||l._importUrl)?null:l.geojson||null
     }));
     const spf=polygonFolders.map(pf=>({...pf,items:[...pf.items]}));
     const state={
@@ -1925,7 +1926,7 @@ async function loadState(){
       m.leafletMarker=lm;
     });
 
-    // Restore layers from IndexedDB (auto-load all saved files) and localStorage geojson (URL imports)
+    // Restore layers from IndexedDB (files) and import URLs
     if(state.layers){
       _isRestoringLayers = true;
       for(const sl of state.layers){
@@ -1937,15 +1938,18 @@ async function loadState(){
               await loadFileAsLayer(file,sl.visible,sl.fileId);
             }catch(e){console.warn('Failed to restore layer:',e);}
           }
+        }else if(sl._importUrl){
+          // Re-fetch URL-imported layers from their source URL
+          try{
+            var ok = await loadLayerFromImportUrl(sl);
+            if(ok) console.log('Restored URL layer from localStorage:', sl.name);
+          }catch(e){console.warn('Failed to restore URL layer:',e);}
         }else if(sl.geojson && sl.geojson.features && sl.geojson.features.length > 0){
-          // Restore URL-imported layers from localStorage geojson
+          // Restore inline geojson layers
           try{
             addGeoJsonLayer(sl.name, sl.geojson, sl.visible, null);
-            // Restore saved color
-            if(sl.color && layers.length > 0){
-              layers[layers.length - 1].color = sl.color;
-            }
-          }catch(e){console.warn('Failed to restore URL layer:',e);}
+            if(sl.color && layers.length > 0) layers[layers.length - 1].color = sl.color;
+          }catch(e){console.warn('Failed to restore inline layer:',e);}
         }
       }
       _isRestoringLayers = false;
@@ -3082,11 +3086,16 @@ async function switchProject(projectId){
                     await loadFileAsLayer(file, sl.visible, sl.fileId);
                   }catch(e){console.warn('Merge file layer:',e);}
                 }
+              }else if(sl._importUrl){
+                try{
+                  var ok = await loadLayerFromImportUrl(sl);
+                  if(ok) console.log('Merged URL layer:', sl.name);
+                }catch(e){console.warn('Merge URL layer:',e);}
               }else if(sl.geojson && sl.geojson.features && sl.geojson.features.length > 0){
                 try{
                   addGeoJsonLayer(sl.name, sl.geojson, sl.visible, null);
                   if(sl.color && layers.length > 0) layers[layers.length - 1].color = sl.color;
-                }catch(e){console.warn('Merge URL layer:',e);}
+                }catch(e){console.warn('Merge inline layer:',e);}
               }
             }
             _isRestoringLayers = false;
@@ -3154,14 +3163,47 @@ function serializeState(){
       color: l.color,
       visible: l.visible,
       layerNames: l.layerNames,
-      geojson: l.geojson,
+      // For URL-imported layers, store the URL instead of heavy geojson
+      _importUrl: l._importUrl || null,
+      geojson: l._importUrl ? null : l.geojson,
       _useCluster: l._useCluster || false
     }))
   };
 }
 
+// Helper: fetch and parse a layer from an import URL
+async function loadLayerFromImportUrl(sl) {
+  if (!sl._importUrl) return false;
+  try {
+    var url = sl._importUrl;
+    var response = await fetchFromUrl(url);
+    var contentType = response.headers.get('content-type') || '';
+    var format = null;
+    if (contentType.includes('kml') || contentType.includes('xml')) format = 'kml';
+    else if (contentType.includes('geojson') || contentType.includes('json')) format = 'geojson';
+    else if (contentType.includes('gpx')) format = 'gpx';
+    else if (contentType.includes('zip') || contentType.includes('kmz')) format = 'kmz';
+    if (!format) {
+      var cloned = response.clone();
+      var preview = await cloned.text().catch(function(){return '';});
+      if (preview.trim().startsWith('{') || preview.trim().startsWith('[')) format = 'geojson';
+      else if (preview.includes('<kml') || preview.includes('<Placemark')) format = 'kml';
+      else if (preview.includes('<gpx') || preview.includes('<wpt')) format = 'gpx';
+      else return false;
+    }
+    var geojson = await parseGeoDataFromResponse(response, format, function(){});
+    if (!geojson || !geojson.features || geojson.features.length === 0) return false;
+    addGeoJsonLayer(sl.name, geojson, sl.visible, null, sl._importUrl);
+    if (sl.color && layers.length > 0) layers[layers.length - 1].color = sl.color;
+    return true;
+  } catch(e) {
+    console.warn('Failed to load layer from URL:', sl._importUrl, e);
+    return false;
+  }
+}
+
 // Load state from a data blob into local variables
-function deserializeState(data){
+async function deserializeState(data){
   if(!data || !data.markers) return false;
   try{
     // Clear existing markers from map
@@ -3182,9 +3224,15 @@ function deserializeState(data){
       try{
         for(var li = 0; li < data.layers.length; li++){
           var sl = data.layers[li];
+          // URL-imported layers: fetch from URL
+          if(sl._importUrl){
+            var ok = await loadLayerFromImportUrl(sl);
+            if(ok) console.log('Restored URL layer:', sl.name, 'from', sl._importUrl);
+            continue;
+          }
+          // File layers with geojson embedded
           if(sl.geojson && sl.geojson.features && sl.geojson.features.length > 0){
             addGeoJsonLayer(sl.name, sl.geojson, sl.visible, null);
-            // Override auto-assigned color with the saved color
             if(sl.color && layers[li]){
               layers[li].color = sl.color;
             }
@@ -4207,10 +4255,10 @@ async function handleUrlImport() {
       return;
     }
 
-    // Add as layer (no fileId since it's from URL)
+    // Add as layer (no fileId since it's from URL, but save the URL for sync)
     showUrlStatus('Menambahkan ' + geojson.features.length + ' feature ke peta...', 'blue');
     await new Promise(function(r){setTimeout(r,30);}); // yield to UI
-    addGeoJsonLayer('[URL] ' + fileName, geojson, true, null);
+    addGeoJsonLayer('[URL] ' + fileName, geojson, true, null, url);
     addToUrlHistory(url);
     showUrlStatus('Berhasil! ' + geojson.features.length + ' feature dimuat dari URL', 'green');
     showToast('Layer berhasil dimuat: ' + geojson.features.length + ' feature', 'success');
@@ -4360,7 +4408,7 @@ async function loadFileAsLayer(file,setVisible,fileId){
   }
 }
 
-function addGeoJsonLayer(fileName,geojson,setVisible,fileId){
+function addGeoJsonLayer(fileName,geojson,setVisible,fileId,importUrl){
   const idx=layers.length;
   const color=LAYER_COLORS[idx%LAYER_COLORS.length];
   const layerNames=[];
@@ -4453,7 +4501,7 @@ function addGeoJsonLayer(fileName,geojson,setVisible,fileId){
 
   const visible=setVisible!==false;
   if(visible&&geoJsonLayers)geoJsonLayers.addLayer(geoJsonLayer);
-  const layerObj = {name:fileName,geojson,layerNames,color,geoJsonLayer,visible,fileId:fileId||null,_layerId:'layer-'+Date.now()+'-'+Math.random().toString(36).substring(2,8),_useCluster:useCluster};
+  const layerObj = {name:fileName,geojson,layerNames,color,geoJsonLayer,visible,fileId:fileId||null,_layerId:'layer-'+Date.now()+'-'+Math.random().toString(36).substring(2,8),_useCluster:useCluster,_importUrl:importUrl||null};
   layers.push(layerObj);
   if(visible && !_isRestoringLayers){
     try{
