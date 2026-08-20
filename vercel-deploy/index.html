@@ -610,6 +610,10 @@ window.addEventListener('unhandledrejection',function(ev){
             var _res=await _tmpSb.from('project_data').select('data').eq('project_id','__app_settings__').maybeSingle();
             if(_res&&_res.data&&_res.data.data&&_res.data.data.viewer_password_hash){
               window._gateViewerHash=_res.data.data.viewer_password_hash;
+              try{localStorage.setItem('kmz_app_viewer_password',_res.data.data.viewer_password_hash);}catch(x){}
+            }else if(_res&&_res.data&&_res.data.data){
+              window._gateViewerHash=null;
+              try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
             }
           }
         }catch(_e){console.warn('Viewer mode Supabase check skipped:',_e.message);}
@@ -2752,7 +2756,8 @@ function enforceViewerRestrictions(){
   var cl=document.querySelector('button[onclick="clearAllData()"]');if(cl)cl.style.display='none';
   document.getElementById('btn-settings').classList.add('hidden-settings');
   var da=document.getElementById('btn-delete-all-markers');if(da)da.style.display='none';
-  // Sembunyikan tombol hapus layer untuk viewer
+  // Sembunyikan export layer (Pilih Semua + Export KMZ) untuk viewer
+  var lea=document.getElementById('layer-export-actions');if(lea)lea.style.display='none';
   try{renderLayers();}catch(x){}
   updateSyncStatus('online','Viewer Mode');
   console.log('Viewer mode active: edit/foto/komentar diizinkan, hapus proyek/titik dibatasi');
@@ -3419,9 +3424,9 @@ async function syncAllMarkersToFirestore(){ await saveStateToSupabase(); }
 // Viewer TIDAK bisa: hapus proyek, hapus semua titik, akses pengaturan
 function enforceAdminControls(){
   if(isAdminUser){
-    // Admin: tampilkan gear settings
     var s=document.getElementById('btn-settings');if(s)s.classList.remove('hidden-settings');
     document.body.classList.remove('viewer-mode');
+    var lea=document.getElementById('layer-export-actions');if(lea)lea.style.display='';
     return;
   }
   document.body.classList.add('viewer-mode');
@@ -3430,7 +3435,7 @@ function enforceAdminControls(){
   var r = document.getElementById('proyek-delete-row'); if(r) r.style.display='none';
   var cl = document.querySelector('button[onclick="clearAllData()"]'); if(cl) cl.style.display='none';
   var da = document.getElementById('btn-delete-all-markers'); if(da) da.style.display='none';
-  // Sembunyikan tombol hapus layer untuk viewer
+  var lea=document.getElementById('layer-export-actions');if(lea)lea.style.display='none';
   try{renderLayers();}catch(x){}
   updateSyncStatus('online','Viewer Mode');
   console.log('Viewer mode enforced');
