@@ -40,7 +40,7 @@ window.addEventListener('unhandledrejection',function(ev){
 });
 </script>
 <style>
-*{box-sizing:border-box}body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;overflow:hidden}
+*{box-sizing:border-box}body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;overflow:hidden}body.viewer-mode .layer-del-btn{display:none!important}
 .leaflet-popup-content-wrapper{border-radius:14px!important;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 40px rgba(100,160,255,.08)!important;padding:0!important;border:1px solid rgba(255,255,255,.12)!important;overflow:visible!important;background:transparent!important}
 .leaflet-popup-content{margin:0!important;padding:0!important;line-height:1.4!important;overflow:hidden!important;width:auto!important}
 .leaflet-popup-tip-container{box-shadow:0 4px 12px rgba(0,0,0,.2)!important}
@@ -2742,14 +2742,15 @@ function syncPasswordToSupabase(hash, adminId){
 
 function enforceViewerRestrictions(){
   if(isAdminUser) return;
+  document.body.classList.add('viewer-mode');
   document.querySelectorAll('.delete-project-btn').forEach(function(b){b.style.display='none';});
   var d=document.getElementById('btn-toggle-delete-mode');if(d)d.style.display='none';
   var r=document.getElementById('proyek-delete-row');if(r)r.style.display='none';
   var cl=document.querySelector('button[onclick="clearAllData()"]');if(cl)cl.style.display='none';
   document.getElementById('btn-settings').classList.add('hidden-settings');
   var da=document.getElementById('btn-delete-all-markers');if(da)da.style.display='none';
-  // Viewer bisa edit titik, upload foto, tambah komentar
-  // Yang diblokir hanya: hapus proyek, hapus semua titik, pengaturan
+  // Sembunyikan tombol hapus layer untuk viewer
+  try{renderLayers();}catch(x){}
   updateSyncStatus('online','Viewer Mode');
   console.log('Viewer mode active: edit/foto/komentar diizinkan, hapus proyek/titik dibatasi');
 }
@@ -3411,13 +3412,17 @@ function enforceAdminControls(){
   if(isAdminUser){
     // Admin: tampilkan gear settings
     var s=document.getElementById('btn-settings');if(s)s.classList.remove('hidden-settings');
+    document.body.classList.remove('viewer-mode');
     return;
   }
+  document.body.classList.add('viewer-mode');
   document.querySelectorAll('.delete-project-btn').forEach(function(b){b.style.display='none';});
   var d = document.getElementById('btn-toggle-delete-mode'); if(d) d.style.display='none';
   var r = document.getElementById('proyek-delete-row'); if(r) r.style.display='none';
   var cl = document.querySelector('button[onclick="clearAllData()"]'); if(cl) cl.style.display='none';
   var da = document.getElementById('btn-delete-all-markers'); if(da) da.style.display='none';
+  // Sembunyikan tombol hapus layer untuk viewer
+  try{renderLayers();}catch(x){}
   updateSyncStatus('online','Viewer Mode');
   console.log('Viewer mode enforced');
 }
@@ -4898,7 +4903,8 @@ function renderLayers(){
   if(exportActions)exportActions.classList.remove('hidden');
   c.innerHTML=layers.map((l,i)=>{
     const checked=selectedLayerIdxs.has(i)?'checked':'';
-    return '<div class="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50 group'+(selectedLayerIdxs.has(i)?' bg-blue-50 border-blue-200':'')+'"><input type="checkbox" data-layer-idx="'+i+'" '+checked+' onchange="toggleLayerSelection('+i+',this.checked)" onclick="event.stopPropagation()" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 accent-blue-600 shrink-0 cursor-pointer" /><label class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"><input type="checkbox" '+(l.visible?'checked':'')+' onchange="toggleLayer('+i+')" class="rounded text-emerald-600 focus:ring-emerald-500" /><div class="w-3 h-3 rounded-sm shrink-0" style="background:'+l.color+'"></div><span class="text-xs text-gray-700 truncate flex-1">'+esc(l.name)+'</span></label><span class="text-[10px] text-gray-400">'+l.layerNames.length+'</span><button onclick="removeLayer('+i+')" class="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-0.5" title="Hapus layer"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div>';
+    const delBtn=isAdminUser?'<button onclick="removeLayer('+i+')" class="layer-del-btn text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-0.5" title="Hapus layer"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>':'';
+    return '<div class="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50 group'+(selectedLayerIdxs.has(i)?' bg-blue-50 border-blue-200':'')+'"><input type="checkbox" data-layer-idx="'+i+'" '+checked+' onchange="toggleLayerSelection('+i+',this.checked)" onclick="event.stopPropagation()" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 accent-blue-600 shrink-0 cursor-pointer" /><label class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"><input type="checkbox" '+(l.visible?'checked':'')+' onchange="toggleLayer('+i+')" class="rounded text-emerald-600 focus:ring-emerald-500" /><div class="w-3 h-3 rounded-sm shrink-0" style="background:'+l.color+'"></div><span class="text-xs text-gray-700 truncate flex-1">'+esc(l.name)+'</span></label><span class="text-[10px] text-gray-400">'+l.layerNames.length+'</span>'+delBtn+'</div>';
   }).join('');
   updateLayerSelectionUI();
 }
@@ -4928,6 +4934,7 @@ function toggleLayer(i){
 }
 
 function removeLayer(i){
+  if(!isAdminUser){showToast('Viewer tidak bisa menghapus layer','error');return;}
   const l=layers[i];
   if(geoJsonLayers)geoJsonLayers.removeLayer(l.geoJsonLayer);
   const lid = l._layerId;
