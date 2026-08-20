@@ -655,15 +655,24 @@ window.addEventListener('unhandledrejection',function(ev){
             console.log('[Gate] Viewer fetch result:', _res ? 'got response' : 'no response', _res && _res.data ? 'has data' : 'no data');
             if(_res&&_res.data&&_res.data.data){
               var _vd=_res.data.data;
-              // Cek viewer_reset_version — jika berubah, bersihkan semua cache viewer
+              // Cek viewer_reset_version — jika berubah, bersihkan SEMUA cache viewer
               if(_vd.viewer_reset_version){
                 var _lastVersion=localStorage.getItem('kmz_viewer_reset_version')||'';
                 if(_lastVersion!==_vd.viewer_reset_version){
-                  console.log('[Gate] Viewer reset version changed:',_lastVersion,'->',_vd.viewer_reset_version,'. Clearing all viewer cache.');
+                  console.log('[Gate] Viewer reset version changed:',_lastVersion,'->',_vd.viewer_reset_version,'. Clearing ALL viewer cache.');
                   try{sessionStorage.clear();}catch(x){}
+                  // Hapus semua data survey yang tersimpan lokal
                   try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
                   try{localStorage.removeItem('kmz_viewer_projects_cache');}catch(x){}
+                  try{localStorage.removeItem('comsur-survey-v9-state');}catch(x){}
+                  try{localStorage.removeItem('kmz_current_project');}catch(x){}
+                  // Hapus juga key lama jika ada
+                  try{localStorage.removeItem('comsur-survey-state');}catch(x){}
+                  // Bersihkan IndexedDB
+                  try{indexedDB.deleteDatabase('kmz-viewer-files');}catch(x){}
+                  try{indexedDB.deleteDatabase('kmz-viewer-tiles');}catch(x){}
                   localStorage.setItem('kmz_viewer_reset_version',_vd.viewer_reset_version);
+                  console.log('[Gate] All viewer cache cleared — fresh start forced.');
                 }
               }
               if(_vd.viewer_password_hash){
@@ -1908,6 +1917,11 @@ CachedTileLayer=class CachedTileLayer extends L.TileLayer{
 // ==================== PERSISTENCE (localStorage) ====================
 function saveState(){
   try{
+    // Viewer mode: jangan simpan state ke localStorage
+    // Supaya tidak ada data sisa yang bisa di-merge setelah admin reset
+    if(!isAdminUser && window._gateViewerMode){
+      return;
+    }
     const serializableMarkers=Array.from(markers.values()).map(m=>({
       id:m.id,lat:m.lat,lng:m.lng,name:m.name,description:m.description,
       color:m.color,userId:m.userId,timestamp:m.timestamp,folderId:m.folderId,
@@ -3325,8 +3339,8 @@ async function switchProject(projectId){
     }
 
     // If loaded from Supabase but no layers found, check localStorage for layers
-    // This handles the case where URL-imported layers were saved locally but not yet synced
-    if(loaded && layers.length === 0){
+    // ONLY for admin — viewer should NEVER merge local data (prevents stale data after reset)
+    if(loaded && layers.length === 0 && isAdminUser){
       try{
         const rawLocal = localStorage.getItem(STORAGE_KEY);
         if(rawLocal){
@@ -3585,6 +3599,9 @@ async function startSyncListeners(){
 // Save current state to Supabase project_data
 async function saveStateToSupabase(){
   if(!isSupabaseReady || !currentProjectId || syncInProgress) return;
+  // Viewer mode: jangan simpan data ke Supabase
+  // Hanya admin yang boleh menulis data ke cloud
+  if(!isAdminUser) return;
   syncInProgress = true;
   try{
     const stateData = serializeState();
@@ -3616,8 +3633,15 @@ async function loadStateFromSupabase(){
       .maybeSingle();
     if(error) throw error;
     if(!data || !data.data){
-      console.log('No remote data found, using local state');
-      // Upload local data as initial
+      console.log('No remote data found for project:', currentProjectId);
+      // Viewer mode: jangan upload data lokal jika tidak ada data remote
+      // (mencegah data lama di-upload kembali setelah admin reset)
+      if(!isAdminUser){
+        console.log('Viewer mode: skip uploading local data after reset');
+        return false;
+      }
+      // Admin: upload local data as initial
+      console.log('Admin mode: uploading local data as initial');
       await uploadLocalDataToProject();
       return false;
     }
@@ -3643,6 +3667,11 @@ async function deleteLayerFromFirestore(layerId){}
 async function uploadLocalDataToProject(){
   if(!isSupabaseReady || !currentProjectId){
     showToast('Data tersimpan lokal. Sinkronisasi memerlukan koneksi Supabase.','success');
+    return;
+  }
+  // Viewer mode: jangan upload data ke Supabase
+  if(!isAdminUser){
+    console.log('Viewer: skipping uploadLocalDataToProject');
     return;
   }
   try{
