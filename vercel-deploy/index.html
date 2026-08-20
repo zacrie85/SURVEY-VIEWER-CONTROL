@@ -1512,6 +1512,7 @@ window.addEventListener('unhandledrejection',function(ev){
 let map, geoJsonLayers, userMarkers, tileLayer, satelliteLayer, appReady=false;
 let isSatellite=false;
 let layers = [];          // [{name, geojson, layerNames, color, geoJsonLayer, visible, fileId}]
+var _isRestoringLayers = false; // flag to prevent save during layer deserialization
 let markers = new Map();  // id -> {id, lat, lng, name, description, color, userId, timestamp, folderId, leafletMarker}
 let markerIdCounter = 0;
 let markerMode = null;    // 'gps' | 'manual' | 'click'
@@ -3099,7 +3100,15 @@ function serializeState(){
       return rest;
     }),
     markerIdCounter: markerIdCounter,
-    activeFolderId: activeFolderId
+    activeFolderId: activeFolderId,
+    layers: layers.map(l => ({
+      name: l.name,
+      color: l.color,
+      visible: l.visible,
+      layerNames: l.layerNames,
+      geojson: l.geojson,
+      _useCluster: l._useCluster || false
+    }))
   };
 }
 
@@ -3114,6 +3123,30 @@ function deserializeState(data){
     polygonFolders = data.polygonFolders || [];
     markerIdCounter = data.markerIdCounter || 0;
     activeFolderId = data.activeFolderId || null;
+
+    // Clear existing layers from map
+    layers.forEach(function(l){ if(geoJsonLayers) geoJsonLayers.removeLayer(l.geoJsonLayer); });
+    layers = [];
+
+    // Restore layers from serialized data
+    if(data.layers && Array.isArray(data.layers) && data.layers.length > 0){
+      _isRestoringLayers = true;
+      try{
+        for(var li = 0; li < data.layers.length; li++){
+          var sl = data.layers[li];
+          if(sl.geojson && sl.geojson.features && sl.geojson.features.length > 0){
+            addGeoJsonLayer(sl.name, sl.geojson, sl.visible, null);
+            // Override auto-assigned color with the saved color
+            if(sl.color && layers[li]){
+              layers[li].color = sl.color;
+            }
+          }
+        }
+      }catch(layerErr){
+        console.warn('Layer restore warning:', layerErr);
+      }
+      _isRestoringLayers = false;
+    }
 
     // Rebuild drawn lines
     if(typeof drawnLines !== 'undefined' && data.drawnLines){
@@ -4374,7 +4407,7 @@ function addGeoJsonLayer(fileName,geojson,setVisible,fileId){
   if(visible&&geoJsonLayers)geoJsonLayers.addLayer(geoJsonLayer);
   const layerObj = {name:fileName,geojson,layerNames,color,geoJsonLayer,visible,fileId:fileId||null,_layerId:'layer-'+Date.now()+'-'+Math.random().toString(36).substring(2,8),_useCluster:useCluster};
   layers.push(layerObj);
-  if(visible){
+  if(visible && !_isRestoringLayers){
     try{
       if(typeof geoJsonLayer.getBounds==='function' && geoJsonLayer.getBounds().isValid()){
         map.fitBounds(geoJsonLayer.getBounds().pad(0.1));
@@ -4398,11 +4431,13 @@ function addGeoJsonLayer(fileName,geojson,setVisible,fileId){
     }catch(e){console.warn('fitBounds error:',e);}
   }
   renderLayers();
-  debouncedSave();
+  if(!_isRestoringLayers){
+    debouncedSave();
+    // Sync layer ke Firestore
+    syncLayerToFirestore(layerObj);
+  }
   // Trigger canvas label redraw
   if(window._redrawCanvasLabels)window._redrawCanvasLabels();
-  // Sync layer ke Firestore
-  syncLayerToFirestore(layerObj);
 }
 
 
