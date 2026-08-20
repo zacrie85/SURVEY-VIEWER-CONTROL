@@ -1834,7 +1834,8 @@ function saveState(){
     }));
     const sl=layers.map(l=>({
       name:l.name,color:l.color,visible:l.visible,layerNames:l.layerNames,
-      fileId:l.fileId||null
+      fileId:l.fileId||null,
+      geojson:l.fileId?null:l.geojson||null
     }));
     const spf=polygonFolders.map(pf=>({...pf,items:[...pf.items]}));
     const state={
@@ -1924,8 +1925,9 @@ async function loadState(){
       m.leafletMarker=lm;
     });
 
-    // Restore layers from IndexedDB (auto-load all saved files)
+    // Restore layers from IndexedDB (auto-load all saved files) and localStorage geojson (URL imports)
     if(state.layers){
+      _isRestoringLayers = true;
       for(const sl of state.layers){
         if(sl.fileId){
           const rec=await getFileFromDB(sl.fileId);
@@ -1935,8 +1937,18 @@ async function loadState(){
               await loadFileAsLayer(file,sl.visible,sl.fileId);
             }catch(e){console.warn('Failed to restore layer:',e);}
           }
+        }else if(sl.geojson && sl.geojson.features && sl.geojson.features.length > 0){
+          // Restore URL-imported layers from localStorage geojson
+          try{
+            addGeoJsonLayer(sl.name, sl.geojson, sl.visible, null);
+            // Restore saved color
+            if(sl.color && layers.length > 0){
+              layers[layers.length - 1].color = sl.color;
+            }
+          }catch(e){console.warn('Failed to restore URL layer:',e);}
         }
       }
+      _isRestoringLayers = false;
     }
 
     // Restore drawn lines
@@ -3048,6 +3060,42 @@ async function switchProject(projectId){
     if(!loaded){
       // Fallback: load from localStorage
       await loadState();
+    }
+
+    // If loaded from Supabase but no layers found, check localStorage for layers
+    // This handles the case where URL-imported layers were saved locally but not yet synced
+    if(loaded && layers.length === 0){
+      try{
+        const rawLocal = localStorage.getItem(STORAGE_KEY);
+        if(rawLocal){
+          const localState = JSON.parse(rawLocal);
+          if(localState.layers && localState.layers.length > 0){
+            console.log('Merging layers from localStorage into Supabase project');
+            _isRestoringLayers = true;
+            for(var li = 0; li < localState.layers.length; li++){
+              var sl = localState.layers[li];
+              if(sl.fileId){
+                var rec = await getFileFromDB(sl.fileId);
+                if(rec && rec.blob){
+                  try{
+                    var file = rec.blob instanceof File ? rec.blob : new File([rec.blob], rec.name, {type: rec.type});
+                    await loadFileAsLayer(file, sl.visible, sl.fileId);
+                  }catch(e){console.warn('Merge file layer:',e);}
+                }
+              }else if(sl.geojson && sl.geojson.features && sl.geojson.features.length > 0){
+                try{
+                  addGeoJsonLayer(sl.name, sl.geojson, sl.visible, null);
+                  if(sl.color && layers.length > 0) layers[layers.length - 1].color = sl.color;
+                }catch(e){console.warn('Merge URL layer:',e);}
+              }
+            }
+            _isRestoringLayers = false;
+            // Re-sync to Supabase with merged layers
+            renderLayers();
+            saveStateToSupabase();
+          }
+        }
+      }catch(e){console.warn('Layer merge check error:',e);}
     }
 
     await startSyncListeners();
