@@ -1836,6 +1836,7 @@ function saveState(){
       name:l.name,color:l.color,visible:l.visible,layerNames:l.layerNames,
       fileId:l.fileId||null,
       _importUrl:l._importUrl||null,
+      _createdBy:l._createdBy||'admin',
       geojson:(l.fileId||l._importUrl)?null:l.geojson||null
     }));
     const spf=polygonFolders.map(pf=>({...pf,items:[...pf.items]}));
@@ -1949,6 +1950,8 @@ async function loadState(){
           try{
             addGeoJsonLayer(sl.name, sl.geojson, sl.visible, null);
             if(sl.color && layers.length > 0) layers[layers.length - 1].color = sl.color;
+            if(sl._createdBy && layers.length > 0) layers[layers.length - 1]._createdBy = sl._createdBy;
+            else if(layers.length > 0) layers[layers.length - 1]._createdBy = 'admin';
           }catch(e){console.warn('Failed to restore inline layer:',e);}
         }
       }
@@ -3096,6 +3099,8 @@ async function switchProject(projectId){
                 try{
                   addGeoJsonLayer(sl.name, sl.geojson, sl.visible, null);
                   if(sl.color && layers.length > 0) layers[layers.length - 1].color = sl.color;
+                  if(sl._createdBy && layers.length > 0) layers[layers.length - 1]._createdBy = sl._createdBy;
+                  else if(layers.length > 0) layers[layers.length - 1]._createdBy = 'admin';
                 }catch(e){console.warn('Merge inline layer:',e);}
               }
             }
@@ -3164,8 +3169,8 @@ function serializeState(){
       color: l.color,
       visible: l.visible,
       layerNames: l.layerNames,
-      // For URL-imported layers, store the URL instead of heavy geojson
       _importUrl: l._importUrl || null,
+      _createdBy: l._createdBy || 'admin',
       geojson: l._importUrl ? null : l.geojson,
       _useCluster: l._useCluster || false
     }))
@@ -3196,6 +3201,8 @@ async function loadLayerFromImportUrl(sl) {
     if (!geojson || !geojson.features || geojson.features.length === 0) return false;
     addGeoJsonLayer(sl.name, geojson, sl.visible, null, sl._importUrl);
     if (sl.color && layers.length > 0) layers[layers.length - 1].color = sl.color;
+    if (sl._createdBy && layers.length > 0) layers[layers.length - 1]._createdBy = sl._createdBy;
+    else if (layers.length > 0) layers[layers.length - 1]._createdBy = 'admin';
     return true;
   } catch(e) {
     console.warn('Failed to load layer from URL:', sl._importUrl, e);
@@ -3237,6 +3244,8 @@ async function deserializeState(data){
             if(sl.color && layers[li]){
               layers[li].color = sl.color;
             }
+            if(sl._createdBy && layers[li]) layers[li]._createdBy = sl._createdBy;
+            else if(layers[li]) layers[li]._createdBy = 'admin';
           }
         }
       }catch(layerErr){
@@ -4506,7 +4515,7 @@ function addGeoJsonLayer(fileName,geojson,setVisible,fileId,importUrl){
 
   const visible=setVisible!==false;
   if(visible&&geoJsonLayers)geoJsonLayers.addLayer(geoJsonLayer);
-  const layerObj = {name:fileName,geojson,layerNames,color,geoJsonLayer,visible,fileId:fileId||null,_layerId:'layer-'+Date.now()+'-'+Math.random().toString(36).substring(2,8),_useCluster:useCluster,_importUrl:importUrl||null};
+  const layerObj = {name:fileName,geojson,layerNames,color,geoJsonLayer,visible,fileId:fileId||null,_layerId:'layer-'+Date.now()+'-'+Math.random().toString(36).substring(2,8),_useCluster:useCluster,_importUrl:importUrl||null,_createdBy:isAdminUser?'admin':'viewer'};
   layers.push(layerObj);
   if(visible && !_isRestoringLayers){
     try{
@@ -4903,8 +4912,14 @@ function renderLayers(){
   if(exportActions)exportActions.classList.remove('hidden');
   c.innerHTML=layers.map((l,i)=>{
     const checked=selectedLayerIdxs.has(i)?'checked':'';
-    const delBtn=isAdminUser?'<button onclick="removeLayer('+i+')" class="layer-del-btn text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-0.5" title="Hapus layer"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>':'';
-    return '<div class="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50 group'+(selectedLayerIdxs.has(i)?' bg-blue-50 border-blue-200':'')+'"><input type="checkbox" data-layer-idx="'+i+'" '+checked+' onchange="toggleLayerSelection('+i+',this.checked)" onclick="event.stopPropagation()" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 accent-blue-600 shrink-0 cursor-pointer" /><label class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"><input type="checkbox" '+(l.visible?'checked':'')+' onchange="toggleLayer('+i+')" class="rounded text-emerald-600 focus:ring-emerald-500" /><div class="w-3 h-3 rounded-sm shrink-0" style="background:'+l.color+'"></div><span class="text-xs text-gray-700 truncate flex-1">'+esc(l.name)+'</span></label><span class="text-[10px] text-gray-400">'+l.layerNames.length+'</span>'+delBtn+'</div>';
+    // Viewer: hanya bisa manage layer yang dibuat sendiri
+    const isAdminLayer = l._createdBy === 'admin';
+    const canManage = isAdminUser || !isAdminLayer;
+    // Checkbox seleksi (untuk export) — hanya admin atau viewer untuk layer sendiri
+    const selCb = canManage ? '<input type="checkbox" data-layer-idx="'+i+'" '+checked+' onchange="toggleLayerSelection('+i+',this.checked)" onclick="event.stopPropagation()" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 accent-blue-600 shrink-0 cursor-pointer" />' : '';
+    // Tombol hapus — hanya admin atau viewer untuk layer sendiri
+    const delBtn = canManage ? '<button onclick="removeLayer('+i+')" class="layer-del-btn text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-0.5" title="Hapus layer"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>' : '';
+    return '<div class="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50 group'+(selectedLayerIdxs.has(i)?' bg-blue-50 border-blue-200':'')+'">'+selCb+'<label class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"><input type="checkbox" '+(l.visible?'checked':'')+' onchange="toggleLayer('+i+')" class="rounded text-emerald-600 focus:ring-emerald-500" /><div class="w-3 h-3 rounded-sm shrink-0" style="background:'+l.color+'"></div><span class="text-xs text-gray-700 truncate flex-1">'+esc(l.name)+'</span></label><span class="text-[10px] text-gray-400">'+l.layerNames.length+'</span>'+delBtn+'</div>';
   }).join('');
   updateLayerSelectionUI();
 }
@@ -4934,8 +4949,9 @@ function toggleLayer(i){
 }
 
 function removeLayer(i){
-  if(!isAdminUser){showToast('Viewer tidak bisa menghapus layer','error');return;}
   const l=layers[i];
+  if(!isAdminUser && l._createdBy === 'admin'){showToast('Viewer tidak bisa menghapus layer admin','error');return;}
+  if(!isAdminUser && l._createdBy !== 'viewer'){showToast('Viewer tidak bisa menghapus layer ini','error');return;}
   if(geoJsonLayers)geoJsonLayers.removeLayer(l.geoJsonLayer);
   const lid = l._layerId;
   layers.splice(i,1);
