@@ -354,6 +354,7 @@ window.addEventListener('unhandledrejection',function(ev){
   window._gateUnlocked=false; window._gateIsAdmin=false;
   window._gateFromCloud=false; // true when password fetched from Supabase (shared device)
   window._gateViewerMode=(new URLSearchParams(location.search)).get('viewer')==='1'; // viewer-only link
+  window._gateViewerFetched=false; // true = Supabase fetch succeeded for viewer hash
 
   // If viewer mode, transform gate UI immediately
   if(window._gateViewerMode){
@@ -454,8 +455,15 @@ window.addEventListener('unhandledrejection',function(ev){
       if(window._gateViewerMode){
         btn.disabled=true;btn.textContent='Memverifikasi...';if(errEl)errEl.textContent='';
         var hash=await _sha256(pwd);
+        // _gateViewerFetched: true = Supabase fetch succeeded (null hash = no password set)
+        // _gateViewerFetched: false = fetch failed, don't allow free entry
+        if(!window._gateViewerFetched && !window._gateViewerHash){
+          if(errEl)errEl.textContent='Gagal memuat data. Coba muat ulang halaman.';
+          btn.disabled=false;btn.textContent='Masuk sebagai Viewer';
+          return;
+        }
         if(!window._gateViewerHash){
-          // Belum ada password viewer diatur — izinkan masuk langsung
+          // Belum ada password viewer diatur (fetch succeeded, hash is null) — izinkan masuk langsung
           window._gateIsAdmin=false;window._doUnlock(false);
         }else if(hash===window._gateViewerHash){
           window._gateIsAdmin=false;window._doUnlock(false);
@@ -634,6 +642,7 @@ window.addEventListener('unhandledrejection',function(ev){
       if(window._gateViewerMode){
         // Bersihkan hash lama dari localStorage dulu supaya tidak dipakai jika fetch gagal
         window._gateViewerHash=null;
+        window._gateViewerFetched=false;
         try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
         gateShowLoading();
         try{
@@ -642,13 +651,35 @@ window.addEventListener('unhandledrejection',function(ev){
           if(typeof supabase!=='undefined'&&_sbUrl&&_sbKey){
             var _tmpSb=supabase.createClient(_sbUrl,_sbKey);
             var _res=await _tmpSb.from('project_data').select('data').eq('project_id','__app_settings__').maybeSingle();
-            if(_res&&_res.data&&_res.data.data&&_res.data.data.viewer_password_hash){
-              window._gateViewerHash=_res.data.data.viewer_password_hash;
-              try{localStorage.setItem('kmz_app_viewer_password',_res.data.data.viewer_password_hash);}catch(x){}
-            }else if(_res&&_res.data&&_res.data.data){
-              window._gateViewerHash=null;
-              try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
+            window._gateViewerFetched=true; // fetch completed (success or no-data)
+            console.log('[Gate] Viewer fetch result:', _res ? 'got response' : 'no response', _res && _res.data ? 'has data' : 'no data');
+            if(_res&&_res.data&&_res.data.data){
+              var _vd=_res.data.data;
+              // Cek viewer_reset_version — jika berubah, bersihkan semua cache viewer
+              if(_vd.viewer_reset_version){
+                var _lastVersion=localStorage.getItem('kmz_viewer_reset_version')||'';
+                if(_lastVersion!==_vd.viewer_reset_version){
+                  console.log('[Gate] Viewer reset version changed:',_lastVersion,'->',_vd.viewer_reset_version,'. Clearing all viewer cache.');
+                  try{sessionStorage.clear();}catch(x){}
+                  try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
+                  try{localStorage.removeItem('kmz_viewer_projects_cache');}catch(x){}
+                  localStorage.setItem('kmz_viewer_reset_version',_vd.viewer_reset_version);
+                }
+              }
+              if(_vd.viewer_password_hash){
+                window._gateViewerHash=_vd.viewer_password_hash;
+                try{localStorage.setItem('kmz_app_viewer_password',_vd.viewer_password_hash);}catch(x){}
+                console.log('[Gate] Viewer hash loaded from Supabase:', _vd.viewer_password_hash.substring(0,12)+'...');
+              }else{
+                window._gateViewerHash=null;
+                try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
+                console.log('[Gate] Viewer hash is null (no viewer password set)');
+              }
+            }else{
+              console.warn('[Gate] Viewer fetch returned no data row. Error:', _res&&_res.error ? _res.error.message : 'unknown');
             }
+          }else{
+            console.warn('[Gate] Supabase not available for viewer mode');
           }
         }catch(_e){console.warn('Viewer mode Supabase check skipped:',_e.message);}
         gateShowLogin();
@@ -836,6 +867,18 @@ window.addEventListener('unhandledrejection',function(ev){
         <button onclick="setViewerPassword()" class="w-full py-2.5 text-xs font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>Atur Password Viewer</button>
         <button onclick="removeViewerPassword()" class="w-full mt-1.5 py-2 text-xs font-medium bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition-colors">Hapus Password Viewer</button>
         <p id="viewer-pw-error" class="text-[10px] text-red-500 text-center mt-2 hidden"></p>
+      </div>
+      <!-- Reset Semua Data Viewer -->
+      <div class="mt-3 pt-3 border-t border-gray-100">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="w-6 h-6 rounded-lg bg-red-100 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></div>
+          <div>
+            <p class="text-xs font-semibold text-gray-700">Reset Semua Data Viewer</p>
+            <p class="text-[9px] text-gray-400">Hapus password viewer dan tambahkan versi baru agar semua viewer terpaksa login ulang</p>
+          </div>
+        </div>
+        <button onclick="resetAllViewerData()" class="w-full py-2.5 text-xs font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Reset Semua Data Viewer</button>
+        <p id="reset-viewer-status" class="text-[10px] text-center mt-1.5 hidden"></p>
       </div>
       <!-- Kunci Aplikasi -->
       <div class="mt-3 pt-3 border-t border-gray-100">
@@ -2768,17 +2811,24 @@ function loadPasswordHash(){
 
 // Simpan hash ke localStorage untuk akses offline
 
-function syncPasswordToSupabase(hash, adminId){
-  if(!isSupabaseReady) return;
-  sb.from('project_data').upsert({
-    project_id: '__app_settings__',
-    data: {type:'app_settings', password_hash: hash, viewer_password_hash: appViewerPasswordHash || null, admin_uid: adminId || appAdminUid || 'admin-local'},
-    updated_at: new Date().toISOString()
-  }).then(()=>{
-    console.log('Password synced to Supabase');
-  }).catch(e=>{
-    console.warn('Supabase sync skipped:', e.message);
-  });
+async function syncPasswordToSupabase(hash, adminId){
+  if(!isSupabaseReady){console.warn('syncPasswordToSupabase: Supabase not ready');return false;}
+  try{
+    var result = await sb.from('project_data').upsert({
+      project_id: '__app_settings__',
+      data: {type:'app_settings', password_hash: hash, viewer_password_hash: appViewerPasswordHash || null, admin_uid: adminId || appAdminUid || 'admin-local'},
+      updated_at: new Date().toISOString()
+    });
+    if(result.error){
+      console.error('syncPasswordToSupabase error:', result.error.message);
+      return false;
+    }
+    console.log('Password synced to Supabase successfully');
+    return true;
+  }catch(e){
+    console.error('syncPasswordToSupabase exception:', e.message);
+    return false;
+  }
 }
 
 function enforceViewerRestrictions(){
@@ -2815,6 +2865,8 @@ function openSettingsModal(){
   document.getElementById('settings-error').classList.add('hidden');
   document.getElementById('settings-viewer-password').value='';
   document.getElementById('viewer-pw-error').classList.add('hidden');
+  var resetStatus = document.getElementById('reset-viewer-status');
+  if(resetStatus){resetStatus.classList.add('hidden');resetStatus.textContent='';}
   // Populate Supabase config fields
   var sbUrl = document.getElementById('settings-sb-url');
   var sbKey = document.getElementById('settings-sb-key');
@@ -2841,16 +2893,42 @@ function closeSettingsModal(){
 }
 
 
-function removeViewerPassword(){
+async function removeViewerPassword(){
   if(!isAdminUser) return;
   appViewerPasswordHash = null;
   window._gateViewerHash = null;
   try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
   invalidateViewerSessions();
-  syncPasswordToSupabase(appPasswordHash, appAdminUid);
+  // LANGSUNG hapus dari Supabase dan tunggu hasilnya
+  if(isSupabaseReady){
+    try{
+      var _su=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
+      var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
+      var _tmpSb=supabase.createClient(_su,_sk);
+      var _result=await _tmpSb.from('project_data').select('data').eq('project_id','__app_settings__').maybeSingle();
+      var _existingData=_result&&_result.data&&_result.data.data?_result.data.data:{};
+      _existingData.type='app_settings';
+      _existingData.viewer_password_hash=null;
+      var _upsert=await _tmpSb.from('project_data').upsert({
+        project_id:'__app_settings__',
+        data:_existingData,
+        updated_at:new Date().toISOString()
+      });
+      if(_upsert.error){
+        console.error('removeViewerPassword upsert error:',_upsert.error.message);
+        showToast('Gagal menghapus password viewer di cloud: '+_upsert.error.message,'error');
+        return;
+      }
+      console.log('Viewer password removed from Supabase successfully');
+    }catch(_se){
+      console.error('removeViewerPassword Supabase error:',_se.message);
+      showToast('Gagal menghubungi cloud: '+_se.message,'error');
+      return;
+    }
+  }
   var vpStatus = document.getElementById('viewer-pw-status');
   if(vpStatus) vpStatus.innerHTML = '<span class="text-gray-400">Belum diatur</span>';
-  showToast('Password viewer dihapus. Viewer harus login ulang.','success');
+  showToast('Password viewer dihapus dari cloud. Viewer harus login ulang.','success');
 }
 
 async function setViewerPassword(){
@@ -2872,11 +2950,45 @@ async function setViewerPassword(){
     appViewerPasswordHash = hash;
     window._gateViewerHash = hash;
     try{localStorage.setItem('kmz_app_viewer_password', hash);}catch(x){}
-    syncPasswordToSupabase(appPasswordHash, appAdminUid);
+    // LANGSUNG tulis ke Supabase dan tunggu hasilnya
+    var saved = false;
+    if(isSupabaseReady){
+      try{
+        var _su=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
+        var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
+        var _tmpSb=supabase.createClient(_su,_sk);
+        var _result=await _tmpSb.from('project_data').select('data').eq('project_id','__app_settings__').maybeSingle();
+        var _existingData=_result&&_result.data&&_result.data.data?_result.data.data:{};
+        _existingData.type='app_settings';
+        _existingData.viewer_password_hash=hash;
+        if(!appPasswordHash&&_existingData.password_hash)appPasswordHash=_existingData.password_hash;
+        if(!appAdminUid&&_existingData.admin_uid)appAdminUid=_existingData.admin_uid;
+        _existingData.password_hash=appPasswordHash||_existingData.password_hash||null;
+        _existingData.admin_uid=appAdminUid||_existingData.admin_uid||'admin-local';
+        var _upsert=await _tmpSb.from('project_data').upsert({
+          project_id:'__app_settings__',
+          data:_existingData,
+          updated_at:new Date().toISOString()
+        });
+        if(_upsert.error){
+          console.error('setViewerPassword upsert error:',_upsert.error.message);
+          if(errEl){errEl.textContent='Gagal menyimpan ke cloud: '+_upsert.error.message;errEl.classList.remove('hidden');}
+          return;
+        }
+        saved=true;
+        console.log('Viewer password saved to Supabase successfully');
+      }catch(_se){
+        console.error('setViewerPassword Supabase error:',_se.message);
+        if(errEl){errEl.textContent='Gagal menyimpan ke cloud: '+_se.message;errEl.classList.remove('hidden');}
+        return;
+      }
+    }else{
+      console.warn('setViewerPassword: Supabase not ready, saving locally only');
+    }
     if(errEl) errEl.classList.add('hidden');
     if(vpStatus) vpStatus.innerHTML = '<span class="text-emerald-600 font-medium">&#x2713; Password viewer aktif</span>';
     if(pwInput) pwInput.value = '';
-    showToast('Password viewer berhasil diatur!','success');
+    showToast(saved?'Password viewer berhasil disimpan ke cloud!':'Password viewer disimpan lokal (offline)');
   }catch(e){
     if(errEl){errEl.textContent='Gagal: '+e.message;errEl.classList.remove('hidden');}
   }
@@ -2888,6 +3000,57 @@ function invalidateViewerSessions(){
   // tapi pastikan localStorage tidak menyimpan hash lama
   try{localStorage.setItem('kmz_app_viewer_password', appViewerPasswordHash || '');}catch(x){}
   if(!appViewerPasswordHash){try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}}
+}
+
+// Reset SEMUA data viewer dari admin — hapus password + increment versi
+// sehingga semua viewer terpaksa fetch ulang dari Supabase
+async function resetAllViewerData(){
+  if(!isAdminUser) return;
+  var statusEl = document.getElementById('reset-viewer-status');
+  if(!await appConfirm('Reset semua data viewer?\n\nSemua password viewer akan dihapus dan semua viewer akan dipaksa login ulang. Lanjutkan?')){
+    return;
+  }
+  if(statusEl){statusEl.classList.remove('hidden');statusEl.textContent='Memproses...';statusEl.className='text-[10px] text-amber-600 text-center mt-1.5';}
+  // 1. Hapus password viewer lokal
+  appViewerPasswordHash = null;
+  window._gateViewerHash = null;
+  try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
+  // 2. Update Supabase: hapus viewer_password_hash + tambah viewer_reset_version baru
+  if(isSupabaseReady){
+    try{
+      var _su=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
+      var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
+      var _tmpSb=supabase.createClient(_su,_sk);
+      // Baca data yang ada dulu
+      var _result=await _tmpSb.from('project_data').select('data').eq('project_id','__app_settings__').maybeSingle();
+      var _existingData=_result&&_result.data&&_result.data.data?_result.data.data:{};
+      _existingData.type='app_settings';
+      _existingData.viewer_password_hash=null; // hapus password viewer
+      _existingData.viewer_reset_version=Date.now().toString(36)+'-'+Math.random().toString(36).substr(2,6); // versi baru
+      var _upsert=await _tmpSb.from('project_data').upsert({
+        project_id:'__app_settings__',
+        data:_existingData,
+        updated_at:new Date().toISOString()
+      });
+      if(_upsert.error){
+        console.error('resetAllViewerData error:',_upsert.error.message);
+        if(statusEl){statusEl.textContent='Gagal: '+_upsert.error.message;statusEl.className='text-[10px] text-red-500 text-center mt-1.5';}
+        showToast('Gagal reset data viewer: '+_upsert.error.message,'error');
+        return;
+      }
+      console.log('All viewer data reset successfully in Supabase');
+    }catch(_se){
+      console.error('resetAllViewerData exception:',_se.message);
+      if(statusEl){statusEl.textContent='Gagal: '+_se.message;statusEl.className='text-[10px] text-red-500 text-center mt-1.5';}
+      showToast('Gagal reset: '+_se.message,'error');
+      return;
+    }
+  }
+  // 3. Update UI
+  var vpStatus = document.getElementById('viewer-pw-status');
+  if(vpStatus) vpStatus.innerHTML = '<span class="text-gray-400">Belum diatur</span>';
+  if(statusEl){statusEl.textContent='Berhasil! Semua viewer harus login ulang.';statusEl.className='text-[10px] text-emerald-600 text-center mt-1.5';}
+  showToast('Semua data viewer berhasil direset!','success');
 }
 
 function savePasswordToLocal(){
@@ -2942,8 +3105,13 @@ async function changeAppPassword(){
     appPasswordHash = newHash;
     window._gateHash = newHash;
     savePasswordToLocal();
-    // Sync ke Supabase di background (non-blocking)
-    syncPasswordToSupabase(newHash, appAdminUid);
+    // Sync ke Supabase dan tunggu hasil
+    var synced = await syncPasswordToSupabase(newHash, appAdminUid);
+    if(!synced){
+      errEl.textContent='Password disimpan lokal, tapi gagal sync ke cloud';errEl.classList.remove('hidden');
+      showToast('Password disimpan lokal. Gagal sync ke cloud.','error');
+      return;
+    }
     errEl.classList.add('hidden');
     showToast('Password berhasil diubah!','success');
     closeSettingsModal();
