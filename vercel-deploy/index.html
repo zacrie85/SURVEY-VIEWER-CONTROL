@@ -429,7 +429,10 @@ window.addEventListener('unhandledrejection',function(ev){
       if(window._gateViewerMode){
         btn.disabled=true;btn.textContent='Memverifikasi...';if(errEl)errEl.textContent='';
         var hash=await _sha256(pwd);
-        if(window._gateViewerHash && hash===window._gateViewerHash){
+        if(!window._gateViewerHash){
+          // Belum ada password viewer diatur — izinkan masuk langsung
+          window._gateIsAdmin=false;window._doUnlock(false);
+        }else if(hash===window._gateViewerHash){
           window._gateIsAdmin=false;window._doUnlock(false);
         }else{
           if(errEl)errEl.textContent='Password viewer salah!';
@@ -599,8 +602,11 @@ window.addEventListener('unhandledrejection',function(ev){
           }
         }catch(x){}
       }
-      // Viewer mode: always fetch from Supabase, never show setup
+      // Viewer mode: SELALU fetch dari Supabase, jangan pakai localStorage yang stale
       if(window._gateViewerMode){
+        // Bersihkan hash lama dari localStorage dulu supaya tidak dipakai jika fetch gagal
+        window._gateViewerHash=null;
+        try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
         gateShowLoading();
         try{
           var _sbUrl=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
@@ -4918,7 +4924,7 @@ function renderLayers(){
   c.innerHTML=layers.map((l,i)=>{
     const checked=selectedLayerIdxs.has(i)?'checked':'';
     // Viewer: hanya bisa manage layer yang dibuat sendiri
-    const isAdminLayer = l._createdBy === 'admin';
+    const isAdminLayer = !l._createdBy || l._createdBy === 'admin';
     const canManage = isAdminUser || !isAdminLayer;
     // Checkbox seleksi (untuk export) — hanya admin atau viewer untuk layer sendiri
     const selCb = canManage ? '<input type="checkbox" data-layer-idx="'+i+'" '+checked+' onchange="toggleLayerSelection('+i+',this.checked)" onclick="event.stopPropagation()" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 accent-blue-600 shrink-0 cursor-pointer" />' : '';
