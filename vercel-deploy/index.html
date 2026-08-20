@@ -2,6 +2,31 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+<!-- CACHE BUSTER: selalu bersihkan cache & SW untuk viewer mode -->
+<script>
+(function(){
+  try{
+    // 1. Hapus semua cache storage
+    if(caches&&caches.keys){
+      caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});}).catch(function(){});
+    }
+    // 2. Unregister semua service worker
+    if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){
+      navigator.serviceWorker.getRegistrations().then(function(regs){
+        regs.forEach(function(r){r.unregister();});
+      }).catch(function(){});
+    }
+  }catch(e){}
+  // 3. Viewer mode: force reload dengan cache-bust jika belum ada _cb parameter
+  var params=new URLSearchParams(location.search);
+  if(params.get('viewer')==='1'&&!params.has('_cb')){
+    params.set('_cb',Date.now().toString(36));
+    var newUrl=location.pathname+'?'+params.toString();
+    // Gunakan replace agar tidak menambah history
+    location.replace(newUrl);
+  }
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title data-i18n="app_title">SURVEY VIEWER CONTROL v9</title>
 <meta name="description" content="COMSUR Survey Tools - Peta Survey Interaktif">
@@ -6988,6 +7013,20 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  // NETWORK-FIRST untuk navigation request (HTML) supaya selalu dapat versi terbaru
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+  // CACHE-FIRST untuk asset CDN (CSS, JS library)
   event.respondWith(
     caches.match(event.request).then(cached => {
       const fetchPromise = fetch(event.request).then(response => {
