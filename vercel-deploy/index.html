@@ -512,7 +512,7 @@ window.addEventListener('unhandledrejection',function(ev){
         var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
         if(typeof supabase!=='undefined'){
           var _sc=supabase.createClient(_su,_sk);
-          _sc.from('project_data').upsert({project_id:'__app_settings__',data:{type:'app_settings',password_hash:hash,viewer_password_hash:window._gateViewerHash||null,admin_uid:'admin-local'},updated_at:new Date().toISOString()});
+          _sc.from('project_data').upsert({project_id:'__app_settings__',data:{type:'app_settings',password_hash:hash,viewer_password_hash:window._gateViewerHash||null,admin_uid:'admin-local'},updated_at:new Date().toISOString()},{onConflict:'project_id'});
         }
       }catch(_se){console.warn('Gate setup Supabase sync skipped:',_se.message);}
       window._doUnlock(true);
@@ -545,7 +545,7 @@ window.addEventListener('unhandledrejection',function(ev){
         var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
         if(typeof supabase!=='undefined'){
           var _sc=supabase.createClient(_su,_sk);
-          _sc.from('project_data').upsert({project_id:'__app_settings__',data:{type:'app_settings',password_hash:nh,viewer_password_hash:window._gateViewerHash||null,admin_uid:window._gateAdminId||'admin-local'},updated_at:new Date().toISOString()});
+          _sc.from('project_data').upsert({project_id:'__app_settings__',data:{type:'app_settings',password_hash:nh,viewer_password_hash:window._gateViewerHash||null,admin_uid:window._gateAdminId||'admin-local'},updated_at:new Date().toISOString()},{onConflict:'project_id'});
         }
       }catch(_se){console.warn('Gate change Supabase sync skipped:',_se.message);}
       if(typeof showToast==='function')showToast('Password berhasil diubah!','success');
@@ -2818,7 +2818,7 @@ async function syncPasswordToSupabase(hash, adminId){
       project_id: '__app_settings__',
       data: {type:'app_settings', password_hash: hash, viewer_password_hash: appViewerPasswordHash || null, admin_uid: adminId || appAdminUid || 'admin-local'},
       updated_at: new Date().toISOString()
-    });
+    },{onConflict:'project_id'});
     if(result.error){
       console.error('syncPasswordToSupabase error:', result.error.message);
       return false;
@@ -2913,7 +2913,7 @@ async function removeViewerPassword(){
         project_id:'__app_settings__',
         data:_existingData,
         updated_at:new Date().toISOString()
-      });
+      },{onConflict:'project_id'});
       if(_upsert.error){
         console.error('removeViewerPassword upsert error:',_upsert.error.message);
         showToast('Gagal menghapus password viewer di cloud: '+_upsert.error.message,'error');
@@ -2969,7 +2969,7 @@ async function setViewerPassword(){
           project_id:'__app_settings__',
           data:_existingData,
           updated_at:new Date().toISOString()
-        });
+        },{onConflict:'project_id'});
         if(_upsert.error){
           console.error('setViewerPassword upsert error:',_upsert.error.message);
           if(errEl){errEl.textContent='Gagal menyimpan ke cloud: '+_upsert.error.message;errEl.classList.remove('hidden');}
@@ -3031,7 +3031,7 @@ async function resetAllViewerData(){
         project_id:'__app_settings__',
         data:_existingData,
         updated_at:new Date().toISOString()
-      });
+      },{onConflict:'project_id'});
       if(_upsert.error){
         console.error('resetAllViewerData error:',_upsert.error.message);
         if(statusEl){statusEl.textContent='Gagal: '+_upsert.error.message;statusEl.className='text-[10px] text-red-500 text-center mt-1.5';}
