@@ -3811,7 +3811,10 @@ async function saveStateToSupabase(){
 
     // 2. Serialize local state
     var localState = serializeState();
-    console.log('['+_saveRole+' Save] Local markers:', localState.markers.length, 'folders:', localState.folders.length, 'project:', currentProjectId);
+    // Log khusus: cek setiap marker punya komentar atau tidak
+    var _cmtInfo = [];
+    localState.markers.forEach(function(mk){ _cmtInfo.push(mk.id+':'+(mk.comments?mk.comments.length:0)); });
+    console.log('['+_saveRole+' Save] Local markers:', localState.markers.length, 'folders:', localState.folders.length, 'project:', currentProjectId, '| comments:', _cmtInfo.join(','));
 
     // 3. Merge cloud + local supaya tidak ada data yang hilang
     var finalState;
@@ -5631,6 +5634,21 @@ function buildMarkerPopupHtml(m) {
       h += '</div></div>';
       rowIdx++;
     });
+  }
+
+  // Comments preview — langsung tampil di popup supaya tidak perlu buka edit modal
+  if (m.comments && m.comments.length > 0) {
+    const bg = rowIdx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.04)';
+    h += '<div style="padding:6px 12px;background:' + bg + ';">';
+    h += '<div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Komentar (' + m.comments.length + ')</div>';
+    m.comments.slice().reverse().forEach(function(c){
+      h += '<div style="font-size:11px;color:rgba(255,255,255,.8);padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);line-height:1.4;">';
+      h += '<span style="color:rgba(255,255,255,.5);font-size:9px;">' + esc(c.user || 'User') + '</span> ';
+      h += esc(c.text);
+      h += '</div>';
+    });
+    h += '</div>';
+    rowIdx++;
   }
 
   h += '</div>';
