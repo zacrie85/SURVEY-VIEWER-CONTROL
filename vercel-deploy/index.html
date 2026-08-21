@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- CACHE BUSTER v13: komentar sekarang field tunggal m.comment -->
+<!-- CACHE BUSTER v15: admin never reloads from realtime + deserialize filters deleted IDs -->
 <script>
 (function(){
   try{
@@ -1620,6 +1620,8 @@ let markerIdCounter = 0;
 let markerMode = null;    // 'gps' | 'manual' | 'click'
 let activeFolderId = null;
 let folders = [];         // [{id, name, description, color, createdAt}]
+let _deletedMarkerIds = []; // Track deleted marker IDs so merge won't restore them
+let _deletedFolderIds = [];  // Track deleted folder IDs so merge won't restore them
 let polygonFolders = [];  // [{id, name, description, color, createdAt, items:[{layerGroupIdx,subLayerIdx}]}]
 let editingMarkerId = null;
 let polyMenuTarget = null;
@@ -1951,6 +1953,8 @@ function saveState(){
       _version:STORAGE_VERSION,
       markers:serializableMarkers,
       folders,folderIdCounter:markerIdCounter,
+      _deletedMarkerIds:_deletedMarkerIds,
+      _deletedFolderIds:_deletedFolderIds,
       polygonFolders:spf,
       layers:sl,
       activeFolderId,drawnLines:drawnLines.map(dl=>({name:dl.name,color:dl.color,latlngs:dl.latlngs})),mapCenter:map.getCenter(),mapZoom:map.getZoom()
@@ -2011,10 +2015,20 @@ async function loadState(){
     // Restore folders first
     folders=state.folders||[];
 
+    // Restore deleted ID tracking
+    if(state._deletedMarkerIds && Array.isArray(state._deletedMarkerIds)){
+      _deletedMarkerIds = state._deletedMarkerIds;
+    }
+    if(state._deletedFolderIds && Array.isArray(state._deletedFolderIds)){
+      _deletedFolderIds = state._deletedFolderIds;
+    }
+
     // Restore markers (DEEP CLONE supaya tidak ada shared reference)
     // JANGAN pernah turunkan markerIdCounter
     markerIdCounter=Math.max(markerIdCounter||0, state.folderIdCounter||0, state.markerIdCounter||0);
+    var _lsDelSet = new Set(_deletedMarkerIds || []);
     state.markers.forEach(m=>{
+      if(_lsDelSet.has(m.id)) return; // Skip deleted markers
       markers.set(m.id, JSON.parse(JSON.stringify(m)));
     });
     // Re-create leaflet markers
@@ -3522,6 +3536,8 @@ function serializeState(){
       return rest;
     }),
     folders: folders,
+    _deletedMarkerIds: _deletedMarkerIds,
+    _deletedFolderIds: _deletedFolderIds,
     polygonFolders: polygonFolders.map(pf => ({
       ...pf,
       items: pf.items || []
@@ -3586,6 +3602,18 @@ async function deserializeState(data){
     markers.forEach(m => { if(m.leafletMarker) userMarkers.removeLayer(m.leafletMarker); });
     markers.clear();
     folders = data.folders || [];
+    // Restore deleted ID tracking so merge respects admin deletions
+    if(data._deletedMarkerIds && Array.isArray(data._deletedMarkerIds)){
+      // Merge: keep existing + add new from cloud
+      var _existingSet = new Set(_deletedMarkerIds);
+      data._deletedMarkerIds.forEach(function(id){ if(!_existingSet.has(id)) _deletedMarkerIds.push(id); });
+      if(_deletedMarkerIds.length > 500) _deletedMarkerIds = _deletedMarkerIds.slice(-500);
+    }
+    if(data._deletedFolderIds && Array.isArray(data._deletedFolderIds)){
+      var _existingFSet = new Set(_deletedFolderIds);
+      data._deletedFolderIds.forEach(function(id){ if(!_existingFSet.has(id)) _deletedFolderIds.push(id); });
+      if(_deletedFolderIds.length > 200) _deletedFolderIds = _deletedFolderIds.slice(-200);
+    }
     polygonFolders = data.polygonFolders || [];
     // JANGAN pernah turunkan markerIdCounter — bisa bikin duplikat ID
     markerIdCounter = Math.max(markerIdCounter || 0, data.markerIdCounter || 0);
@@ -3634,11 +3662,22 @@ async function deserializeState(data){
       });
     }
 
-    // Recreate markers
+    // Recreate markers — SKIP any ID in _deletedMarkerIds
+    var _delMSet = new Set(_deletedMarkerIds || []);
     data.markers.forEach(m => {
+      if(_delMSet.has(m.id)){
+        console.log('[Deserialize] Skipping deleted marker:', m.id);
+        return;
+      }
       markers.set(m.id, m);
       rebuildMarkerOnMap(m);
     });
+
+    // Also filter folders — SKIP any ID in _deletedFolderIds
+    var _delFSet = new Set(_deletedFolderIds || []);
+    if(_delFSet.size > 0){
+      folders = folders.filter(function(f){ return !_delFSet.has(f.id); });
+    }
 
     // Rebuild polygon folder highlights
     polyFolderHighlights.clear();
@@ -3681,16 +3720,11 @@ async function startSyncListeners(){
           lastSyncVersion = newData.version;
           if(newData.data){
             if(isAdminUser){
-              // Admin: re-fetch dari Supabase untuk memastikan data lengkap
-              loadStateFromSupabase().then(function(){
-                renderMarkerList();
-                renderFolderList();
-                renderPolygonFolders();
-                renderLayers();
-                updateFolderSelects();
-                try{if(window._redrawCanvasLabels)window._redrawCanvasLabels();}catch(x){}
-                showToast('Data diperbarui dari cloud','success');
-              });
+              // Admin TIDAK PERNAH reload dari cloud via realtime.
+              // Admin adalah otoritas — local state admin adalah kebenaran.
+              // Reload dari cloud bisa mengembalikan data yang sudah dihapus admin.
+              console.log('[Realtime] Admin received v' + newData.version + ' by ' + (newData.updated_by || '?') + ' — ignored (admin is authority)');
+              return;
             }else{
               // Viewer: merge supaya data viewer yang belum tersinkron tidak hilang
               var localBefore = serializeState();
@@ -3725,16 +3759,20 @@ function deepMergeState(cloudState, localState){
 
   function cloneObj(obj){ try{ return JSON.parse(JSON.stringify(obj)); }catch(e){ return obj; } }
 
-  // Merge markers dengan comment UNION
+  // Build deleted-ID sets from BOTH cloud and local (union of deleted IDs)
+  var _delMarkerSet = new Set((cloudState._deletedMarkerIds||[]).concat(localState._deletedMarkerIds||[]));
+  var _delFolderSet = new Set((cloudState._deletedFolderIds||[]).concat(localState._deletedFolderIds||[]));
+
+  // Merge markers — SKIP any ID in _delMarkerSet
   var markerMap = {};
   var i, item, existing, m;
   for(i=0; i<(cloudState.markers||[]).length; i++){
     item = cloudState.markers[i];
-    if(item && item.id) markerMap[item.id] = cloneObj(item);
+    if(item && item.id && !_delMarkerSet.has(item.id)) markerMap[item.id] = cloneObj(item);
   }
   for(i=0; i<(localState.markers||[]).length; i++){
     item = localState.markers[i];
-    if(!item || !item.id) continue;
+    if(!item || !item.id || _delMarkerSet.has(item.id)) continue;
     existing = markerMap[item.id];
     if(!existing){
       markerMap[item.id] = cloneObj(item);
@@ -3753,22 +3791,35 @@ function deepMergeState(cloudState, localState){
     }
   }
 
-  // Simple merge untuk array lain (union by ID)
-  function simpleUnion(cloudArr, localArr, idKey){
+  // Simple merge untuk array lain (union by ID) — SKIP deleted folder IDs
+  function simpleUnion(cloudArr, localArr, idKey, delSet){
     var map = {};
-    (cloudArr||[]).forEach(function(it){ if(it && it[idKey]) map[it[idKey]] = it; });
-    (localArr||[]).forEach(function(it){ if(it && it[idKey] && !map[it[idKey]]) map[it[idKey]] = it; });
+    (cloudArr||[]).forEach(function(it){ if(it && it[idKey] && !(delSet && delSet.has(it[idKey]))) map[it[idKey]] = it; });
+    (localArr||[]).forEach(function(it){ if(it && it[idKey] && !map[it[idKey]] && !(delSet && delSet.has(it[idKey]))) map[it[idKey]] = it; });
     return Object.values(map);
   }
 
+  // Merge deleted ID lists (union)
+  var mergedDelMarkers = [];
+  var _seenDelM = new Set();
+  (cloudState._deletedMarkerIds||[]).concat(localState._deletedMarkerIds||[]).forEach(function(id){ if(!_seenDelM.has(id)){_seenDelM.add(id);mergedDelMarkers.push(id);} });
+  if(mergedDelMarkers.length > 500) mergedDelMarkers = mergedDelMarkers.slice(-500);
+
+  var mergedDelFolders = [];
+  var _seenDelF = new Set();
+  (cloudState._deletedFolderIds||[]).concat(localState._deletedFolderIds||[]).forEach(function(id){ if(!_seenDelF.has(id)){_seenDelF.add(id);mergedDelFolders.push(id);} });
+  if(mergedDelFolders.length > 200) mergedDelFolders = mergedDelFolders.slice(-200);
+
   return {
     markers: Object.values(markerMap),
-    folders: simpleUnion(cloudState.folders, localState.folders, 'id'),
+    folders: simpleUnion(cloudState.folders, localState.folders, 'id', _delFolderSet),
     polygonFolders: simpleUnion(cloudState.polygonFolders, localState.polygonFolders, 'id'),
     drawnLines: simpleUnion(cloudState.drawnLines, localState.drawnLines, 'name'),
     layers: simpleUnion(cloudState.layers, localState.layers, 'name'),
     markerIdCounter: Math.max(cloudState.markerIdCounter||0, localState.markerIdCounter||0),
-    activeFolderId: localState.activeFolderId || cloudState.activeFolderId || null
+    activeFolderId: localState.activeFolderId || cloudState.activeFolderId || null,
+    _deletedMarkerIds: mergedDelMarkers,
+    _deletedFolderIds: mergedDelFolders
   };
 }
 
@@ -5762,8 +5813,13 @@ async function deleteSelectedMarkers(){
     // Sync deletion to Firestore
     deleteMarkerFromFirestore(id);
   });
+  // Track deleted IDs so viewer merge won't restore them
+  _deletedMarkerIds.push(...idsToDelete);
+  if(_deletedMarkerIds.length > 500) _deletedMarkerIds = _deletedMarkerIds.slice(-500);
   selectedMarkerIds.clear();
-  renderMarkerList();renderFolderList();renderPolygonFolders();renderLayers();debouncedSave();
+  renderMarkerList();renderFolderList();renderPolygonFolders();renderLayers();
+  // Save IMMEDIATELY (not debounced) to prevent race condition with realtime
+  saveState(); saveStateToSupabase();
 }
 
 async function deleteAllMarkers(){
@@ -5776,9 +5832,14 @@ async function deleteAllMarkers(){
   });
   markers.clear();
   selectedMarkerIds.clear();
+  // Track deleted IDs so viewer merge won't restore them
+  _deletedMarkerIds.push(...allIds);
+  if(_deletedMarkerIds.length > 500) _deletedMarkerIds = _deletedMarkerIds.slice(-500);
   // Sync all deletions to Firestore
   allIds.forEach(id => deleteMarkerFromFirestore(id));
-  renderMarkerList();renderFolderList();renderPolygonFolders();renderLayers();debouncedSave();
+  renderMarkerList();renderFolderList();renderPolygonFolders();renderLayers();
+  // Save IMMEDIATELY (not debounced) to prevent race condition with realtime
+  saveState(); saveStateToSupabase();
 }
 
 // ==================== EDIT MARKER MODAL ====================
@@ -5922,7 +5983,12 @@ function deleteEditingMarker(){
   const m=markers.get(editingMarkerId);
   if(m&&m.leafletMarker)userMarkers.removeLayer(m.leafletMarker);
   markers.delete(editingMarkerId);
-  closeEditModal();renderMarkerList();renderFolderList();debouncedSave();
+  // Track deleted ID so viewer merge won't restore it
+  _deletedMarkerIds.push(editingMarkerId);
+  if(_deletedMarkerIds.length > 500) _deletedMarkerIds = _deletedMarkerIds.slice(-500);
+  closeEditModal();renderMarkerList();renderFolderList();
+  // Save IMMEDIATELY (not debounced) to prevent race condition with realtime
+  saveState(); saveStateToSupabase();
 }
 
 // ==================== MARKER FOLDERS ====================
@@ -6513,7 +6579,12 @@ function deleteFolder(folderId){
   folders=folders.filter(f=>f.id!==folderId);
   if(activeFolderId===folderId)activeFolderId=null;
   markers.forEach(m=>{if(m.folderId===folderId)m.folderId=null;});
-  renderFolderList();updateFolderSelects();debouncedSave();
+  // Track deleted ID so viewer merge won't restore it
+  _deletedFolderIds.push(folderId);
+  if(_deletedFolderIds.length > 200) _deletedFolderIds = _deletedFolderIds.slice(-200);
+  renderFolderList();updateFolderSelects();
+  // Save IMMEDIATELY (not debounced) to prevent race condition with realtime
+  saveState(); saveStateToSupabase();
 }
 
 // ==================== POLYGON FOLDERS ====================
