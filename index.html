@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- CACHE BUSTER v18: admin manual refresh button + selective additive merge -->
+<!-- CACHE BUSTER v20: refresh button in header bar, show only for admin after login -->
 <script>
 (function(){
   try{
@@ -92,12 +92,6 @@ window.addEventListener('unhandledrejection',function(ev){
 .satellite-btn:hover{background:#f9fafb;border-color:#d1d5db}
 .satellite-btn.active{background:#1e40af;border-color:#1e40af;color:#fff;box-shadow:0 2px 12px rgba(30,64,175,.35)}
 .satellite-btn svg{width:16px;height:16px;flex-shrink:0}
-.refresh-cloud-btn{position:absolute;top:48px;right:10px;z-index:1000;display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:10px;border:2px solid #e5e7eb;background:#fff;color:#374151;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.12);font-family:Inter,system-ui,sans-serif}
-.refresh-cloud-btn:hover{background:#ecfdf5;border-color:#10b981;color:#059669}
-.refresh-cloud-btn:active{transform:scale(.95)}
-.refresh-cloud-btn.spinning svg{animation:spin360 .6s ease-in-out}
-@keyframes spin360{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.refresh-cloud-btn svg{width:16px;height:16px;flex-shrink:0}
 .leaflet-popup-content::-webkit-scrollbar{width:4px}.leaflet-popup-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}.leaflet-popup-content::-webkit-scrollbar-track{background:transparent}.leaflet-popup-content::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.3)}
 .popup-body-scrollable::-webkit-scrollbar{width:5px}.popup-body-scrollable::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:5px}.popup-body-scrollable::-webkit-scrollbar-track{background:rgba(255,255,255,.05);border-radius:5px}.popup-body-scrollable::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.4)}.popup-body-scrollable{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) rgba(255,255,255,.05)}
 
@@ -760,6 +754,7 @@ window.addEventListener('unhandledrejection',function(ev){
     <span id="sync-status" class="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded-md border hidden items-center gap-1.5 cursor-pointer" onclick="openLoginModal()"><span class="sync-dot idle" id="sync-dot"></span><span id="sync-text">Offline</span></span>
     <span id="save-status" class="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded-md border hidden items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>Tersimpan</span>
     <span id="tile-cache-badge" class="text-[10px] text-cyan-600 bg-cyan-50 px-2 py-1 rounded-md border border-cyan-200 hidden">Cache: <span id="tile-cache-count">0</span></span>
+    <button id="btn-refresh-cloud" onclick="refreshFromCloud()" title="Refresh data dari cloud" style="display:none;align-items:center;gap:3px;padding:4px 8px;border-radius:8px;border:1.5px solid #d1fae5;background:#ecfdf5;color:#059669;font-size:10px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg><span>Refresh</span></button>
     <button id="btn-user-login" onclick="openLoginModal()" class="flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 transition-all" title="Login & Sync">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
     </button>
@@ -780,10 +775,7 @@ window.addEventListener('unhandledrejection',function(ev){
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     <span>Satelit</span>
   </button>
-  <button id="btn-refresh-cloud" class="refresh-cloud-btn" onclick="refreshFromCloud()" title="Refresh data dari cloud">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-    <span>Refresh</span>
-  </button>
+
 </div>
 
 <!-- ===== LOGIN MODAL ===== -->
@@ -2581,6 +2573,11 @@ function onUserLoggedIn(user){
     roleBadge.style.borderColor = role==='admin' ? '#a7f3d0' : '#bfdbfe';
     roleBadge.classList.remove('hidden');
   }
+  // Tampilkan tombol Refresh hanya untuk admin
+  var refreshBtn = document.getElementById('btn-refresh-cloud');
+  if(refreshBtn && role==='admin'){
+    refreshBtn.style.display = 'flex';
+  }
 
   // Update Proyek panel badges
   if(isSupabaseReady){
@@ -2623,6 +2620,9 @@ function onUserLoggedOut(){
   // Hide role badge on logout
   var roleBadge = document.getElementById('role-badge');
   if(roleBadge) roleBadge.classList.add('hidden');
+  // Hide refresh button on logout
+  var _logoutRefresh = document.getElementById('btn-refresh-cloud');
+  if(_logoutRefresh) _logoutRefresh.style.display = 'none';
 
   document.getElementById('proyek-sync-badge').textContent = 'Offline';
   document.getElementById('proyek-sync-badge').className = 'text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500';
@@ -2856,8 +2856,6 @@ var appViewerPasswordHash = window._gateViewerHash || null;
 var isAppUnlocked = window._gateUnlocked || false;
 var isGateReady = true;
 var isAdminUser = window._gateIsAdmin || false;
-// Sembunyikan tombol refresh cloud untuk viewer
-if(!isAdminUser){ var _rb=document.getElementById('btn-refresh-cloud'); if(_rb) _rb.style.display='none'; }
 // SHA-256 is defined in standalone engine as window.sha256 and window._gateSha256
 const AUTH_SALT = 'comsur-survey-v9-salt-2024';
 async function sha256(m){return window._gateSha256?await window._gateSha256(m):'';}
@@ -3722,8 +3720,8 @@ async function refreshFromCloud(){
   if(!isAdminUser){ showToast('Hanya admin yang bisa refresh','error'); return; }
   if(!isSupabaseReady || !currentProjectId){ showToast('Tidak ada koneksi ke cloud','error'); return; }
 
-  // Animasi spinning
-  btn.classList.add('spinning');
+  // Animasi: opacity saat loading
+  btn.style.opacity = '0.5';
   try{
     var _res = await sb.from('project_data')
       .select('data,version')
@@ -3751,7 +3749,7 @@ async function refreshFromCloud(){
     console.error('[Refresh] Error:', e);
     showToast('Gagal refresh: ' + e.message, 'error');
   }finally{
-    setTimeout(function(){ btn.classList.remove('spinning'); }, 600);
+    btn.style.opacity = '1';
   }
 }
 
