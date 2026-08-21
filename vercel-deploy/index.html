@@ -20,13 +20,15 @@
       }).catch(function(){});
     }
   }catch(e){}
-  // 3. Viewer mode: force reload dengan cache-bust jika belum ada _cb parameter
+  // 3. Cache-bust untuk SEMUA mode (admin & viewer) supaya selalu dapat versi terbaru
   var params=new URLSearchParams(location.search);
-  if(params.get('viewer')==='1'&&!params.has('_cb')){
-    params.set('_cb',Date.now().toString(36));
-    var newUrl=location.pathname+'?'+params.toString();
-    // Gunakan replace agar tidak menambah history
-    location.replace(newUrl);
+  var _cbVal = params.get('_cb');
+  var _needsBust = !_cbVal;
+  // Jika ada _cb tapi sudah lebih dari 1 jam, bust lagi
+  if(_cbVal){ try{ var _cbAge = Date.now() - parseInt(_cbVal,36)*1000; if(_cbAge > 3600000) _needsBust = true; }catch(e){} }
+  if(_needsBust){
+    params.set('_cb', Date.now().toString(36));
+    location.replace(location.pathname + '?' + params.toString());
   }
 })();
 </script>
