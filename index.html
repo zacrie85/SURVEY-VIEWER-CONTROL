@@ -2573,10 +2573,11 @@ function onUserLoggedIn(user){
     roleBadge.style.borderColor = role==='admin' ? '#a7f3d0' : '#bfdbfe';
     roleBadge.classList.remove('hidden');
   }
-  // Tampilkan tombol Refresh hanya untuk admin
+  // Tampilkan tombol Refresh untuk admin DAN viewer
   var refreshBtn = document.getElementById('btn-refresh-cloud');
-  if(refreshBtn && role==='admin'){
+  if(refreshBtn){
     refreshBtn.style.display = 'flex';
+    refreshBtn.title = role==='admin' ? 'Refresh data dari cloud' : 'Refresh data dari cloud';
   }
 
   // Update Proyek panel badges
@@ -3713,11 +3714,10 @@ function rebuildMarkerOnMap(m){
   m.leafletMarker = marker;
 }
 
-// Admin: refresh manual dari cloud (tambah data baru dari viewer, tanpa menghapus data admin)
+// Refresh manual dari cloud — admin: selective merge, viewer: full reload
 async function refreshFromCloud(){
   var btn = document.getElementById('btn-refresh-cloud');
   if(!btn) return;
-  if(!isAdminUser){ showToast('Hanya admin yang bisa refresh','error'); return; }
   if(!isSupabaseReady || !currentProjectId){ showToast('Tidak ada koneksi ke cloud','error'); return; }
 
   // Animasi: opacity saat loading
@@ -3741,10 +3741,22 @@ async function refreshFromCloud(){
     // Update version supaya realtime tidak duplicate
     if(cloudVer > lastSyncVersion) lastSyncVersion = cloudVer;
 
-    // Gunakan selective additive merge — sama seperti realtime handler
-    adminSelectiveAddMerge(cloudData);
+    if(isAdminUser){
+      // Admin: selective additive merge — hanya tambah item baru, jangan timpa/hapus
+      adminSelectiveAddMerge(cloudData);
+    }else{
+      // Viewer: full merge dengan data lokal, lalu deserialize
+      var localBefore = serializeState();
+      var merged = deepMergeState(cloudData, localBefore);
+      await deserializeState(merged);
+      renderMarkerList();
+      renderFolderList();
+      renderPolygonFolders();
+      renderLayers();
+      updateFolderSelects();
+    }
     showToast('Data diperbarui dari cloud','success');
-    console.log('[Refresh] Admin manual refresh from cloud v' + cloudVer);
+    console.log('[Refresh] ' + (isAdminUser?'Admin':'Viewer') + ' manual refresh from cloud v' + cloudVer);
   }catch(e){
     console.error('[Refresh] Error:', e);
     showToast('Gagal refresh: ' + e.message, 'error');
