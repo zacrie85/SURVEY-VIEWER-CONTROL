@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- CACHE BUSTER v16: admin merge preserves viewer data, viewer realtime proper await -->
+<!-- CACHE BUSTER v18: admin manual refresh button + selective additive merge -->
 <script>
 (function(){
   try{
@@ -90,6 +90,12 @@ window.addEventListener('unhandledrejection',function(ev){
 .satellite-btn:hover{background:#f9fafb;border-color:#d1d5db}
 .satellite-btn.active{background:#1e40af;border-color:#1e40af;color:#fff;box-shadow:0 2px 12px rgba(30,64,175,.35)}
 .satellite-btn svg{width:16px;height:16px;flex-shrink:0}
+.refresh-cloud-btn{position:absolute;top:48px;right:10px;z-index:1000;display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:10px;border:2px solid #e5e7eb;background:#fff;color:#374151;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.12);font-family:Inter,system-ui,sans-serif}
+.refresh-cloud-btn:hover{background:#ecfdf5;border-color:#10b981;color:#059669}
+.refresh-cloud-btn:active{transform:scale(.95)}
+.refresh-cloud-btn.spinning svg{animation:spin360 .6s ease-in-out}
+@keyframes spin360{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.refresh-cloud-btn svg{width:16px;height:16px;flex-shrink:0}
 .leaflet-popup-content::-webkit-scrollbar{width:4px}.leaflet-popup-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}.leaflet-popup-content::-webkit-scrollbar-track{background:transparent}.leaflet-popup-content::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.3)}
 .popup-body-scrollable::-webkit-scrollbar{width:5px}.popup-body-scrollable::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:5px}.popup-body-scrollable::-webkit-scrollbar-track{background:rgba(255,255,255,.05);border-radius:5px}.popup-body-scrollable::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.4)}.popup-body-scrollable{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) rgba(255,255,255,.05)}
 
@@ -771,6 +777,10 @@ window.addEventListener('unhandledrejection',function(ev){
   <button id="btn-satellite" class="satellite-btn" onclick="toggleSatellite()" title="Ganti ke Peta Satelit">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     <span>Satelit</span>
+  </button>
+  <button id="btn-refresh-cloud" class="refresh-cloud-btn" onclick="refreshFromCloud()" title="Refresh data dari cloud">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+    <span>Refresh</span>
   </button>
 </div>
 
@@ -2844,6 +2854,8 @@ var appViewerPasswordHash = window._gateViewerHash || null;
 var isAppUnlocked = window._gateUnlocked || false;
 var isGateReady = true;
 var isAdminUser = window._gateIsAdmin || false;
+// Sembunyikan tombol refresh cloud untuk viewer
+if(!isAdminUser){ var _rb=document.getElementById('btn-refresh-cloud'); if(_rb) _rb.style.display='none'; }
 // SHA-256 is defined in standalone engine as window.sha256 and window._gateSha256
 const AUTH_SALT = 'comsur-survey-v9-salt-2024';
 async function sha256(m){return window._gateSha256?await window._gateSha256(m):'';}
@@ -3701,6 +3713,137 @@ function rebuildMarkerOnMap(m){
   m.leafletMarker = marker;
 }
 
+// Admin: refresh manual dari cloud (tambah data baru dari viewer, tanpa menghapus data admin)
+async function refreshFromCloud(){
+  var btn = document.getElementById('btn-refresh-cloud');
+  if(!btn) return;
+  if(!isAdminUser){ showToast('Hanya admin yang bisa refresh','error'); return; }
+  if(!isSupabaseReady || !currentProjectId){ showToast('Tidak ada koneksi ke cloud','error'); return; }
+
+  // Animasi spinning
+  btn.classList.add('spinning');
+  try{
+    var _res = await sb.from('project_data')
+      .select('data,version')
+      .eq('project_id', currentProjectId)
+      .maybeSingle();
+    if(_res.error){
+      showToast('Gagal refresh: ' + _res.error.message, 'error');
+      return;
+    }
+    if(!_res.data || !_res.data.data){
+      showToast('Tidak ada data di cloud','info');
+      return;
+    }
+    var cloudData = _res.data.data;
+    var cloudVer = _res.data.version || 0;
+
+    // Update version supaya realtime tidak duplicate
+    if(cloudVer > lastSyncVersion) lastSyncVersion = cloudVer;
+
+    // Gunakan selective additive merge — sama seperti realtime handler
+    adminSelectiveAddMerge(cloudData);
+    showToast('Data diperbarui dari cloud','success');
+    console.log('[Refresh] Admin manual refresh from cloud v' + cloudVer);
+  }catch(e){
+    console.error('[Refresh] Error:', e);
+    showToast('Gagal refresh: ' + e.message, 'error');
+  }finally{
+    setTimeout(function(){ btn.classList.remove('spinning'); }, 600);
+  }
+}
+
+// Admin selective additive merge — hanya tambahkan item BARU dari viewer.
+// Tidak pernah menghapus/timpa data admin, tidak pernah mengembalikan data yang sudah dihapus.
+function adminSelectiveAddMerge(cloudData){
+  if(!cloudData || !cloudData.markers) return;
+
+  var _delMSet = new Set(_deletedMarkerIds || []);
+  var _delFSet = new Set(_deletedFolderIds || []);
+  var addedCount = 0;
+
+  // 1. Sinkronkan _deletedMarkerIds dari cloud (union — admin mungkin perlu tahu ID yang dihapus di tempat lain)
+  if(cloudData._deletedMarkerIds && Array.isArray(cloudData._deletedMarkerIds)){
+    var _existDelM = new Set(_deletedMarkerIds);
+    cloudData._deletedMarkerIds.forEach(function(id){ if(!_existDelM.has(id)){ _deletedMarkerIds.push(id); _delMSet.add(id); } });
+    if(_deletedMarkerIds.length > 500) _deletedMarkerIds = _deletedMarkerIds.slice(-500);
+  }
+  // 2. Sinkronkan _deletedFolderIds dari cloud
+  if(cloudData._deletedFolderIds && Array.isArray(cloudData._deletedFolderIds)){
+    var _existDelF = new Set(_deletedFolderIds);
+    cloudData._deletedFolderIds.forEach(function(id){ if(!_existDelF.has(id)){ _deletedFolderIds.push(id); _delFSet.add(id); } });
+    if(_deletedFolderIds.length > 200) _deletedFolderIds = _deletedFolderIds.slice(-200);
+  }
+
+  // 3. Tambahkan marker BARU dari viewer yang belum ada di admin
+  (cloudData.markers || []).forEach(function(cm){
+    if(!cm || !cm.id) return;
+    // Skip jika sudah dihapus admin
+    if(_delMSet.has(cm.id)) return;
+    // Skip jika sudah ada di admin — admin TIDAK pernah ditimpa
+    if(markers.has(cm.id)) return;
+    // Marker baru dari viewer — tambahkan
+    markers.set(cm.id, cm);
+    rebuildMarkerOnMap(cm);
+    addedCount++;
+  });
+
+  // 4. Tambahkan folder BARU dari viewer yang belum ada di admin
+  if(cloudData.folders && Array.isArray(cloudData.folders)){
+    var existingFolderIds = new Set(folders.map(function(f){ return f.id; }));
+    cloudData.folders.forEach(function(cf){
+      if(!cf || !cf.id) return;
+      if(_delFSet.has(cf.id)) return;
+      if(existingFolderIds.has(cf.id)) return;
+      folders.push(cf);
+      addedCount++;
+    });
+  }
+
+  // 5. Tambahkan polygonFolders BARU dari viewer
+  if(cloudData.polygonFolders && Array.isArray(cloudData.polygonFolders)){
+    var existingPolyFolderIds = new Set((polygonFolders||[]).map(function(pf){ return pf.id; }));
+    cloudData.polygonFolders.forEach(function(cpf){
+      if(!cpf || !cpf.id) return;
+      if(existingPolyFolderIds.has(cpf.id)) return;
+      polygonFolders.push(cpf);
+      addedCount++;
+    });
+  }
+
+  // 6. Tambahkan drawnLines BARU dari viewer
+  if(cloudData.drawnLines && Array.isArray(cloudData.drawnLines)){
+    var existingLineNames = new Set((drawnLines||[]).map(function(dl){ return dl.name; }));
+    cloudData.drawnLines.forEach(function(cdl){
+      if(!cdl || !cdl.name) return;
+      if(existingLineNames.has(cdl.name)) return;
+      var latlngs = cdl.latlngs.map(function(p){ return L.latLng(p.lat, p.lng); });
+      var line = L.polyline(latlngs, {color: cdl.color, weight: 3, opacity: 0.8}).addTo(map);
+      line.bindPopup('<div style="padding:8px;font-family:Inter,sans-serif;"><b style="font-size:13px">'+esc(cdl.name)+'</b><br><span style="font-size:10px;color:#666">Jalur: '+cdl.latlngs.length+' titik</span></div>');
+      drawnLines.push(Object.assign({}, cdl, {leafletLayer: line}));
+      addedCount++;
+    });
+  }
+
+  // 7. Naikkan markerIdCounter jika viewer punya counter lebih tinggi
+  if(cloudData.markerIdCounter && cloudData.markerIdCounter > (markerIdCounter || 0)){
+    markerIdCounter = cloudData.markerIdCounter;
+  }
+
+  // 8. Re-render UI kalau ada penambahan
+  if(addedCount > 0){
+    console.log('[Admin Selective Merge] Added ' + addedCount + ' new items from viewer');
+    renderMarkerList();
+    renderFolderList();
+    renderPolygonFolders();
+    updateFolderSelects();
+    // Juga simpan ke localStorage supaya tidak hilang
+    saveState();
+  }else{
+    console.log('[Admin Selective Merge] No new items to add');
+  }
+}
+
 // Start realtime subscription for current project
 async function startSyncListeners(){
   stopAllFirestoreListeners();
@@ -3720,11 +3863,12 @@ async function startSyncListeners(){
           lastSyncVersion = newData.version;
           if(newData.data){
             if(isAdminUser){
-              // Admin TIDAK PERNAH reload dari cloud via realtime.
-              // Admin adalah otoritas — local state admin adalah kebenaran.
-              // Reload dari cloud bisa mengembalikan data yang sudah dihapus admin.
-              console.log('[Realtime] Admin received v' + newData.version + ' by ' + (newData.updated_by || '?') + ' — ignored (admin is authority)');
-              return;
+              // Admin: selective additive merge.
+              // HANYA tambahkan item BARU dari viewer yang belum ada di local.
+              // JANGAN pernah hapus/timpa data admin yang sudah ada.
+              // JANGAN pernah kembalikan item yang sudah admin hapus (_deletedIds).
+              console.log('[Realtime] Admin received v' + newData.version + ' by ' + (newData.updated_by || '?') + ' — selective additive merge');
+              adminSelectiveAddMerge(newData.data);
             }else{
               // Viewer: terima perubahan dari admin, merge dengan data lokal
               var localBefore = serializeState();
