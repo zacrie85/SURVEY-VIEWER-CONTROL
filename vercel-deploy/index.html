@@ -3628,10 +3628,11 @@ async function deserializeState(data){
       });
     }
 
-    // Recreate markers
+    // Recreate markers (DEEP CLONE supaya tidak ada shared reference antar marker)
     data.markers.forEach(m => {
-      markers.set(m.id, m);
-      rebuildMarkerOnMap(m);
+      var cloned = JSON.parse(JSON.stringify(m));
+      markers.set(cloned.id, cloned);
+      rebuildMarkerOnMap(cloned);
     });
 
     // Rebuild polygon folder highlights
@@ -3674,16 +3675,14 @@ async function startSyncListeners(){
           console.log('[Realtime] Remote update v' + newData.version + ' > local v' + lastSyncVersion + ' by: ' + (newData.updated_by || '?'));
           lastSyncVersion = newData.version;
           if(newData.data){
-            // ===== KRITIS: Viewer HARUS MERGE, bukan REPLACE =====
-            // Admin kirim data yang TIDAK punya data viewer → jika REPLACE, data viewer HILANG
-            // Viewer TIDAK bisa hapus, jadi aman untuk selalu merge
+            // ===== KRITIS: KEDUA sisi (admin & viewer) HARUS MERGE =====
+            // Supaya comments, photo, dan edit lain dari kedua sisi tidak saling timpa
             var stateToLoad = newData.data;
-            if(!isAdminUser) {
-              var localBefore = serializeState();
-              console.log('[Realtime Viewer] Local markers before merge:', localBefore.markers ? localBefore.markers.length : 0, '| Incoming markers:', newData.data.markers ? newData.data.markers.length : 0);
-              stateToLoad = deepMergeState(newData.data, localBefore);
-              console.log('[Realtime Viewer] Merged markers:', stateToLoad.markers ? stateToLoad.markers.length : 0);
-            }
+            var localBefore = serializeState();
+            console.log('[Realtime ' + (isAdminUser ? 'Admin' : 'Viewer') + '] Local markers before merge:', localBefore.markers ? localBefore.markers.length : 0, '| Incoming markers:', newData.data.markers ? newData.data.markers.length : 0);
+            // Selalu merge supaya comments & perubahan lokal tidak hilang
+            stateToLoad = deepMergeState(newData.data, localBefore);
+            console.log('[Realtime ' + (isAdminUser ? 'Admin' : 'Viewer') + '] Merged markers:', stateToLoad.markers ? stateToLoad.markers.length : 0);
             deserializeState(stateToLoad);
             renderMarkerList();
             renderFolderList();
@@ -3714,38 +3713,93 @@ async function startSyncListeners(){
 // Strategi: ambil UNION dari semua array berdasarkan ID unik.
 // Jika ada konflik (ID sama), ambil yang lebih baru berdasarkan timestamp.
 function deepMergeState(cloudState, localState){
-  if(!cloudState || !cloudState.markers) return localState;
-  if(!localState || !localState.markers) return cloudState;
+  if(!cloudState || !cloudState.markers) return localState ? JSON.parse(JSON.stringify(localState)) : cloudState;
+  if(!localState || !localState.markers) return cloudState ? JSON.parse(JSON.stringify(cloudState)) : localState;
 
-  // Helper: merge array of items by unique ID
-  function mergeById(cloudArr, localArr, idKey, tsKey){
+  // Helper: deep-clone sederhana (tanpa function/leafletMarker)
+  function cloneObj(obj){
+    try { return JSON.parse(JSON.stringify(obj)); } catch(e){ return obj; }
+  }
+
+  // Helper: merge array of items by unique ID (dengan field-level merge untuk markers)
+  function mergeById(cloudArr, localArr, idKey, tsKey, fieldMerger){
     var map = {};
     var i;
-    // Masukkan cloud items dulu
+    // Masukkan cloud items dulu (deep clone supaya tidak ada shared reference)
     for(i=0; i<(cloudArr||[]).length; i++){
       var item = cloudArr[i];
-      if(item && item[idKey]) map[item[idKey]] = item;
+      if(item && item[idKey]) map[item[idKey]] = cloneObj(item);
     }
-    // Merge local items — jika ID sama, ambil yang lebih baru
+    // Merge local items
     for(i=0; i<(localArr||[]).length; i++){
       var item = localArr[i];
       if(!item || !item[idKey]) continue;
       var existing = map[item[idKey]];
       if(!existing){
-        map[item[idKey]] = item; // Baru, tambahkan
+        // Baru, tambahkan (deep clone)
+        map[item[idKey]] = cloneObj(item);
+      }else if(fieldMerger){
+        // Field-level merge (untuk markers)
+        map[item[idKey]] = fieldMerger(existing, item, tsKey);
       }else if(tsKey && item[tsKey] && existing[tsKey]){
-        // Ambil yang lebih baru
+        // Ambil yang lebih baru (default behavior)
         var itemTs = new Date(item[tsKey]).getTime() || 0;
         var existTs = new Date(existing[tsKey]).getTime() || 0;
-        if(itemTs > existTs) map[item[idKey]] = item;
+        if(itemTs > existTs) map[item[idKey]] = cloneObj(item);
       }
       // Jika tidak ada tsKey, keep cloud version (existing)
     }
     return Object.values(map);
   }
 
-  // Merge markers by ID (pakai timestamp sebagai tiebreaker)
-  var mergedMarkers = mergeById(cloudState.markers, localState.markers, 'id', 'timestamp');
+  // Field-level merger untuk markers: gabungkan comments, ambil field lain dari yang lebih baru
+  function mergeMarkerFields(cloudM, localM, tsKey){
+    var cloudTs = cloudM[tsKey] ? new Date(cloudM[tsKey]).getTime() || 0 : 0;
+    var localTs = localM[tsKey] ? new Date(localM[tsKey]).getTime() || 0 : 0;
+    var localIsNewer = localTs > cloudTs;
+    var winner = localIsNewer ? localM : cloudM;
+    var loser = localIsNewer ? cloudM : localM;
+
+    // Mulai dari winner (deep clone)
+    var merged = cloneObj(winner);
+
+    // UNION comments: gabungkan comments dari kedua versi, dedup by time
+    var cloudComments = (cloudM.comments && Array.isArray(cloudM.comments)) ? cloudM.comments : [];
+    var localComments = (localM.comments && Array.isArray(localM.comments)) ? localM.comments : [];
+    if(cloudComments.length > 0 || localComments.length > 0){
+      var commentMap = {};
+      cloudComments.forEach(function(c){
+        if(c && c.time) commentMap[c.time] = c;
+      });
+      localComments.forEach(function(c){
+        if(c && c.time) commentMap[c.time] = c; // local overwrites jika waktu sama
+      });
+      merged.comments = Object.values(commentMap);
+    }else{
+      merged.comments = [];
+    }
+
+    // Jika loser punya photo tapi winner tidak, ambil dari loser
+    if(!merged.photo && loser.photo){
+      merged.photo = loser.photo;
+    }
+    // Jika loser punya description tapi winner tidak, ambil dari loser
+    if(!merged.description && loser.description){
+      merged.description = loser.description;
+    }
+    // Jika loser punya extraFields tapi winner tidak, ambil dari loser
+    if((!merged.extraFields || Object.keys(merged.extraFields).length === 0) && loser.extraFields && Object.keys(loser.extraFields).length > 0){
+      merged.extraFields = loser.extraFields;
+    }
+    // Pakai timestamp yang paling baru
+    if(localTs > 0 && localTs > cloudTs) merged.timestamp = localM.timestamp;
+    else if(cloudTs > 0) merged.timestamp = cloudM.timestamp;
+
+    return merged;
+  }
+
+  // Merge markers by ID dengan field-level merge
+  var mergedMarkers = mergeById(cloudState.markers, localState.markers, 'id', 'timestamp', mergeMarkerFields);
   // Merge folders by ID
   var mergedFolders = mergeById(cloudState.folders, localState.folders, 'id', 'createdAt');
   // Merge polygonFolders by ID
@@ -3820,7 +3874,10 @@ async function saveStateToSupabase(){
     var finalState;
     if(_cloudRow && _cloudRow.data){
       finalState = deepMergeState(_cloudRow.data, localState);
-      console.log('['+_saveRole+' Save] Merged — markers:', finalState.markers.length, 'folders:', finalState.folders.length, 'layers:', (finalState.layers||[]).length);
+      // Log khusus: cek comments setelah merge
+      var _mergedCmtInfo = [];
+      finalState.markers.forEach(function(mk){ _mergedCmtInfo.push(mk.id+':'+(mk.comments?mk.comments.length:0)); });
+      console.log('['+_saveRole+' Save] Merged — markers:', finalState.markers.length, 'folders:', finalState.folders.length, 'layers:', (finalState.layers||[]).length, '| merged comments:', _mergedCmtInfo.join(','));
     }else{
       finalState = localState;
       console.log('['+_saveRole+' Save] No cloud data, using local only');
