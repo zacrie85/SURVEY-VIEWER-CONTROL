@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- CACHE BUSTER v15: admin never reloads from realtime + deserialize filters deleted IDs -->
+<!-- CACHE BUSTER v16: admin merge preserves viewer data, viewer realtime proper await -->
 <script>
 (function(){
   try{
@@ -3726,19 +3726,18 @@ async function startSyncListeners(){
               console.log('[Realtime] Admin received v' + newData.version + ' by ' + (newData.updated_by || '?') + ' — ignored (admin is authority)');
               return;
             }else{
-              // Viewer: merge supaya data viewer yang belum tersinkron tidak hilang
+              // Viewer: terima perubahan dari admin, merge dengan data lokal
               var localBefore = serializeState();
               var merged = deepMergeState(newData.data, localBefore);
-              deserializeState(merged);
-              renderMarkerList();
-              renderFolderList();
-              renderPolygonFolders();
-              renderLayers();
-              updateFolderSelects();
-              try{if(window._redrawCanvasLabels)window._redrawCanvasLabels();}catch(x){}
-              // Re-save merged state supaya data viewer ikut tersimpan
-              saveQueued = true;
-              saveStateToSupabase();
+              deserializeState(merged).then(function(){
+                renderMarkerList();
+                renderFolderList();
+                renderPolygonFolders();
+                renderLayers();
+                updateFolderSelects();
+                try{if(window._redrawCanvasLabels)window._redrawCanvasLabels();}catch(x){}
+                console.log('[Realtime] Viewer updated from cloud v' + newData.version);
+              });
             }
           }
         }
@@ -3870,16 +3869,25 @@ async function saveStateToSupabase(){
     var localState = serializeState();
     console.log('['+_saveRole+' Save] Local markers:', localState.markers.length, 'folders:', (localState.folders||[]).length);
 
-    // 3. Merge cloud + local supaya tidak ada data yang hilang
-    // Admin ADALAH otoritas — gunakan local state langsung (hapus = hapus)
-    // Viewer perlu merge supaya data yang ditambahkan viewer tidak hilang
+    // 3. Merge supaya data viewer yang ditambahkan tidak hilang saat admin save
+    // Admin: local state utama + ambil titik baru dari cloud (viewer-created)
+    // Viewer: merge supaya data admin + data viewer keduanya tersimpan
     var finalState;
     if(isAdminUser){
-      finalState = localState;
-      console.log('['+_saveRole+' Save] Admin mode — using local state directly (authority)');
+      if(_cloudRow && _cloudRow.data){
+        // Admin local sebagai "cloud" (utama), cloud sebagai "local" (tambahan viewer)
+        // deepMergeState(a,b): a dimasukkan dulu ke map, b ditambahkan jika belum ada
+        // Jadi: semua data admin masuk, titik viewer yang belum ada di admin juga masuk
+        // Titik yang dihapus admin (tidak ada di local) tidak ikut masuk dari cloud
+        finalState = deepMergeState(localState, _cloudRow.data);
+        console.log('['+_saveRole+' Save] Admin merge — markers:', finalState.markers.length);
+      }else{
+        finalState = localState;
+        console.log('['+_saveRole+' Save] Admin — no cloud, local only');
+      }
     }else if(_cloudRow && _cloudRow.data){
       finalState = deepMergeState(_cloudRow.data, localState);
-      console.log('['+_saveRole+' Save] Merged — markers:', finalState.markers.length, 'folders:', (finalState.folders||[]).length);
+      console.log('['+_saveRole+' Save] Viewer merge — markers:', finalState.markers.length);
     }else{
       finalState = localState;
       console.log('['+_saveRole+' Save] No cloud data, using local only');
