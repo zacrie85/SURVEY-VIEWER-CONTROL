@@ -1934,6 +1934,8 @@ function saveState(){
     if(!isAdminUser && window._gateViewerMode){
       return;
     }
+    // Sync comments dari _commentStore ke marker objek sebelum simpan
+    _syncCommentsToMarkers();
     const serializableMarkers=Array.from(markers.values()).map(m=>({
       id:m.id,lat:m.lat,lng:m.lng,name:m.name,description:m.description,
       color:m.color,userId:m.userId,timestamp:m.timestamp,folderId:m.folderId,
@@ -2014,9 +2016,12 @@ async function loadState(){
     // Restore markers (DEEP CLONE supaya tidak ada shared reference)
     // JANGAN pernah turunkan markerIdCounter
     markerIdCounter=Math.max(markerIdCounter||0, state.folderIdCounter||0, state.markerIdCounter||0);
+    _clearCommentStore();
     state.markers.forEach(m=>{
+      if(!m.comments || !Array.isArray(m.comments)) m.comments = [];
       markers.set(m.id, JSON.parse(JSON.stringify(m)));
     });
+    _initCommentStore();
     // Re-create leaflet markers
     markers.forEach((m,id)=>{
       const color=sanitizeColor(m.color||'#22c55e');
@@ -2455,6 +2460,41 @@ let currentProjectId = null;
 let firestoreListeners = [];
 let syncInProgress = false;
 let saveQueued = false; // Jika true, save ulang setelah save saat ini selesai
+
+// ==================== ISOLATED COMMENT STORE ====================
+// Comments disimpan terpisah dari objek marker untuk mencegah cross-contamination.
+// Setiap marker ID punya array komentar yang 100% independen.
+var _commentStore = {}; // { markerId: [comment, ...] }
+
+function _initCommentStore(){
+  // Dipanggil setelah deserializeState/loadState untuk mengisi _commentStore dari markers
+  markers.forEach(function(m, id){
+    if(m.comments && Array.isArray(m.comments) && m.comments.length > 0){
+      _commentStore[id] = JSON.parse(JSON.stringify(m.comments));
+    }
+  });
+}
+
+function _getComments(markerId){
+  if(!_commentStore[markerId]) _commentStore[markerId] = [];
+  return _commentStore[markerId];
+}
+
+function _setComments(markerId, arr){
+  _commentStore[markerId] = arr;
+}
+
+function _syncCommentsToMarkers(){
+  // Dipanggil sebelum serializeState/saveStateToSupabase
+  // Menyalin komentar dari _commentStore ke objek marker untuk diserialisasi
+  markers.forEach(function(m, id){
+    m.comments = _commentStore[id] ? JSON.parse(JSON.stringify(_commentStore[id])) : [];
+  });
+}
+
+function _clearCommentStore(){
+  _commentStore = {};
+}
 
 let realtimeSubscription = null;
 let lastSyncVersion = 0;
@@ -3513,6 +3553,8 @@ function stopAllFirestoreListeners(){
 
 // Serialize current local state to a JSON-serializable object
 function serializeState(){
+  // PASTIKAN comments di marker = data terbaru dari _commentStore
+  _syncCommentsToMarkers();
   return {
     markers: Array.from(markers.values()).map(m => {
       const {leafletMarker, ...rest} = m;
@@ -3632,10 +3674,15 @@ async function deserializeState(data){
     }
 
     // Recreate markers
+    _clearCommentStore();
     data.markers.forEach(m => {
+      // Pastikan setiap marker punya comments array sendiri
+      if(!m.comments || !Array.isArray(m.comments)) m.comments = [];
       markers.set(m.id, m);
       rebuildMarkerOnMap(m);
     });
+    // Isi _commentStore dari data yang baru di-load
+    _initCommentStore();
 
     // Rebuild polygon folder highlights
     polyFolderHighlights.clear();
@@ -3678,15 +3725,16 @@ async function startSyncListeners(){
           lastSyncVersion = newData.version;
           if(newData.data){
             if(isAdminUser){
-              // Admin: langsung load dari cloud (admin adalah source of truth)
-              deserializeState(newData.data);
-              renderMarkerList();
-              renderFolderList();
-              renderPolygonFolders();
-              renderLayers();
-              updateFolderSelects();
-              try{if(window._redrawCanvasLabels)window._redrawCanvasLabels();}catch(x){}
-              showToast('Data diperbarui dari cloud','success');
+              // Admin: re-fetch dari Supabase untuk memastikan data lengkap
+              loadStateFromSupabase().then(function(){
+                renderMarkerList();
+                renderFolderList();
+                renderPolygonFolders();
+                renderLayers();
+                updateFolderSelects();
+                try{if(window._redrawCanvasLabels)window._redrawCanvasLabels();}catch(x){}
+                showToast('Data diperbarui dari cloud','success');
+              });
             }else{
               // Viewer: merge supaya data viewer yang belum tersinkron tidak hilang
               var localBefore = serializeState();
@@ -5643,12 +5691,13 @@ function buildMarkerPopupHtml(m) {
     });
   }
 
-  // Comments preview — langsung tampil di popup supaya tidak perlu buka edit modal
-  if (m.comments && m.comments.length > 0) {
+  // Comments preview — baca dari _commentStore
+  var _popupComments = m.id ? _getComments(m.id) : [];
+  if (_popupComments.length > 0) {
     const bg = rowIdx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.04)';
     h += '<div style="padding:6px 12px;background:' + bg + ';">';
-    h += '<div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Komentar (' + m.comments.length + ')</div>';
-    m.comments.slice().reverse().forEach(function(c){
+    h += '<div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Komentar (' + _popupComments.length + ')</div>';
+    _popupComments.slice().reverse().forEach(function(c){
       h += '<div style="font-size:11px;color:rgba(255,255,255,.8);padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);line-height:1.4;">';
       h += '<span style="color:rgba(255,255,255,.5);font-size:9px;">' + esc(c.user || 'User') + '</span> ';
       h += esc(c.text);
@@ -5665,7 +5714,7 @@ function buildMarkerPopupHtml(m) {
   h += '<div style="font-size:9px;color:rgba(255,255,255,.4);">' + esc(m.userId) + '</div>';
   h += '<div style="display:flex;gap:4px;">';
   h += '<button onclick="showQrCode(\'' + m.id + '\')" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 10px;font-size:10px;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:4px;transition:all .15s;" onmouseenter="this.style.background=\'rgba(255,255,255,.2)\'" onmouseleave="this.style.background=\'rgba(255,255,255,.1)\'" title="QR Code"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>QR</button>';
-  var cmtCount = (m.comments && m.comments.length) || 0;
+  var cmtCount = (m.id ? _getComments(m.id) : []).length;
   h += '<button onclick="window.__editMarker(\'' + m.id + '\')" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 12px;font-size:10px;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:4px;transition:all .15s;" onmouseenter="this.style.background=\'rgba(255,255,255,.2)\'" onmouseleave="this.style.background=\'rgba(255,255,255,.1)\'" onmousedown="this.style.opacity=.8" onmouseup="this.style.opacity=1">';
   h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit' + (cmtCount > 0 ? ' <span style="background:#f59e0b;color:#000;border-radius:99px;padding:0 5px;font-size:8px;">' + cmtCount + '</span>' : '') + '</button>';
   h += '</div>';
@@ -5685,7 +5734,7 @@ function getFilteredMarkers(){
   if(q){arr=arr.filter(function(m){return (m.name||'').toLowerCase().includes(q)||(m.description||'').toLowerCase().includes(q)||(m.lat+', '+m.lng).includes(q);});}
   if(currentMarkerFilter==='photo') arr=arr.filter(function(m){return !!m.photo;});
   else if(currentMarkerFilter==='nophoto') arr=arr.filter(function(m){return !m.photo;});
-  else if(currentMarkerFilter==='comment') arr=arr.filter(function(m){return m.comments&&m.comments.length>0;});
+  else if(currentMarkerFilter==='comment') arr=arr.filter(function(m){return m.id && _getComments(m.id).length>0;});
   return arr;
 }
 function setMarkerFilter(f,el){
@@ -7121,7 +7170,7 @@ function renderDataTable(searchQ){
       if(s.col==='no'){return 0;}
       else if(s.col==='folder'){var fa=folders.find(function(f){return f.id===a.folderId;});var fb=folders.find(function(f){return f.id===b.folderId;});va=(fa?fa.name:'-').toLowerCase();vb=(fb?fb.name:'-').toLowerCase();}
       else if(s.col==='photo'){va=a.photo?1:0;vb=b.photo?1:0;}
-      else if(s.col==='comments'){va=(a.comments||[]).length;vb=(b.comments||[]).length;}
+      else if(s.col==='comments'){va=(a.id?_getComments(a.id):[]).length;vb=(b.id?_getComments(b.id):[]).length;}
       else if(s.col==='timestamp'){va=a.timestamp||'';vb=b.timestamp||'';}
       else{va=String(a[s.col]||'').toLowerCase();vb=String(b[s.col]||'').toLowerCase();}
       if(va<vb)return s.asc?-1:1;if(va>vb)return s.asc?1:-1;return 0;
@@ -7145,7 +7194,8 @@ function renderDataTable(searchQ){
     h+='<td title="'+esc(m.description||'')+'">'+esc((m.description||'').substring(0,40))+'</td>';
     h+='<td>'+(folder?esc(folder.name):'<span style="color:#ccc">-</span>')+'</td>';
     h+='<td>'+(m.photo?'&#x1F4F7;':'-')+'</td>';
-    h+='<td>'+(m.comments&&m.comments.length?'&#x1F4AC; '+m.comments.length:'-')+'</td>';
+    var _mc = m.id ? _getComments(m.id).length : 0;
+    h+='<td>'+(_mc?'&#x1F4AC; '+_mc:'-')+'</td>';
     h+='<td style="font-size:9px;color:#999">'+(m.timestamp?new Date(m.timestamp).toLocaleDateString('id-ID'):'-')+'</td>';
     h+='</tr>';
   });
@@ -7164,7 +7214,8 @@ function exportDataTableToExcel(){
   var ws_data=[['No','Nama','Latitude','Longitude','Deskripsi','Folder','Punya Foto','Jumlah Komentar','Tanggal']];
   dataTableData.forEach(function(m,i){
     var folder=folders.find(function(f){return f.id===m.folderId;});
-    ws_data.push([i+1,m.name,m.lat.toFixed(6),m.lng.toFixed(6),m.description||'',folder?folder.name:'',m.photo?'Ya':'Tidak',(m.comments||[]).length,m.timestamp?new Date(m.timestamp).toLocaleString('id-ID'):'']);
+    var _ec = m.id ? _getComments(m.id).length : 0;
+    ws_data.push([i+1,m.name,m.lat.toFixed(6),m.lng.toFixed(6),m.description||'',folder?folder.name:'',m.photo?'Ya':'Tidak',_ec,m.timestamp?new Date(m.timestamp).toLocaleString('id-ID'):'']);
   });
   var wb=XLSX.utils.book_new();
   var ws=XLSX.utils.aoa_to_sheet(ws_data);
@@ -7238,7 +7289,8 @@ function updateGpsTrackInfo(){
 function renderEditComments(m){
   var list=document.getElementById('edit-comments-list');
   var countEl=document.getElementById('edit-comment-count');
-  var comments=m.comments||[];
+  // BACA dari _commentStore, bukan dari m.comments langsung
+  var comments = m.id ? _getComments(m.id) : [];
   countEl.textContent=comments.length;
   if(comments.length===0){list.innerHTML='<p class="text-[10px] text-gray-400 text-center py-2">Belum ada komentar</p>';return;}
   var h='';
@@ -7263,19 +7315,19 @@ function addCommentToMarker(){
   if(!text) return;
   var m=markers.get(editingMarkerId);
   if(!m) return;
-  // BULLETPROOF: selalu buat array BARU supaya tidak ada shared reference
-  var existing = Array.isArray(m.comments) ? m.comments.map(function(c){return {...c};}) : [];
+  // Gunakan _commentStore — 100% terisolasi per marker ID
+  var store = _getComments(editingMarkerId);
   var newComment = {
     _cid: 'c' + Date.now() + '-' + Math.random().toString(36).substr(2,6),
     text: text,
     user: currentUser ? currentUser.displayName || currentUser.email : 'User',
     time: new Date().toISOString()
   };
-  existing.push(newComment);
-  m.comments = existing; // assign NEW array, bukan push ke array lama
+  store.push(newComment);
+  _setComments(editingMarkerId, store);
   m.timestamp = new Date().toISOString();
   input.value='';
-  console.log('[Comment] Added to', editingMarkerId, '| total:', m.comments.length, '| _cid:', newComment._cid);
+  console.log('[Comment] Added to', editingMarkerId, '| total:', store.length, '| _cid:', newComment._cid);
   renderEditComments(m);
   if(m.leafletMarker) m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
   debouncedSave();
@@ -7284,10 +7336,12 @@ function deleteComment(idx){
   if(!isAdminUser){showToast('Viewer tidak bisa menghapus komentar','error');return;}
   if(!editingMarkerId) return;
   var m=markers.get(editingMarkerId);
-  if(!m||!m.comments) return;
-  // BULLETPROOF: buat array BARU setelah hapus
-  var newArr = m.comments.filter(function(c,i){return i !== idx;});
-  m.comments = newArr;
+  if(!m) return;
+  // Gunakan _commentStore
+  var store = _getComments(editingMarkerId);
+  if(idx < 0 || idx >= store.length) return;
+  store.splice(idx,1);
+  _setComments(editingMarkerId, store);
   renderEditComments(m);
   if(m.leafletMarker) m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
   debouncedSave();
