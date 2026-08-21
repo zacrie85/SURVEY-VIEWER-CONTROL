@@ -5887,6 +5887,8 @@ function saveMarkerEdit(){
   if(editingPhotoData !== null){
     m.photo = editingPhotoData || null;
   }
+  // WAJIB update timestamp supaya deepMergeState tahu edit ini lebih baru
+  m.timestamp = new Date().toISOString();
   // Comments are already saved in-place via addCommentToMarker/deleteComment
   if(m.leafletMarker)m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
   closeEditModal();renderMarkerList();renderFolderList();debouncedSave();
@@ -7238,8 +7240,11 @@ function addCommentToMarker(){
   if(!m) return;
   if(!m.comments) m.comments=[];
   m.comments.push({text:text,user:currentUser?currentUser.displayName||currentUser.email:'User',time:new Date().toISOString()});
+  // Update timestamp supaya merge tahu marker ini sudah diubah
+  m.timestamp = new Date().toISOString();
   input.value='';
   renderEditComments(m);
+  if(m.leafletMarker) m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
   debouncedSave();
 }
 function deleteComment(idx){
@@ -7258,7 +7263,8 @@ function batchMoveToFolder(){
   if(selectedMarkerIds.size===0){showToast('Pilih titik dulu','error');return;}
   var folderId=document.getElementById('batch-folder-select').value;
   if(!folderId){showToast('Pilih folder tujuan','error');return;}
-  selectedMarkerIds.forEach(function(id){var m=markers.get(id);if(m){m.folderId=folderId;}});
+  var now=new Date().toISOString();
+  selectedMarkerIds.forEach(function(id){var m=markers.get(id);if(m){m.folderId=folderId;m.timestamp=now;}});
   renderMarkerList();renderFolderList();debouncedSave();
   showToast(selectedMarkerIds.size+' titik dipindahkan','success');
 }
@@ -7267,9 +7273,10 @@ function batchChangeColor(){
   var color=prompt('Masukkan warna hex (misal: #ef4444):','#ef4444');
   if(!color) return;
   color=sanitizeColor(color);
+  var now=new Date().toISOString();
   selectedMarkerIds.forEach(function(id){
     var m=markers.get(id);if(!m) return;
-    m.color=color;
+    m.color=color;m.timestamp=now;
     if(m.leafletMarker){
       var icon=L.divIcon({html:'<div style="width:28px;height:28px;background:'+color+';border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>',className:'',iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-28]});
       m.leafletMarker.setIcon(icon);
