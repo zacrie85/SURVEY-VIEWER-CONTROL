@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- CACHE BUSTER v12: selalu bersihkan cache & SW untuk viewer mode -->
+<!-- CACHE BUSTER v13: komentar sekarang field tunggal m.comment -->
 <script>
 (function(){
   try{
@@ -1594,7 +1594,7 @@ window.addEventListener('unhandledrejection',function(ev){
 </div>
 
 <!-- Edit Modal (unchanged) -->
-<div id="edit-modal" class="fixed inset-0 z-[10000] hidden"><div class="absolute inset-0 bg-black/40" onclick="closeEditModal()"></div><div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[360px] max-w-[90vw] max-h-[90vh] overflow-y-auto"><div class="bg-indigo-600 px-5 py-3 flex items-center justify-between sticky top-0 z-10"><span class="text-white font-semibold text-sm">Edit Titik</span><button onclick="closeEditModal()" class="close-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg></button></div><div class="p-5 space-y-3"><div><label class="text-[11px] font-medium text-gray-500 uppercase">Nama</label><input type="text" id="edit-name" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" /></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Deskripsi</label><textarea id="edit-desc" rows="2" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea></div><div class="grid grid-cols-2 gap-3"><div><label class="text-[11px] font-medium text-gray-500 uppercase">Latitude</label><input type="text" id="edit-lat" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" /></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Longitude</label><input type="text" id="edit-lng" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" /></div></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Folder</label><select id="edit-folder" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"><option value="">Tanpa Folder</option></select></div><div><label class="text-[11px] font-medium text-gray-500 uppercase flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Foto Titik</label><div id="edit-photo-area" class="mt-1.5 space-y-2"><div id="edit-photo-preview" class="hidden"><div class="relative inline-block"><img id="edit-photo-img" class="w-full max-h-40 object-cover rounded-lg border border-gray-200 cursor-pointer" onclick="viewMarkerPhoto()" /><button type="button" onclick="removeMarkerPhoto()" class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md">x</button><div id="edit-photo-size" class="text-[9px] text-gray-400 mt-1 text-center"></div></div></div><div class="flex gap-2"><label class="flex-1 flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all text-xs text-gray-500 font-medium"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4 4m0 0l-4-4m4 4V4"/></svg>Pilih Foto<input type="file" accept="image/*" class="hidden" onchange="handleMarkerPhotoSelect(event)" /></label><label class="flex-1 flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 transition-all text-xs text-gray-500 font-medium"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Kamera<input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleMarkerPhotoSelect(event)" /></label></div><div id="edit-photo-loading" class="hidden text-center py-2"><div class="inline-block w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div><span class="text-[10px] text-gray-400 ml-2">Mengompres foto...</span></div></div></div><!-- Comment Section --><div><label class="text-[11px] font-medium text-gray-500 uppercase flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>Komentar (<span id="edit-comment-count">0</span>)</label><div id="edit-comments-list" class="mt-1.5 max-h-40 overflow-y-auto space-y-0 border border-gray-100 rounded-lg p-2 bg-gray-50"></div><div class="flex gap-1.5 mt-1.5"><input type="text" id="edit-comment-input" placeholder="Tulis komentar..." class="flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300" onkeydown="if(event.key==='Enter')addCommentToMarker()" /><button onclick="addCommentToMarker()" class="px-3 py-1.5 bg-indigo-500 text-white text-xs font-semibold rounded-lg hover:bg-indigo-600">Kirim</button></div></div><div class="flex gap-2 pt-2"><button onclick="saveMarkerEdit()" class="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Simpan</button><button onclick="deleteEditingMarker()" class="px-4 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600">Hapus</button></div></div></div></div>
+<div id="edit-modal" class="fixed inset-0 z-[10000] hidden"><div class="absolute inset-0 bg-black/40" onclick="closeEditModal()"></div><div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[360px] max-w-[90vw] max-h-[90vh] overflow-y-auto"><div class="bg-indigo-600 px-5 py-3 flex items-center justify-between sticky top-0 z-10"><span class="text-white font-semibold text-sm">Edit Titik</span><button onclick="closeEditModal()" class="close-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg></button></div><div class="p-5 space-y-3"><div><label class="text-[11px] font-medium text-gray-500 uppercase">Nama</label><input type="text" id="edit-name" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" /></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Deskripsi</label><textarea id="edit-desc" rows="2" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea></div><div class="grid grid-cols-2 gap-3"><div><label class="text-[11px] font-medium text-gray-500 uppercase">Latitude</label><input type="text" id="edit-lat" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" /></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Longitude</label><input type="text" id="edit-lng" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" /></div></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Folder</label><select id="edit-folder" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"><option value="">Tanpa Folder</option></select></div><div><label class="text-[11px] font-medium text-gray-500 uppercase flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Foto Titik</label><div id="edit-photo-area" class="mt-1.5 space-y-2"><div id="edit-photo-preview" class="hidden"><div class="relative inline-block"><img id="edit-photo-img" class="w-full max-h-40 object-cover rounded-lg border border-gray-200 cursor-pointer" onclick="viewMarkerPhoto()" /><button type="button" onclick="removeMarkerPhoto()" class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md">x</button><div id="edit-photo-size" class="text-[9px] text-gray-400 mt-1 text-center"></div></div></div><div class="flex gap-2"><label class="flex-1 flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all text-xs text-gray-500 font-medium"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4 4m0 0l-4-4m4 4V4"/></svg>Pilih Foto<input type="file" accept="image/*" class="hidden" onchange="handleMarkerPhotoSelect(event)" /></label><label class="flex-1 flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 transition-all text-xs text-gray-500 font-medium"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Kamera<input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleMarkerPhotoSelect(event)" /></label></div><div id="edit-photo-loading" class="hidden text-center py-2"><div class="inline-block w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div><span class="text-[10px] text-gray-400 ml-2">Mengompres foto...</span></div></div></div><!-- Comment Section — simple text field like description --><div><label class="text-[11px] font-medium text-gray-500 uppercase flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>Komentar</label><textarea id="edit-comment" rows="2" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none" placeholder="Tulis komentar..."></textarea></div><div class="flex gap-2 pt-2"><button onclick="saveMarkerEdit()" class="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Simpan</button><button onclick="deleteEditingMarker()" class="px-4 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600">Hapus</button></div></div></div></div>
 
 <!-- Photo Viewer Modal -->
 <div id="photo-viewer-modal" class="fixed inset-0 z-[10001] hidden" onclick="closePhotoViewer()"><div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div><div class="absolute inset-0 flex items-center justify-center p-4"><img id="photo-viewer-img" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl" onclick="event.stopPropagation()" /></div><div class="absolute top-4 right-4"><button onclick="closePhotoViewer()" class="w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></div></div>
@@ -1934,12 +1934,10 @@ function saveState(){
     if(!isAdminUser && window._gateViewerMode){
       return;
     }
-    // Sync comments dari _commentStore ke marker objek sebelum simpan
-    _syncCommentsToMarkers();
     const serializableMarkers=Array.from(markers.values()).map(m=>({
       id:m.id,lat:m.lat,lng:m.lng,name:m.name,description:m.description,
       color:m.color,userId:m.userId,timestamp:m.timestamp,folderId:m.folderId,
-      photo:m.photo||null,comments:m.comments||[]
+      photo:m.photo||null,comment:m.comment||''
     }));
     const sl=layers.map(l=>({
       name:l.name,color:l.color,visible:l.visible,layerNames:l.layerNames,
@@ -2016,12 +2014,9 @@ async function loadState(){
     // Restore markers (DEEP CLONE supaya tidak ada shared reference)
     // JANGAN pernah turunkan markerIdCounter
     markerIdCounter=Math.max(markerIdCounter||0, state.folderIdCounter||0, state.markerIdCounter||0);
-    _clearCommentStore();
     state.markers.forEach(m=>{
-      if(!m.comments || !Array.isArray(m.comments)) m.comments = [];
       markers.set(m.id, JSON.parse(JSON.stringify(m)));
     });
-    _initCommentStore();
     // Re-create leaflet markers
     markers.forEach((m,id)=>{
       const color=sanitizeColor(m.color||'#22c55e');
@@ -2462,39 +2457,7 @@ let syncInProgress = false;
 let saveQueued = false; // Jika true, save ulang setelah save saat ini selesai
 
 // ==================== ISOLATED COMMENT STORE ====================
-// Comments disimpan terpisah dari objek marker untuk mencegah cross-contamination.
-// Setiap marker ID punya array komentar yang 100% independen.
-var _commentStore = {}; // { markerId: [comment, ...] }
 
-function _initCommentStore(){
-  // Dipanggil setelah deserializeState/loadState untuk mengisi _commentStore dari markers
-  markers.forEach(function(m, id){
-    if(m.comments && Array.isArray(m.comments) && m.comments.length > 0){
-      _commentStore[id] = JSON.parse(JSON.stringify(m.comments));
-    }
-  });
-}
-
-function _getComments(markerId){
-  if(!_commentStore[markerId]) _commentStore[markerId] = [];
-  return _commentStore[markerId];
-}
-
-function _setComments(markerId, arr){
-  _commentStore[markerId] = arr;
-}
-
-function _syncCommentsToMarkers(){
-  // Dipanggil sebelum serializeState/saveStateToSupabase
-  // Menyalin komentar dari _commentStore ke objek marker untuk diserialisasi
-  markers.forEach(function(m, id){
-    m.comments = _commentStore[id] ? JSON.parse(JSON.stringify(_commentStore[id])) : [];
-  });
-}
-
-function _clearCommentStore(){
-  _commentStore = {};
-}
 
 let realtimeSubscription = null;
 let lastSyncVersion = 0;
@@ -3553,8 +3516,6 @@ function stopAllFirestoreListeners(){
 
 // Serialize current local state to a JSON-serializable object
 function serializeState(){
-  // PASTIKAN comments di marker = data terbaru dari _commentStore
-  _syncCommentsToMarkers();
   return {
     markers: Array.from(markers.values()).map(m => {
       const {leafletMarker, ...rest} = m;
@@ -3674,15 +3635,10 @@ async function deserializeState(data){
     }
 
     // Recreate markers
-    _clearCommentStore();
     data.markers.forEach(m => {
-      // Pastikan setiap marker punya comments array sendiri
-      if(!m.comments || !Array.isArray(m.comments)) m.comments = [];
       markers.set(m.id, m);
       rebuildMarkerOnMap(m);
     });
-    // Isi _commentStore dari data yang baru di-load
-    _initCommentStore();
 
     // Rebuild polygon folder highlights
     polyFolderHighlights.clear();
@@ -3762,7 +3718,7 @@ async function startSyncListeners(){
 
 // ==================== MERGE STATE ====================
 // Merge dua state (cloud + local) tanpa kehilangan data.
-// Strategi: UNION semua item berdasarkan ID. Jika ID sama, UNION comments, ambil field lain dari yang lebih baru.
+// Strategi: UNION semua item berdasarkan ID. Jika ID sama, ambil field dari yang lebih baru.
 function deepMergeState(cloudState, localState){
   if(!cloudState || !cloudState.markers) return localState;
   if(!localState || !localState.markers) return cloudState;
@@ -3783,24 +3739,16 @@ function deepMergeState(cloudState, localState){
     if(!existing){
       markerMap[item.id] = cloneObj(item);
     }else{
-      // ID sama — merge comments, ambil field lain dari yang lebih baru
+      // ID sama — ambil field lain dari yang lebih baru
       var eTs = existing.timestamp ? new Date(existing.timestamp).getTime() : 0;
       var iTs = item.timestamp ? new Date(item.timestamp).getTime() : 0;
       var winner = iTs > eTs ? item : existing;
       var loser = iTs > eTs ? existing : item;
       var merged = cloneObj(winner);
-      // UNION comments: gabungkan dari kedua sisi, dedup by _cid atau time
-      var commentMap = {};
-      (existing.comments||[]).forEach(function(c){
-        if(c){ var k=c._cid||c.time||''; if(k) commentMap[k]=c; }
-      });
-      (item.comments||[]).forEach(function(c){
-        if(c){ var k=c._cid||c.time||''; if(k) commentMap[k]=c; }
-      });
-      merged.comments = Object.values(commentMap);
-      // Fallback: ambil photo/description dari loser jika winner tidak punya
+      // Fallback: ambil photo/description/comment dari loser jika winner tidak punya
       if(!merged.photo && loser.photo) merged.photo = loser.photo;
       if(!merged.description && loser.description) merged.description = loser.description;
+      if(!merged.comment && loser.comment) merged.comment = loser.comment;
       markerMap[item.id] = merged;
     }
   }
@@ -4214,8 +4162,8 @@ window.__editMarker=(id)=>{
     if(previewEl) previewEl.classList.add('hidden');
     if(sizeEl) sizeEl.textContent = '';
   }
-  // Load comments
-  renderEditComments(m);
+  // Load comment field (simple text, like description)
+  document.getElementById('edit-comment').value = m.comment || '';
   // Sembunyikan tombol Hapus untuk viewer
   var editBtns = document.querySelectorAll('#edit-modal button');
   editBtns.forEach(function(b){if(b.getAttribute('onclick')==='deleteEditingMarker()') b.style.display = isAdminUser ? '' : 'none';});
@@ -5611,7 +5559,7 @@ function addMarker(lat,lng,type,customName){
   const id='marker-' + (++markerIdCounter);
   const name=customName||('Titik '+markerIdCounter);
   const color=sanitizeColor(MARKER_COLORS[type]||'#22c55e');
-  const m={id,lat,lng,name,description:'',color,userId:'User',timestamp:new Date().toISOString(),folderId:activeFolderId||undefined,comments:[]};
+  const m={id,lat,lng,name,description:'',color,userId:'User',timestamp:new Date().toISOString(),folderId:activeFolderId||undefined,comment:''};
   markers.set(id,m);
 
   const icon=L.divIcon({
@@ -5691,18 +5639,12 @@ function buildMarkerPopupHtml(m) {
     });
   }
 
-  // Comments preview — baca dari _commentStore
-  var _popupComments = m.id ? _getComments(m.id) : [];
-  if (_popupComments.length > 0) {
+  // Komentar preview — field tunggal seperti deskripsi
+  if (m.comment) {
     const bg = rowIdx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.04)';
     h += '<div style="padding:6px 12px;background:' + bg + ';">';
-    h += '<div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Komentar (' + _popupComments.length + ')</div>';
-    _popupComments.slice().reverse().forEach(function(c){
-      h += '<div style="font-size:11px;color:rgba(255,255,255,.8);padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);line-height:1.4;">';
-      h += '<span style="color:rgba(255,255,255,.5);font-size:9px;">' + esc(c.user || 'User') + '</span> ';
-      h += esc(c.text);
-      h += '</div>';
-    });
+    h += '<div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Komentar</div>';
+    h += '<div style="font-size:11px;color:rgba(255,255,255,.8);line-height:1.4;white-space:pre-wrap;">' + esc(m.comment) + '</div>';
     h += '</div>';
     rowIdx++;
   }
@@ -5714,7 +5656,6 @@ function buildMarkerPopupHtml(m) {
   h += '<div style="font-size:9px;color:rgba(255,255,255,.4);">' + esc(m.userId) + '</div>';
   h += '<div style="display:flex;gap:4px;">';
   h += '<button onclick="showQrCode(\'' + m.id + '\')" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 10px;font-size:10px;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:4px;transition:all .15s;" onmouseenter="this.style.background=\'rgba(255,255,255,.2)\'" onmouseleave="this.style.background=\'rgba(255,255,255,.1)\'" title="QR Code"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>QR</button>';
-  var cmtCount = (m.id ? _getComments(m.id) : []).length;
   h += '<button onclick="window.__editMarker(\'' + m.id + '\')" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 12px;font-size:10px;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:4px;transition:all .15s;" onmouseenter="this.style.background=\'rgba(255,255,255,.2)\'" onmouseleave="this.style.background=\'rgba(255,255,255,.1)\'" onmousedown="this.style.opacity=.8" onmouseup="this.style.opacity=1">';
   h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit' + (cmtCount > 0 ? ' <span style="background:#f59e0b;color:#000;border-radius:99px;padding:0 5px;font-size:8px;">' + cmtCount + '</span>' : '') + '</button>';
   h += '</div>';
@@ -5734,7 +5675,7 @@ function getFilteredMarkers(){
   if(q){arr=arr.filter(function(m){return (m.name||'').toLowerCase().includes(q)||(m.description||'').toLowerCase().includes(q)||(m.lat+', '+m.lng).includes(q);});}
   if(currentMarkerFilter==='photo') arr=arr.filter(function(m){return !!m.photo;});
   else if(currentMarkerFilter==='nophoto') arr=arr.filter(function(m){return !m.photo;});
-  else if(currentMarkerFilter==='comment') arr=arr.filter(function(m){return m.id && _getComments(m.id).length>0;});
+  else if(currentMarkerFilter==='comment') arr=arr.filter(function(m){return !!m.comment;});
   return arr;
 }
 function setMarkerFilter(f,el){
@@ -5963,7 +5904,8 @@ function saveMarkerEdit(){
   }
   // WAJIB update timestamp supaya deepMergeState tahu edit ini lebih baru
   m.timestamp = new Date().toISOString();
-  // Comments are already saved in-place via addCommentToMarker/deleteComment
+  // Save comment field (simple text, like description)
+  m.comment = document.getElementById('edit-comment').value;
   if(m.leafletMarker)m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
   closeEditModal();renderMarkerList();renderFolderList();debouncedSave();
 }
@@ -7170,7 +7112,7 @@ function renderDataTable(searchQ){
       if(s.col==='no'){return 0;}
       else if(s.col==='folder'){var fa=folders.find(function(f){return f.id===a.folderId;});var fb=folders.find(function(f){return f.id===b.folderId;});va=(fa?fa.name:'-').toLowerCase();vb=(fb?fb.name:'-').toLowerCase();}
       else if(s.col==='photo'){va=a.photo?1:0;vb=b.photo?1:0;}
-      else if(s.col==='comments'){va=(a.id?_getComments(a.id):[]).length;vb=(b.id?_getComments(b.id):[]).length;}
+      else if(s.col==='comments'){va=a.comment||'';vb=b.comment||'';}
       else if(s.col==='timestamp'){va=a.timestamp||'';vb=b.timestamp||'';}
       else{va=String(a[s.col]||'').toLowerCase();vb=String(b[s.col]||'').toLowerCase();}
       if(va<vb)return s.asc?-1:1;if(va>vb)return s.asc?1:-1;return 0;
@@ -7194,8 +7136,7 @@ function renderDataTable(searchQ){
     h+='<td title="'+esc(m.description||'')+'">'+esc((m.description||'').substring(0,40))+'</td>';
     h+='<td>'+(folder?esc(folder.name):'<span style="color:#ccc">-</span>')+'</td>';
     h+='<td>'+(m.photo?'&#x1F4F7;':'-')+'</td>';
-    var _mc = m.id ? _getComments(m.id).length : 0;
-    h+='<td>'+(_mc?'&#x1F4AC; '+_mc:'-')+'</td>';
+    h+='<td>'+(m.comment?'&#x1F4AC;':'-')+'</td>';
     h+='<td style="font-size:9px;color:#999">'+(m.timestamp?new Date(m.timestamp).toLocaleDateString('id-ID'):'-')+'</td>';
     h+='</tr>';
   });
@@ -7211,11 +7152,10 @@ function sortDataTable(col){
 function filterDataTable(q){renderDataTable(q);}
 function exportDataTableToExcel(){
   if(dataTableData.length===0){showToast('Tidak ada data','error');return;}
-  var ws_data=[['No','Nama','Latitude','Longitude','Deskripsi','Folder','Punya Foto','Jumlah Komentar','Tanggal']];
+  var ws_data=[['No','Nama','Latitude','Longitude','Deskripsi','Folder','Punya Foto','Komentar','Tanggal']];
   dataTableData.forEach(function(m,i){
     var folder=folders.find(function(f){return f.id===m.folderId;});
-    var _ec = m.id ? _getComments(m.id).length : 0;
-    ws_data.push([i+1,m.name,m.lat.toFixed(6),m.lng.toFixed(6),m.description||'',folder?folder.name:'',m.photo?'Ya':'Tidak',_ec,m.timestamp?new Date(m.timestamp).toLocaleString('id-ID'):'']);
+    ws_data.push([i+1,m.name,m.lat.toFixed(6),m.lng.toFixed(6),m.description||'',folder?folder.name:'',m.photo?'Ya':'Tidak',m.comment||'-',m.timestamp?new Date(m.timestamp).toLocaleString('id-ID'):'']);
   });
   var wb=XLSX.utils.book_new();
   var ws=XLSX.utils.aoa_to_sheet(ws_data);
@@ -7286,66 +7226,7 @@ function updateGpsTrackInfo(){
 }
 
 // ==================== FEATURE 4: COMMENTS ====================
-function renderEditComments(m){
-  var list=document.getElementById('edit-comments-list');
-  var countEl=document.getElementById('edit-comment-count');
-  // BACA dari _commentStore, bukan dari m.comments langsung
-  var comments = m.id ? _getComments(m.id) : [];
-  countEl.textContent=comments.length;
-  if(comments.length===0){list.innerHTML='<p class="text-[10px] text-gray-400 text-center py-2">Belum ada komentar</p>';return;}
-  var h='';
-  comments.slice().reverse().forEach(function(c,i){
-    var initial=(c.user||'U').charAt(0).toUpperCase();
-    var delBtn = isAdminUser ? '<button class="comment-delete ml-auto text-red-400 hover:text-red-600 text-xs" onclick="deleteComment('+(comments.length-1-i)+')">x</button>' : '';
-    h+='<div class="comment-item"><div class="comment-avatar">'+esc(initial)+'</div><div class="comment-body"><div class="flex items-center gap-2"><span class="comment-name">'+esc(c.user||'User')+'</span><span class="comment-time">'+(c.time?timeAgo(c.time):'')+'</span>'+delBtn+'</div><p class="comment-text">'+esc(c.text)+'</p></div></div>';
-  });
-  list.innerHTML=h;
-}
-function timeAgo(ts){
-  var d=Date.now()-new Date(ts).getTime();
-  if(d<60000) return 'baru saja';
-  if(d<3600000) return Math.floor(d/60000)+'m lalu';
-  if(d<86400000) return Math.floor(d/3600000)+'j lalu';
-  return Math.floor(d/86400000)+'h lalu';
-}
-function addCommentToMarker(){
-  if(!editingMarkerId) return;
-  var input=document.getElementById('edit-comment-input');
-  var text=input.value.trim();
-  if(!text) return;
-  var m=markers.get(editingMarkerId);
-  if(!m) return;
-  // Gunakan _commentStore — 100% terisolasi per marker ID
-  var store = _getComments(editingMarkerId);
-  var newComment = {
-    _cid: 'c' + Date.now() + '-' + Math.random().toString(36).substr(2,6),
-    text: text,
-    user: currentUser ? currentUser.displayName || currentUser.email : 'User',
-    time: new Date().toISOString()
-  };
-  store.push(newComment);
-  _setComments(editingMarkerId, store);
-  m.timestamp = new Date().toISOString();
-  input.value='';
-  console.log('[Comment] Added to', editingMarkerId, '| total:', store.length, '| _cid:', newComment._cid);
-  renderEditComments(m);
-  if(m.leafletMarker) m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
-  debouncedSave();
-}
-function deleteComment(idx){
-  if(!isAdminUser){showToast('Viewer tidak bisa menghapus komentar','error');return;}
-  if(!editingMarkerId) return;
-  var m=markers.get(editingMarkerId);
-  if(!m) return;
-  // Gunakan _commentStore
-  var store = _getComments(editingMarkerId);
-  if(idx < 0 || idx >= store.length) return;
-  store.splice(idx,1);
-  _setComments(editingMarkerId, store);
-  renderEditComments(m);
-  if(m.leafletMarker) m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
-  debouncedSave();
-}
+
 
 // ==================== FEATURE 5: BATCH EDIT ====================
 function batchMoveToFolder(){
