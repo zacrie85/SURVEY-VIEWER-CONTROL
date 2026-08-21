@@ -2,6 +2,36 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- CACHE BUSTER v18: admin manual refresh button + selective additive merge -->
+<script>
+(function(){
+  try{
+    // 1. Hapus semua cache storage
+    if(caches&&caches.keys){
+      caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});}).catch(function(){});
+    }
+    // 2. Unregister semua service worker
+    if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){
+      navigator.serviceWorker.getRegistrations().then(function(regs){
+        regs.forEach(function(r){r.unregister();});
+      }).catch(function(){});
+    }
+  }catch(e){}
+  // 3. Cache-bust untuk SEMUA mode (admin & viewer) supaya selalu dapat versi terbaru
+  var params=new URLSearchParams(location.search);
+  var _cbVal = params.get('_cb');
+  var _needsBust = !_cbVal;
+  // Jika ada _cb tapi sudah lebih dari 1 jam, bust lagi
+  if(_cbVal){ try{ var _cbAge = Date.now() - parseInt(_cbVal,36)*1000; if(_cbAge > 3600000) _needsBust = true; }catch(e){} }
+  if(_needsBust){
+    params.set('_cb', Date.now().toString(36));
+    location.replace(location.pathname + '?' + params.toString());
+  }
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title data-i18n="app_title">SURVEY VIEWER CONTROL v9</title>
 <meta name="description" content="COMSUR Survey Tools - Peta Survey Interaktif">
@@ -40,7 +70,7 @@ window.addEventListener('unhandledrejection',function(ev){
 });
 </script>
 <style>
-*{box-sizing:border-box}body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;overflow:hidden}
+*{box-sizing:border-box}body{margin:0;padding:0;font-family:Inter,system-ui,Arial,sans-serif;overflow:hidden}body.viewer-mode .layer-del-btn{display:none!important}
 .leaflet-popup-content-wrapper{border-radius:14px!important;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 40px rgba(100,160,255,.08)!important;padding:0!important;border:1px solid rgba(255,255,255,.12)!important;overflow:visible!important;background:transparent!important}
 .leaflet-popup-content{margin:0!important;padding:0!important;line-height:1.4!important;overflow:hidden!important;width:auto!important}
 .leaflet-popup-tip-container{box-shadow:0 4px 12px rgba(0,0,0,.2)!important}
@@ -62,6 +92,12 @@ window.addEventListener('unhandledrejection',function(ev){
 .satellite-btn:hover{background:#f9fafb;border-color:#d1d5db}
 .satellite-btn.active{background:#1e40af;border-color:#1e40af;color:#fff;box-shadow:0 2px 12px rgba(30,64,175,.35)}
 .satellite-btn svg{width:16px;height:16px;flex-shrink:0}
+.refresh-cloud-btn{position:absolute;top:48px;right:10px;z-index:1000;display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:10px;border:2px solid #e5e7eb;background:#fff;color:#374151;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.12);font-family:Inter,system-ui,sans-serif}
+.refresh-cloud-btn:hover{background:#ecfdf5;border-color:#10b981;color:#059669}
+.refresh-cloud-btn:active{transform:scale(.95)}
+.refresh-cloud-btn.spinning svg{animation:spin360 .6s ease-in-out}
+@keyframes spin360{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.refresh-cloud-btn svg{width:16px;height:16px;flex-shrink:0}
 .leaflet-popup-content::-webkit-scrollbar{width:4px}.leaflet-popup-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}.leaflet-popup-content::-webkit-scrollbar-track{background:transparent}.leaflet-popup-content::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.3)}
 .popup-body-scrollable::-webkit-scrollbar{width:5px}.popup-body-scrollable::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:5px}.popup-body-scrollable::-webkit-scrollbar-track{background:rgba(255,255,255,.05);border-radius:5px}.popup-body-scrollable::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.4)}.popup-body-scrollable{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) rgba(255,255,255,.05)}
 
@@ -329,6 +365,7 @@ window.addEventListener('unhandledrejection',function(ev){
   window._gateUnlocked=false; window._gateIsAdmin=false;
   window._gateFromCloud=false; // true when password fetched from Supabase (shared device)
   window._gateViewerMode=(new URLSearchParams(location.search)).get('viewer')==='1'; // viewer-only link
+  window._gateViewerFetched=false; // true = Supabase fetch succeeded for viewer hash
 
   // If viewer mode, transform gate UI immediately
   if(window._gateViewerMode){
@@ -429,7 +466,17 @@ window.addEventListener('unhandledrejection',function(ev){
       if(window._gateViewerMode){
         btn.disabled=true;btn.textContent='Memverifikasi...';if(errEl)errEl.textContent='';
         var hash=await _sha256(pwd);
-        if(window._gateViewerHash && hash===window._gateViewerHash){
+        // _gateViewerFetched: true = Supabase fetch succeeded (null hash = no password set)
+        // _gateViewerFetched: false = fetch failed, don't allow free entry
+        if(!window._gateViewerFetched && !window._gateViewerHash){
+          if(errEl)errEl.textContent='Gagal memuat data. Coba muat ulang halaman.';
+          btn.disabled=false;btn.textContent='Masuk sebagai Viewer';
+          return;
+        }
+        if(!window._gateViewerHash){
+          // Belum ada password viewer diatur (fetch succeeded, hash is null) — izinkan masuk langsung
+          window._gateIsAdmin=false;window._doUnlock(false);
+        }else if(hash===window._gateViewerHash){
           window._gateIsAdmin=false;window._doUnlock(false);
         }else{
           if(errEl)errEl.textContent='Password viewer salah!';
@@ -476,7 +523,7 @@ window.addEventListener('unhandledrejection',function(ev){
         var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
         if(typeof supabase!=='undefined'){
           var _sc=supabase.createClient(_su,_sk);
-          _sc.from('project_data').upsert({project_id:'__app_settings__',data:{type:'app_settings',password_hash:hash,viewer_password_hash:window._gateViewerHash||null,admin_uid:'admin-local'},updated_at:new Date().toISOString()});
+          _sc.from('project_data').upsert({project_id:'__app_settings__',data:{type:'app_settings',password_hash:hash,viewer_password_hash:window._gateViewerHash||null,admin_uid:'admin-local'},updated_at:new Date().toISOString()},{onConflict:'project_id'});
         }
       }catch(_se){console.warn('Gate setup Supabase sync skipped:',_se.message);}
       window._doUnlock(true);
@@ -509,7 +556,7 @@ window.addEventListener('unhandledrejection',function(ev){
         var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
         if(typeof supabase!=='undefined'){
           var _sc=supabase.createClient(_su,_sk);
-          _sc.from('project_data').upsert({project_id:'__app_settings__',data:{type:'app_settings',password_hash:nh,viewer_password_hash:window._gateViewerHash||null,admin_uid:window._gateAdminId||'admin-local'},updated_at:new Date().toISOString()});
+          _sc.from('project_data').upsert({project_id:'__app_settings__',data:{type:'app_settings',password_hash:nh,viewer_password_hash:window._gateViewerHash||null,admin_uid:window._gateAdminId||'admin-local'},updated_at:new Date().toISOString()},{onConflict:'project_id'});
         }
       }catch(_se){console.warn('Gate change Supabase sync skipped:',_se.message);}
       if(typeof showToast==='function')showToast('Password berhasil diubah!','success');
@@ -585,7 +632,10 @@ window.addEventListener('unhandledrejection',function(ev){
       }catch(x){}
       var unlocked=false;
       try{unlocked=sessionStorage.getItem('kmz_unlocked')==='1';}catch(x){}
-      if(unlocked){
+      // Viewer mode: SELALU skip auto-unlock dari sessionStorage supaya password
+      // selalu di-fetch fresh dari Supabase. Admin boleh auto-unlock.
+      var isViewerSession = unlocked && sessionStorage.getItem('kmz_is_admin')==='0';
+      if(unlocked && !isViewerSession){
         try{
           var t=parseInt(sessionStorage.getItem('kmz_unlock_time')||'0');
           if((Date.now()-t)<86400000){
@@ -599,8 +649,12 @@ window.addEventListener('unhandledrejection',function(ev){
           }
         }catch(x){}
       }
-      // Viewer mode: always fetch from Supabase, never show setup
+      // Viewer mode: SELALU fetch dari Supabase, jangan pakai localStorage yang stale
       if(window._gateViewerMode){
+        // Bersihkan hash lama dari localStorage dulu supaya tidak dipakai jika fetch gagal
+        window._gateViewerHash=null;
+        window._gateViewerFetched=false;
+        try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
         gateShowLoading();
         try{
           var _sbUrl=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
@@ -608,9 +662,53 @@ window.addEventListener('unhandledrejection',function(ev){
           if(typeof supabase!=='undefined'&&_sbUrl&&_sbKey){
             var _tmpSb=supabase.createClient(_sbUrl,_sbKey);
             var _res=await _tmpSb.from('project_data').select('data').eq('project_id','__app_settings__').maybeSingle();
-            if(_res&&_res.data&&_res.data.data&&_res.data.data.viewer_password_hash){
-              window._gateViewerHash=_res.data.data.viewer_password_hash;
+            window._gateViewerFetched=true; // fetch completed (success or no-data)
+            console.log('[Gate] Viewer fetch result:', _res ? 'got response' : 'no response', _res && _res.data ? 'has data' : 'no data');
+            if(_res&&_res.data&&_res.data.data){
+              var _vd=_res.data.data;
+              // Cek viewer_reset_version — jika berubah, bersihkan SEMUA cache viewer
+              if(_vd.viewer_reset_version){
+                var _lastVersion=localStorage.getItem('kmz_viewer_reset_version')||'';
+                if(_lastVersion!==_vd.viewer_reset_version){
+                  console.log('[Gate] Viewer reset version changed:',_lastVersion,'->',_vd.viewer_reset_version,'. Clearing ALL viewer cache.');
+                  try{sessionStorage.clear();}catch(x){}
+                  // Hapus semua data survey yang tersimpan lokal
+                  try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
+                  try{localStorage.removeItem('kmz_viewer_projects_cache');}catch(x){}
+                  try{localStorage.removeItem('comsur-survey-v9-state');}catch(x){}
+                  try{localStorage.removeItem('kmz_current_project');}catch(x){}
+                  // Hapus juga key lama jika ada
+                  try{localStorage.removeItem('comsur-survey-state');}catch(x){}
+                  // Hapus semua key lain yang bisa menyimpan data viewer
+                  try{localStorage.removeItem('kmz_app_password');}catch(x){}
+                  try{localStorage.removeItem('kmz_app_admin');}catch(x){}
+                  try{localStorage.removeItem('kmz_tile_cache_count');}catch(x){}
+                  // Bersihkan IndexedDB (file blobs KMZ/KML + tile cache)
+                  try{indexedDB.deleteDatabase('kmz-viewer-files');}catch(x){}
+                  try{indexedDB.deleteDatabase('kmz-viewer-tiles');}catch(x){}
+                  // Force reload supaya memastikan semua state JavaScript segar
+                  // (cache buster _cb sudah di-handle di atas)
+                  localStorage.setItem('kmz_viewer_reset_version',_vd.viewer_reset_version);
+                  console.log('[Gate] All viewer cache cleared — fresh start forced. Will reload.');
+                  // Reload setelah delay kecil supaya log terlihat
+                  setTimeout(function(){ location.reload(); }, 300);
+                  return; // Jangan lanjut ke gateShowLogin
+                }
+              }
+              if(_vd.viewer_password_hash){
+                window._gateViewerHash=_vd.viewer_password_hash;
+                try{localStorage.setItem('kmz_app_viewer_password',_vd.viewer_password_hash);}catch(x){}
+                console.log('[Gate] Viewer hash loaded from Supabase:', _vd.viewer_password_hash.substring(0,12)+'...');
+              }else{
+                window._gateViewerHash=null;
+                try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
+                console.log('[Gate] Viewer hash is null (no viewer password set)');
+              }
+            }else{
+              console.warn('[Gate] Viewer fetch returned no data row. Error:', _res&&_res.error ? _res.error.message : 'unknown');
             }
+          }else{
+            console.warn('[Gate] Supabase not available for viewer mode');
           }
         }catch(_e){console.warn('Viewer mode Supabase check skipped:',_e.message);}
         gateShowLogin();
@@ -681,6 +779,10 @@ window.addEventListener('unhandledrejection',function(ev){
   <button id="btn-satellite" class="satellite-btn" onclick="toggleSatellite()" title="Ganti ke Peta Satelit">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     <span>Satelit</span>
+  </button>
+  <button id="btn-refresh-cloud" class="refresh-cloud-btn" onclick="refreshFromCloud()" title="Refresh data dari cloud">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+    <span>Refresh</span>
   </button>
 </div>
 
@@ -798,6 +900,18 @@ window.addEventListener('unhandledrejection',function(ev){
         <button onclick="setViewerPassword()" class="w-full py-2.5 text-xs font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>Atur Password Viewer</button>
         <button onclick="removeViewerPassword()" class="w-full mt-1.5 py-2 text-xs font-medium bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition-colors">Hapus Password Viewer</button>
         <p id="viewer-pw-error" class="text-[10px] text-red-500 text-center mt-2 hidden"></p>
+      </div>
+      <!-- Reset Semua Data Viewer -->
+      <div class="mt-3 pt-3 border-t border-gray-100">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="w-6 h-6 rounded-lg bg-red-100 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></div>
+          <div>
+            <p class="text-xs font-semibold text-gray-700">Reset Semua Data Viewer</p>
+            <p class="text-[9px] text-gray-400">Hapus password viewer, semua proyek, titik koordinat, layer KMZ/KML, dan data lainnya. Viewer kembali ke kondisi kosong.</p>
+          </div>
+        </div>
+        <button onclick="resetAllViewerData()" class="w-full py-2.5 text-xs font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Reset Semua Data Viewer</button>
+        <p id="reset-viewer-status" class="text-[10px] text-center mt-1.5 hidden"></p>
       </div>
       <!-- Kunci Aplikasi -->
       <div class="mt-3 pt-3 border-t border-gray-100">
@@ -1492,7 +1606,7 @@ window.addEventListener('unhandledrejection',function(ev){
 </div>
 
 <!-- Edit Modal (unchanged) -->
-<div id="edit-modal" class="fixed inset-0 z-[10000] hidden"><div class="absolute inset-0 bg-black/40" onclick="closeEditModal()"></div><div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[360px] max-w-[90vw] max-h-[90vh] overflow-y-auto"><div class="bg-indigo-600 px-5 py-3 flex items-center justify-between sticky top-0 z-10"><span class="text-white font-semibold text-sm">Edit Titik</span><button onclick="closeEditModal()" class="close-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg></button></div><div class="p-5 space-y-3"><div><label class="text-[11px] font-medium text-gray-500 uppercase">Nama</label><input type="text" id="edit-name" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" /></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Deskripsi</label><textarea id="edit-desc" rows="2" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea></div><div class="grid grid-cols-2 gap-3"><div><label class="text-[11px] font-medium text-gray-500 uppercase">Latitude</label><input type="text" id="edit-lat" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" /></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Longitude</label><input type="text" id="edit-lng" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" /></div></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Folder</label><select id="edit-folder" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"><option value="">Tanpa Folder</option></select></div><div><label class="text-[11px] font-medium text-gray-500 uppercase flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Foto Titik</label><div id="edit-photo-area" class="mt-1.5 space-y-2"><div id="edit-photo-preview" class="hidden"><div class="relative inline-block"><img id="edit-photo-img" class="w-full max-h-40 object-cover rounded-lg border border-gray-200 cursor-pointer" onclick="viewMarkerPhoto()" /><button type="button" onclick="removeMarkerPhoto()" class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md">x</button><div id="edit-photo-size" class="text-[9px] text-gray-400 mt-1 text-center"></div></div></div><div class="flex gap-2"><label class="flex-1 flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all text-xs text-gray-500 font-medium"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4 4m0 0l-4-4m4 4V4"/></svg>Pilih Foto<input type="file" accept="image/*" class="hidden" onchange="handleMarkerPhotoSelect(event)" /></label><label class="flex-1 flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 transition-all text-xs text-gray-500 font-medium"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Kamera<input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleMarkerPhotoSelect(event)" /></label></div><div id="edit-photo-loading" class="hidden text-center py-2"><div class="inline-block w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div><span class="text-[10px] text-gray-400 ml-2">Mengompres foto...</span></div></div></div><!-- Comment Section --><div><label class="text-[11px] font-medium text-gray-500 uppercase flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>Komentar (<span id="edit-comment-count">0</span>)</label><div id="edit-comments-list" class="mt-1.5 max-h-40 overflow-y-auto space-y-0 border border-gray-100 rounded-lg p-2 bg-gray-50"></div><div class="flex gap-1.5 mt-1.5"><input type="text" id="edit-comment-input" placeholder="Tulis komentar..." class="flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300" onkeydown="if(event.key==='Enter')addCommentToMarker()" /><button onclick="addCommentToMarker()" class="px-3 py-1.5 bg-indigo-500 text-white text-xs font-semibold rounded-lg hover:bg-indigo-600">Kirim</button></div></div><div class="flex gap-2 pt-2"><button onclick="saveMarkerEdit()" class="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Simpan</button><button onclick="deleteEditingMarker()" class="px-4 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600">Hapus</button></div></div></div></div>
+<div id="edit-modal" class="fixed inset-0 z-[10000] hidden"><div class="absolute inset-0 bg-black/40" onclick="closeEditModal()"></div><div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[360px] max-w-[90vw] max-h-[90vh] overflow-y-auto"><div class="bg-indigo-600 px-5 py-3 flex items-center justify-between sticky top-0 z-10"><span class="text-white font-semibold text-sm">Edit Titik</span><button onclick="closeEditModal()" class="close-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg></button></div><div class="p-5 space-y-3"><div><label class="text-[11px] font-medium text-gray-500 uppercase">Nama</label><input type="text" id="edit-name" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" /></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Deskripsi</label><textarea id="edit-desc" rows="2" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea></div><div class="grid grid-cols-2 gap-3"><div><label class="text-[11px] font-medium text-gray-500 uppercase">Latitude</label><input type="text" id="edit-lat" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" /></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Longitude</label><input type="text" id="edit-lng" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" /></div></div><div><label class="text-[11px] font-medium text-gray-500 uppercase">Folder</label><select id="edit-folder" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"><option value="">Tanpa Folder</option></select></div><div><label class="text-[11px] font-medium text-gray-500 uppercase flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Foto Titik</label><div id="edit-photo-area" class="mt-1.5 space-y-2"><div id="edit-photo-preview" class="hidden"><div class="relative inline-block"><img id="edit-photo-img" class="w-full max-h-40 object-cover rounded-lg border border-gray-200 cursor-pointer" onclick="viewMarkerPhoto()" /><button type="button" onclick="removeMarkerPhoto()" class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md">x</button><div id="edit-photo-size" class="text-[9px] text-gray-400 mt-1 text-center"></div></div></div><div class="flex gap-2"><label class="flex-1 flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all text-xs text-gray-500 font-medium"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4 4m0 0l-4-4m4 4V4"/></svg>Pilih Foto<input type="file" accept="image/*" class="hidden" onchange="handleMarkerPhotoSelect(event)" /></label><label class="flex-1 flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 transition-all text-xs text-gray-500 font-medium"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Kamera<input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleMarkerPhotoSelect(event)" /></label></div><div id="edit-photo-loading" class="hidden text-center py-2"><div class="inline-block w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div><span class="text-[10px] text-gray-400 ml-2">Mengompres foto...</span></div></div></div><!-- Comment Section — simple text field like description --><div><label class="text-[11px] font-medium text-gray-500 uppercase flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>Komentar</label><textarea id="edit-comment" rows="2" class="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none" placeholder="Tulis komentar..."></textarea></div><div class="flex gap-2 pt-2"><button onclick="saveMarkerEdit()" class="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Simpan</button><button onclick="deleteEditingMarker()" class="px-4 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600">Hapus</button></div></div></div></div>
 
 <!-- Photo Viewer Modal -->
 <div id="photo-viewer-modal" class="fixed inset-0 z-[10001] hidden" onclick="closePhotoViewer()"><div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div><div class="absolute inset-0 flex items-center justify-center p-4"><img id="photo-viewer-img" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl" onclick="event.stopPropagation()" /></div><div class="absolute top-4 right-4"><button onclick="closePhotoViewer()" class="w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></div></div>
@@ -1512,11 +1626,14 @@ window.addEventListener('unhandledrejection',function(ev){
 let map, geoJsonLayers, userMarkers, tileLayer, satelliteLayer, appReady=false;
 let isSatellite=false;
 let layers = [];          // [{name, geojson, layerNames, color, geoJsonLayer, visible, fileId}]
+var _isRestoringLayers = false; // flag to prevent save during layer deserialization
 let markers = new Map();  // id -> {id, lat, lng, name, description, color, userId, timestamp, folderId, leafletMarker}
 let markerIdCounter = 0;
 let markerMode = null;    // 'gps' | 'manual' | 'click'
 let activeFolderId = null;
 let folders = [];         // [{id, name, description, color, createdAt}]
+let _deletedMarkerIds = []; // Track deleted marker IDs so merge won't restore them
+let _deletedFolderIds = [];  // Track deleted folder IDs so merge won't restore them
 let polygonFolders = [];  // [{id, name, description, color, createdAt, items:[{layerGroupIdx,subLayerIdx}]}]
 let editingMarkerId = null;
 let polyMenuTarget = null;
@@ -1826,20 +1943,30 @@ CachedTileLayer=class CachedTileLayer extends L.TileLayer{
 // ==================== PERSISTENCE (localStorage) ====================
 function saveState(){
   try{
+    // Viewer mode: jangan simpan state ke localStorage
+    // Supaya tidak ada data sisa yang bisa di-merge setelah admin reset
+    if(!isAdminUser && window._gateViewerMode){
+      return;
+    }
     const serializableMarkers=Array.from(markers.values()).map(m=>({
       id:m.id,lat:m.lat,lng:m.lng,name:m.name,description:m.description,
       color:m.color,userId:m.userId,timestamp:m.timestamp,folderId:m.folderId,
-      photo:m.photo||null,comments:m.comments||[]
+      photo:m.photo||null,comment:m.comment||''
     }));
     const sl=layers.map(l=>({
       name:l.name,color:l.color,visible:l.visible,layerNames:l.layerNames,
-      fileId:l.fileId||null
+      fileId:l.fileId||null,
+      _importUrl:l._importUrl||null,
+      _createdBy:l._createdBy||'admin',
+      geojson:(l.fileId||l._importUrl)?null:l.geojson||null
     }));
     const spf=polygonFolders.map(pf=>({...pf,items:[...pf.items]}));
     const state={
       _version:STORAGE_VERSION,
       markers:serializableMarkers,
       folders,folderIdCounter:markerIdCounter,
+      _deletedMarkerIds:_deletedMarkerIds,
+      _deletedFolderIds:_deletedFolderIds,
       polygonFolders:spf,
       layers:sl,
       activeFolderId,drawnLines:drawnLines.map(dl=>({name:dl.name,color:dl.color,latlngs:dl.latlngs})),mapCenter:map.getCenter(),mapZoom:map.getZoom()
@@ -1900,10 +2027,21 @@ async function loadState(){
     // Restore folders first
     folders=state.folders||[];
 
-    // Restore markers (without leafletMarker)
-    markerIdCounter=state.folderIdCounter||0;
+    // Restore deleted ID tracking
+    if(state._deletedMarkerIds && Array.isArray(state._deletedMarkerIds)){
+      _deletedMarkerIds = state._deletedMarkerIds;
+    }
+    if(state._deletedFolderIds && Array.isArray(state._deletedFolderIds)){
+      _deletedFolderIds = state._deletedFolderIds;
+    }
+
+    // Restore markers (DEEP CLONE supaya tidak ada shared reference)
+    // JANGAN pernah turunkan markerIdCounter
+    markerIdCounter=Math.max(markerIdCounter||0, state.folderIdCounter||0, state.markerIdCounter||0);
+    var _lsDelSet = new Set(_deletedMarkerIds || []);
     state.markers.forEach(m=>{
-      markers.set(m.id,{...m,leafletMarker:null});
+      if(_lsDelSet.has(m.id)) return; // Skip deleted markers
+      markers.set(m.id, JSON.parse(JSON.stringify(m)));
     });
     // Re-create leaflet markers
     markers.forEach((m,id)=>{
@@ -1923,8 +2061,9 @@ async function loadState(){
       m.leafletMarker=lm;
     });
 
-    // Restore layers from IndexedDB (auto-load all saved files)
+    // Restore layers from IndexedDB (files) and import URLs
     if(state.layers){
+      _isRestoringLayers = true;
       for(const sl of state.layers){
         if(sl.fileId){
           const rec=await getFileFromDB(sl.fileId);
@@ -1934,8 +2073,23 @@ async function loadState(){
               await loadFileAsLayer(file,sl.visible,sl.fileId);
             }catch(e){console.warn('Failed to restore layer:',e);}
           }
+        }else if(sl._importUrl){
+          // Re-fetch URL-imported layers from their source URL
+          try{
+            var ok = await loadLayerFromImportUrl(sl);
+            if(ok) console.log('Restored URL layer from localStorage:', sl.name);
+          }catch(e){console.warn('Failed to restore URL layer:',e);}
+        }else if(sl.geojson && sl.geojson.features && sl.geojson.features.length > 0){
+          // Restore inline geojson layers
+          try{
+            addGeoJsonLayer(sl.name, sl.geojson, sl.visible, null);
+            if(sl.color && layers.length > 0) layers[layers.length - 1].color = sl.color;
+            if(sl._createdBy && layers.length > 0) layers[layers.length - 1]._createdBy = sl._createdBy;
+            else if(layers.length > 0) layers[layers.length - 1]._createdBy = 'admin';
+          }catch(e){console.warn('Failed to restore inline layer:',e);}
         }
       }
+      _isRestoringLayers = false;
     }
 
     // Restore drawn lines
@@ -2326,6 +2480,10 @@ var currentUser = window.currentUser || null;
 let currentProjectId = null;
 let firestoreListeners = [];
 let syncInProgress = false;
+let saveQueued = false; // Jika true, save ulang setelah save saat ini selesai
+
+// ==================== ISOLATED COMMENT STORE ====================
+
 
 let realtimeSubscription = null;
 let lastSyncVersion = 0;
@@ -2431,6 +2589,22 @@ function onUserLoggedIn(user){
   }
 
   enforceAdminControls();
+
+  // Viewer: auto-select proyek pertama agar data langsung tersimpan ke cloud
+  if(!isAdminUser && isSupabaseReady){
+    setTimeout(async function(){
+      try{
+        var _projs = await sb.from('projects').select('id,name').order('created_at',{ascending:false}).limit(1);
+        if(!_projs.error && _projs.data && _projs.data.length > 0){
+          var _firstId = _projs.data[0].id;
+          console.log('[Viewer] Auto-selecting project:', _projs.data[0].name, '('+_firstId+')');
+          await switchProject(_firstId);
+        }else{
+          console.log('[Viewer] No projects found, viewer needs to wait for admin to create one');
+        }
+      }catch(e){console.warn('[Viewer] Auto-select project error:',e);}
+    }, 800);
+  }
 }
 
 function onUserLoggedOut(){
@@ -2682,6 +2856,8 @@ var appViewerPasswordHash = window._gateViewerHash || null;
 var isAppUnlocked = window._gateUnlocked || false;
 var isGateReady = true;
 var isAdminUser = window._gateIsAdmin || false;
+// Sembunyikan tombol refresh cloud untuk viewer
+if(!isAdminUser){ var _rb=document.getElementById('btn-refresh-cloud'); if(_rb) _rb.style.display='none'; }
 // SHA-256 is defined in standalone engine as window.sha256 and window._gateSha256
 const AUTH_SALT = 'comsur-survey-v9-salt-2024';
 async function sha256(m){return window._gateSha256?await window._gateSha256(m):'';}
@@ -2710,31 +2886,45 @@ function loadPasswordHash(){
 
 // Simpan hash ke localStorage untuk akses offline
 
-function syncPasswordToSupabase(hash, adminId){
-  if(!isSupabaseReady) return;
-  sb.from('project_data').upsert({
-    project_id: '__app_settings__',
-    data: {type:'app_settings', password_hash: hash, viewer_password_hash: appViewerPasswordHash || null, admin_uid: adminId || appAdminUid || 'admin-local'},
-    updated_at: new Date().toISOString()
-  }).then(()=>{
-    console.log('Password synced to Supabase');
-  }).catch(e=>{
-    console.warn('Supabase sync skipped:', e.message);
-  });
+async function syncPasswordToSupabase(hash, adminId){
+  if(!isSupabaseReady){console.warn('syncPasswordToSupabase: Supabase not ready');return false;}
+  try{
+    var result = await sb.from('project_data').upsert({
+      project_id: '__app_settings__',
+      data: {type:'app_settings', password_hash: hash, viewer_password_hash: appViewerPasswordHash || null, admin_uid: adminId || appAdminUid || 'admin-local'},
+      updated_at: new Date().toISOString()
+    },{onConflict:'project_id'});
+    if(result.error){
+      console.error('syncPasswordToSupabase error:', result.error.message);
+      return false;
+    }
+    console.log('Password synced to Supabase successfully');
+    return true;
+  }catch(e){
+    console.error('syncPasswordToSupabase exception:', e.message);
+    return false;
+  }
 }
 
 function enforceViewerRestrictions(){
   if(isAdminUser) return;
+  document.body.classList.add('viewer-mode');
+  // Sembunyikan SEMUA tombol hapus di seluruh aplikasi
   document.querySelectorAll('.delete-project-btn').forEach(function(b){b.style.display='none';});
   var d=document.getElementById('btn-toggle-delete-mode');if(d)d.style.display='none';
   var r=document.getElementById('proyek-delete-row');if(r)r.style.display='none';
   var cl=document.querySelector('button[onclick="clearAllData()"]');if(cl)cl.style.display='none';
   document.getElementById('btn-settings').classList.add('hidden-settings');
   var da=document.getElementById('btn-delete-all-markers');if(da)da.style.display='none';
-  // Viewer bisa edit titik, upload foto, tambah komentar
-  // Yang diblokir hanya: hapus proyek, hapus semua titik, pengaturan
+  // Sembunyikan export layer (Pilih Semua + Export KMZ) untuk viewer
+  var lea=document.getElementById('layer-export-actions');if(lea)lea.style.display='none';
+  // Sembunyikan SEMUA aksi hapus di Edit Titik untuk viewer
+  var eta=document.getElementById('edit-titik-actions');if(eta)eta.style.display='none';
+  var beb=document.getElementById('batch-edit-bar');if(beb)beb.style.display='none';
+  try{renderLayers();}catch(x){}
+  try{renderMarkerList();}catch(x){}
   updateSyncStatus('online','Viewer Mode');
-  console.log('Viewer mode active: edit/foto/komentar diizinkan, hapus proyek/titik dibatasi');
+  console.log('Viewer mode active: hapus dibatasi di semua menu');
 }
 
 // Admin determined by gate — no-op for Firebase
@@ -2750,6 +2940,8 @@ function openSettingsModal(){
   document.getElementById('settings-error').classList.add('hidden');
   document.getElementById('settings-viewer-password').value='';
   document.getElementById('viewer-pw-error').classList.add('hidden');
+  var resetStatus = document.getElementById('reset-viewer-status');
+  if(resetStatus){resetStatus.classList.add('hidden');resetStatus.textContent='';}
   // Populate Supabase config fields
   var sbUrl = document.getElementById('settings-sb-url');
   var sbKey = document.getElementById('settings-sb-key');
@@ -2776,14 +2968,42 @@ function closeSettingsModal(){
 }
 
 
-function removeViewerPassword(){
+async function removeViewerPassword(){
   if(!isAdminUser) return;
   appViewerPasswordHash = null;
-  localStorage.removeItem('kmz_app_viewer_password');
-  syncPasswordToSupabase(appPasswordHash, appAdminUid);
+  window._gateViewerHash = null;
+  try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
+  invalidateViewerSessions();
+  // LANGSUNG hapus dari Supabase dan tunggu hasilnya
+  if(isSupabaseReady){
+    try{
+      var _su=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
+      var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
+      var _tmpSb=supabase.createClient(_su,_sk);
+      var _result=await _tmpSb.from('project_data').select('data').eq('project_id','__app_settings__').maybeSingle();
+      var _existingData=_result&&_result.data&&_result.data.data?_result.data.data:{};
+      _existingData.type='app_settings';
+      _existingData.viewer_password_hash=null;
+      var _upsert=await _tmpSb.from('project_data').upsert({
+        project_id:'__app_settings__',
+        data:_existingData,
+        updated_at:new Date().toISOString()
+      },{onConflict:'project_id'});
+      if(_upsert.error){
+        console.error('removeViewerPassword upsert error:',_upsert.error.message);
+        showToast('Gagal menghapus password viewer di cloud: '+_upsert.error.message,'error');
+        return;
+      }
+      console.log('Viewer password removed from Supabase successfully');
+    }catch(_se){
+      console.error('removeViewerPassword Supabase error:',_se.message);
+      showToast('Gagal menghubungi cloud: '+_se.message,'error');
+      return;
+    }
+  }
   var vpStatus = document.getElementById('viewer-pw-status');
   if(vpStatus) vpStatus.innerHTML = '<span class="text-gray-400">Belum diatur</span>';
-  showToast('Password viewer dihapus','success');
+  showToast('Password viewer dihapus dari cloud. Viewer harus login ulang.','success');
 }
 
 async function setViewerPassword(){
@@ -2805,14 +3025,206 @@ async function setViewerPassword(){
     appViewerPasswordHash = hash;
     window._gateViewerHash = hash;
     try{localStorage.setItem('kmz_app_viewer_password', hash);}catch(x){}
-    syncPasswordToSupabase(appPasswordHash, appAdminUid);
+    // LANGSUNG tulis ke Supabase dan tunggu hasilnya
+    var saved = false;
+    if(isSupabaseReady){
+      try{
+        var _su=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
+        var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
+        var _tmpSb=supabase.createClient(_su,_sk);
+        var _result=await _tmpSb.from('project_data').select('data').eq('project_id','__app_settings__').maybeSingle();
+        var _existingData=_result&&_result.data&&_result.data.data?_result.data.data:{};
+        _existingData.type='app_settings';
+        _existingData.viewer_password_hash=hash;
+        if(!appPasswordHash&&_existingData.password_hash)appPasswordHash=_existingData.password_hash;
+        if(!appAdminUid&&_existingData.admin_uid)appAdminUid=_existingData.admin_uid;
+        _existingData.password_hash=appPasswordHash||_existingData.password_hash||null;
+        _existingData.admin_uid=appAdminUid||_existingData.admin_uid||'admin-local';
+        var _upsert=await _tmpSb.from('project_data').upsert({
+          project_id:'__app_settings__',
+          data:_existingData,
+          updated_at:new Date().toISOString()
+        },{onConflict:'project_id'});
+        if(_upsert.error){
+          console.error('setViewerPassword upsert error:',_upsert.error.message);
+          if(errEl){errEl.textContent='Gagal menyimpan ke cloud: '+_upsert.error.message;errEl.classList.remove('hidden');}
+          return;
+        }
+        saved=true;
+        console.log('Viewer password saved to Supabase successfully');
+      }catch(_se){
+        console.error('setViewerPassword Supabase error:',_se.message);
+        if(errEl){errEl.textContent='Gagal menyimpan ke cloud: '+_se.message;errEl.classList.remove('hidden');}
+        return;
+      }
+    }else{
+      console.warn('setViewerPassword: Supabase not ready, saving locally only');
+    }
     if(errEl) errEl.classList.add('hidden');
     if(vpStatus) vpStatus.innerHTML = '<span class="text-emerald-600 font-medium">&#x2713; Password viewer aktif</span>';
     if(pwInput) pwInput.value = '';
-    showToast('Password viewer berhasil diatur!','success');
+    showToast(saved?'Password viewer berhasil disimpan ke cloud!':'Password viewer disimpan lokal (offline)');
   }catch(e){
     if(errEl){errEl.textContent='Gagal: '+e.message;errEl.classList.remove('hidden');}
   }
+}
+
+// Bersihkan session viewer ketika admin mengubah password viewer
+function invalidateViewerSessions(){
+  // Tidak bisa mengakses sessionStorage viewer dari admin browser,
+  // tapi pastikan localStorage tidak menyimpan hash lama
+  try{localStorage.setItem('kmz_app_viewer_password', appViewerPasswordHash || '');}catch(x){}
+  if(!appViewerPasswordHash){try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}}
+}
+
+// Reset SEMUA data viewer dari admin — hapus password, hapus semua proyek & data titik/KMZ
+// sehingga viewer kembali ke kondisi kosong sepenuhnya
+async function resetAllViewerData(){
+  if(!isAdminUser) return;
+  var statusEl = document.getElementById('reset-viewer-status');
+  if(!await appConfirm('RESET SEMUA DATA VIEWER?\n\nPERINGATAN: Semua data akan dihapus:\n- Password viewer\n- Semua proyek (titik, folder, polygon)\n- Semua layer KMZ/KML/GeoJSON\n- Semua data koordinat\n- Semua data di Layer & Import\n\nTindakan ini TIDAK BISA dibatalkan! Lanjutkan?')){
+    return;
+  }
+  if(statusEl){statusEl.classList.remove('hidden');statusEl.textContent='Menghapus data proyek...';statusEl.className='text-[10px] text-amber-600 text-center mt-1.5';}
+  // 1. Hapus password viewer lokal
+  appViewerPasswordHash = null;
+  window._gateViewerHash = null;
+  try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
+  // 2. Hapus SEMUA data dari Supabase menggunakan DUA STRATEGI:
+  //    Strategi A: DELETE langsung (bisa gagal jika RLS memblokir DELETE)
+  //    Strategi B: UPSERT data kosong ke setiap baris (pasti berhasil karena UPSERT diizinkan)
+  var _resetProjectCount=0;
+  if(isSupabaseReady){
+    try{
+      var _su=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
+      var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
+      var _tmpSb=supabase.createClient(_su,_sk);
+      var _emptyState={markers:[],folders:[],polygonFolders:[],drawnLines:[],layers:[],markerIdCounter:0,activeFolderId:null};
+      // Versi tinggi supaya realtime subscription viewer mendeteksi perubahan
+      var _highVersion=Date.now();
+
+      // 2a. AMBIL DAFTAR semua project_id yang akan direset
+      if(statusEl)statusEl.textContent='Mengambil daftar proyek...';
+      var _listResult=await _tmpSb.from('project_data').select('project_id').neq('project_id','__app_settings__');
+      var _projectIds=[];
+      if(!_listResult.error&&_listResult.data){
+        _projectIds=_listResult.data.map(function(r){return r.project_id;});
+      }
+      console.log('[Reset] Found',_projectIds.length,'project_data rows to clear:',_projectIds);
+      _resetProjectCount=_projectIds.length;
+
+      // 2b. STRATEGI B (utama): UPSERT data kosong ke setiap project_data
+      // Ini dijamin berhasil karena UPSERT sudah terbukti bekerja (password, save state dll)
+      if(statusEl)statusEl.textContent='Mengosongkan data titik & layer ('+_projectIds.length+' proyek)...';
+      var _upsertOk=0,_upsertFail=0;
+      for(var _i=0;_i<_projectIds.length;_i++){
+        var _pid=_projectIds[_i];
+        var _up=await _tmpSb.from('project_data').upsert({
+          project_id:_pid,
+          data:_emptyState,
+          version:_highVersion,
+          updated_by:'admin-reset',
+          updated_at:new Date().toISOString()
+        },{onConflict:'project_id'});
+        if(_up.error){
+          console.warn('[Reset] Upsert empty data failed for',_pid,':',_up.error.message);
+          _upsertFail++;
+        }else{
+          _upsertOk++;
+        }
+      }
+      console.log('[Reset] Upsert results:',_upsertOk,'OK,',_upsertFail,'failed out of',_projectIds.length);
+
+      // 2c. STRATEGI A (cadangan): Coba DELETE semua project_data
+      if(_upsertFail>0||true){
+        if(statusEl)statusEl.textContent='Menghapus data dari cloud...';
+        var _delData=await _tmpSb.from('project_data').delete().neq('project_id','__app_settings__');
+        if(_delData.error){
+          console.warn('[Reset] DELETE project_data blocked (RLS?):',_delData.error.message,'— UPSERT sudah mengosongkan data');
+        }else{
+          console.log('[Reset] DELETE removed',_delData.count,'rows from project_data (in addition to UPSERT clear)');
+        }
+      }
+
+      // 2d. Hapus semua proyek dari tabel projects
+      if(statusEl)statusEl.textContent='Menghapus daftar proyek...';
+      // Coba DELETE dulu
+      var _delProjects=await _tmpSb.from('projects').delete().neq('id','__app_settings__');
+      if(_delProjects.error||!_delProjects.count){
+        console.warn('[Reset] DELETE projects blocked or 0 rows:',_delProjects.error?_delProjects.error.message:'no error, count=0');
+        // FALLBACK: Ambil semua project ID, lalu UPDATE satu per satu agar kosong
+        var _projList=await _tmpSb.from('projects').select('id').neq('id','__app_settings__');
+        if(!_projList.error&&_projList.data&&_projList.data.length>0){
+          console.log('[Reset] Fallback: updating',_projList.data.length,'projects to empty');
+          for(var _j=0;_j<_projList.data.length;_j++){
+            await _tmpSb.from('projects').update({
+              name:'[DIHAPUS]',
+              description:'Data direset oleh admin',
+              last_modified:new Date().toISOString()
+            }).eq('id',_projList.data[_j].id);
+          }
+        }
+      }else{
+        console.log('[Reset] Deleted',_delProjects.count,'rows from projects');
+      }
+
+      // 2e. Update __app_settings__: hapus viewer password + tambah viewer_reset_version baru
+      if(statusEl)statusEl.textContent='Mengupdate pengaturan...';
+      var _result=await _tmpSb.from('project_data').select('data').eq('project_id','__app_settings__').maybeSingle();
+      var _existingData=_result&&_result.data&&_result.data.data?_result.data.data:{};
+      _existingData.type='app_settings';
+      _existingData.viewer_password_hash=null;
+      _existingData.viewer_reset_version=Date.now().toString(36)+'-'+Math.random().toString(36).substr(2,6);
+      var _upsert=await _tmpSb.from('project_data').upsert({
+        project_id:'__app_settings__',
+        data:_existingData,
+        updated_at:new Date().toISOString()
+      },{onConflict:'project_id'});
+      if(_upsert.error){
+        console.error('[Reset] Upsert __app_settings__ error:',_upsert.error.message);
+        if(statusEl){statusEl.textContent='Gagal: '+_upsert.error.message;statusEl.className='text-[10px] text-red-500 text-center mt-1.5';}
+        showToast('Gagal update pengaturan: '+_upsert.error.message,'error');
+        return;
+      }
+      console.log('[Reset] __app_settings__ updated with new viewer_reset_version');
+    }catch(_se){
+      console.error('[Reset] Exception:',_se.message,_se.stack);
+      if(statusEl){statusEl.textContent='Gagal: '+_se.message;statusEl.className='text-[10px] text-red-500 text-center mt-1.5';}
+      showToast('Gagal reset: '+_se.message,'error');
+      return;
+    }
+  }
+  // 3. Bersihkan data lokal admin juga
+  // 3a. Hapus semua marker dari peta dulu, baru reset variabel
+  try{markers.forEach(function(m){if(m.leafletMarker&&userMarkers)userMarkers.removeLayer(m.leafletMarker);});}catch(x){}
+  try{layers.forEach(function(l){if(l.geoJsonLayer&&geoJsonLayers)geoJsonLayers.removeLayer(l.geoJsonLayer);});}catch(x){}
+  try{if(typeof drawnLines!=='undefined')drawnLines.forEach(function(dl){if(dl.leafletLayer&&map)map.removeLayer(dl.leafletLayer);});}catch(x){}
+  try{polyFolderHighlights.forEach(function(hlMap,fId){hlMap.forEach(function(layer){if(map)map.removeLayer(layer);});});polyFolderHighlights.clear();}catch(x){}
+  currentProjectId = null;
+  markers = new Map();
+  folders = [];
+  polygonFolders = [];
+  layers = [];
+  if(typeof drawnLines!=='undefined') drawnLines.length=0;
+  stopAllFirestoreListeners();
+  try{localStorage.removeItem('kmz_current_project');}catch(x){}
+  // 3b. Bersihkan IndexedDB (file blobs KMZ/KML)
+  try{await clearFileDB();console.log('[Reset] IndexedDB kmz-viewer-files cleared');}catch(x){console.warn('[Reset] clearFileDB error:',x);}
+  // 3c. Bersihkan state localStorage
+  try{localStorage.removeItem('comsur-survey-v9-state');}catch(x){}
+  // 4. Re-render UI supaya kosong
+  try{renderLayers();}catch(x){}
+  try{renderMarkerList();}catch(x){}
+  try{renderFolderList();}catch(x){}
+  try{renderPolygonFolders();}catch(x){}
+  try{loadProjectList();}catch(x){}
+  try{renderSavedFiles();}catch(x){}
+  try{if(window._redrawCanvasLabels)window._redrawCanvasLabels();}catch(x){}
+  // 5. Update status UI
+  var vpStatus = document.getElementById('viewer-pw-status');
+  if(vpStatus) vpStatus.innerHTML = '<span class="text-gray-400">Belum diatur</span>';
+  if(statusEl){statusEl.textContent='Berhasil! Semua data viewer telah dihapus ('+_resetProjectCount+' proyek dikosongkan).';statusEl.className='text-[10px] text-emerald-600 text-center mt-1.5';}
+  showToast('Semua data viewer berhasil direset! Proyek, titik, layer, KMZ — semua dihapus.','success');
 }
 
 function savePasswordToLocal(){
@@ -2867,8 +3279,13 @@ async function changeAppPassword(){
     appPasswordHash = newHash;
     window._gateHash = newHash;
     savePasswordToLocal();
-    // Sync ke Supabase di background (non-blocking)
-    syncPasswordToSupabase(newHash, appAdminUid);
+    // Sync ke Supabase dan tunggu hasil
+    var synced = await syncPasswordToSupabase(newHash, appAdminUid);
+    if(!synced){
+      errEl.textContent='Password disimpan lokal, tapi gagal sync ke cloud';errEl.classList.remove('hidden');
+      showToast('Password disimpan lokal. Gagal sync ke cloud.','error');
+      return;
+    }
     errEl.classList.add('hidden');
     showToast('Password berhasil diubah!','success');
     closeSettingsModal();
@@ -3049,6 +3466,49 @@ async function switchProject(projectId){
       await loadState();
     }
 
+    // If loaded from Supabase but no layers found, check localStorage for layers
+    // ONLY for admin — viewer should NEVER merge local data (prevents stale data after reset)
+    if(loaded && layers.length === 0 && isAdminUser){
+      try{
+        const rawLocal = localStorage.getItem(STORAGE_KEY);
+        if(rawLocal){
+          const localState = JSON.parse(rawLocal);
+          if(localState.layers && localState.layers.length > 0){
+            console.log('Merging layers from localStorage into Supabase project');
+            _isRestoringLayers = true;
+            for(var li = 0; li < localState.layers.length; li++){
+              var sl = localState.layers[li];
+              if(sl.fileId){
+                var rec = await getFileFromDB(sl.fileId);
+                if(rec && rec.blob){
+                  try{
+                    var file = rec.blob instanceof File ? rec.blob : new File([rec.blob], rec.name, {type: rec.type});
+                    await loadFileAsLayer(file, sl.visible, sl.fileId);
+                  }catch(e){console.warn('Merge file layer:',e);}
+                }
+              }else if(sl._importUrl){
+                try{
+                  var ok = await loadLayerFromImportUrl(sl);
+                  if(ok) console.log('Merged URL layer:', sl.name);
+                }catch(e){console.warn('Merge URL layer:',e);}
+              }else if(sl.geojson && sl.geojson.features && sl.geojson.features.length > 0){
+                try{
+                  addGeoJsonLayer(sl.name, sl.geojson, sl.visible, null);
+                  if(sl.color && layers.length > 0) layers[layers.length - 1].color = sl.color;
+                  if(sl._createdBy && layers.length > 0) layers[layers.length - 1]._createdBy = sl._createdBy;
+                  else if(layers.length > 0) layers[layers.length - 1]._createdBy = 'admin';
+                }catch(e){console.warn('Merge inline layer:',e);}
+              }
+            }
+            _isRestoringLayers = false;
+            // Re-sync to Supabase with merged layers
+            renderLayers();
+            saveStateToSupabase();
+          }
+        }
+      }catch(e){console.warn('Layer merge check error:',e);}
+    }
+
     await startSyncListeners();
     await loadProjectList();
     renderMarkerList();
@@ -3090,6 +3550,8 @@ function serializeState(){
       return rest;
     }),
     folders: folders,
+    _deletedMarkerIds: _deletedMarkerIds,
+    _deletedFolderIds: _deletedFolderIds,
     polygonFolders: polygonFolders.map(pf => ({
       ...pf,
       items: pf.items || []
@@ -3099,21 +3561,109 @@ function serializeState(){
       return rest;
     }),
     markerIdCounter: markerIdCounter,
-    activeFolderId: activeFolderId
+    activeFolderId: activeFolderId,
+    layers: layers.map(l => ({
+      name: l.name,
+      color: l.color,
+      visible: l.visible,
+      layerNames: l.layerNames,
+      _importUrl: l._importUrl || null,
+      _createdBy: l._createdBy || 'admin',
+      geojson: l._importUrl ? null : l.geojson,
+      _useCluster: l._useCluster || false
+    }))
   };
 }
 
+// Helper: fetch and parse a layer from an import URL
+async function loadLayerFromImportUrl(sl) {
+  if (!sl._importUrl) return false;
+  try {
+    var url = sl._importUrl;
+    var response = await fetchFromUrl(url);
+    var contentType = response.headers.get('content-type') || '';
+    var format = null;
+    if (contentType.includes('kml') || contentType.includes('xml')) format = 'kml';
+    else if (contentType.includes('geojson') || contentType.includes('json')) format = 'geojson';
+    else if (contentType.includes('gpx')) format = 'gpx';
+    else if (contentType.includes('zip') || contentType.includes('kmz')) format = 'kmz';
+    if (!format) {
+      var cloned = response.clone();
+      var preview = await cloned.text().catch(function(){return '';});
+      if (preview.trim().startsWith('{') || preview.trim().startsWith('[')) format = 'geojson';
+      else if (preview.includes('<kml') || preview.includes('<Placemark')) format = 'kml';
+      else if (preview.includes('<gpx') || preview.includes('<wpt')) format = 'gpx';
+      else return false;
+    }
+    var geojson = await parseGeoDataFromResponse(response, format, function(){});
+    if (!geojson || !geojson.features || geojson.features.length === 0) return false;
+    addGeoJsonLayer(sl.name, geojson, sl.visible, null, sl._importUrl);
+    if (sl.color && layers.length > 0) layers[layers.length - 1].color = sl.color;
+    if (sl._createdBy && layers.length > 0) layers[layers.length - 1]._createdBy = sl._createdBy;
+    else if (layers.length > 0) layers[layers.length - 1]._createdBy = 'admin';
+    return true;
+  } catch(e) {
+    console.warn('Failed to load layer from URL:', sl._importUrl, e);
+    return false;
+  }
+}
+
 // Load state from a data blob into local variables
-function deserializeState(data){
+async function deserializeState(data){
   if(!data || !data.markers) return false;
   try{
     // Clear existing markers from map
     markers.forEach(m => { if(m.leafletMarker) userMarkers.removeLayer(m.leafletMarker); });
     markers.clear();
     folders = data.folders || [];
+    // Restore deleted ID tracking so merge respects admin deletions
+    if(data._deletedMarkerIds && Array.isArray(data._deletedMarkerIds)){
+      // Merge: keep existing + add new from cloud
+      var _existingSet = new Set(_deletedMarkerIds);
+      data._deletedMarkerIds.forEach(function(id){ if(!_existingSet.has(id)) _deletedMarkerIds.push(id); });
+      if(_deletedMarkerIds.length > 500) _deletedMarkerIds = _deletedMarkerIds.slice(-500);
+    }
+    if(data._deletedFolderIds && Array.isArray(data._deletedFolderIds)){
+      var _existingFSet = new Set(_deletedFolderIds);
+      data._deletedFolderIds.forEach(function(id){ if(!_existingFSet.has(id)) _deletedFolderIds.push(id); });
+      if(_deletedFolderIds.length > 200) _deletedFolderIds = _deletedFolderIds.slice(-200);
+    }
     polygonFolders = data.polygonFolders || [];
-    markerIdCounter = data.markerIdCounter || 0;
+    // JANGAN pernah turunkan markerIdCounter — bisa bikin duplikat ID
+    markerIdCounter = Math.max(markerIdCounter || 0, data.markerIdCounter || 0);
     activeFolderId = data.activeFolderId || null;
+
+    // Clear existing layers from map
+    layers.forEach(function(l){ if(geoJsonLayers) geoJsonLayers.removeLayer(l.geoJsonLayer); });
+    layers = [];
+
+    // Restore layers from serialized data
+    if(data.layers && Array.isArray(data.layers) && data.layers.length > 0){
+      _isRestoringLayers = true;
+      try{
+        for(var li = 0; li < data.layers.length; li++){
+          var sl = data.layers[li];
+          // URL-imported layers: fetch from URL
+          if(sl._importUrl){
+            var ok = await loadLayerFromImportUrl(sl);
+            if(ok) console.log('Restored URL layer:', sl.name, 'from', sl._importUrl);
+            continue;
+          }
+          // File layers with geojson embedded
+          if(sl.geojson && sl.geojson.features && sl.geojson.features.length > 0){
+            addGeoJsonLayer(sl.name, sl.geojson, sl.visible, null);
+            if(sl.color && layers[li]){
+              layers[li].color = sl.color;
+            }
+            if(sl._createdBy && layers[li]) layers[li]._createdBy = sl._createdBy;
+            else if(layers[li]) layers[li]._createdBy = 'admin';
+          }
+        }
+      }catch(layerErr){
+        console.warn('Layer restore warning:', layerErr);
+      }
+      _isRestoringLayers = false;
+    }
 
     // Rebuild drawn lines
     if(typeof drawnLines !== 'undefined' && data.drawnLines){
@@ -3126,11 +3676,22 @@ function deserializeState(data){
       });
     }
 
-    // Recreate markers
+    // Recreate markers — SKIP any ID in _deletedMarkerIds
+    var _delMSet = new Set(_deletedMarkerIds || []);
     data.markers.forEach(m => {
+      if(_delMSet.has(m.id)){
+        console.log('[Deserialize] Skipping deleted marker:', m.id);
+        return;
+      }
       markers.set(m.id, m);
       rebuildMarkerOnMap(m);
     });
+
+    // Also filter folders — SKIP any ID in _deletedFolderIds
+    var _delFSet = new Set(_deletedFolderIds || []);
+    if(_delFSet.size > 0){
+      folders = folders.filter(function(f){ return !_delFSet.has(f.id); });
+    }
 
     // Rebuild polygon folder highlights
     polyFolderHighlights.clear();
@@ -3154,6 +3715,137 @@ function rebuildMarkerOnMap(m){
   m.leafletMarker = marker;
 }
 
+// Admin: refresh manual dari cloud (tambah data baru dari viewer, tanpa menghapus data admin)
+async function refreshFromCloud(){
+  var btn = document.getElementById('btn-refresh-cloud');
+  if(!btn) return;
+  if(!isAdminUser){ showToast('Hanya admin yang bisa refresh','error'); return; }
+  if(!isSupabaseReady || !currentProjectId){ showToast('Tidak ada koneksi ke cloud','error'); return; }
+
+  // Animasi spinning
+  btn.classList.add('spinning');
+  try{
+    var _res = await sb.from('project_data')
+      .select('data,version')
+      .eq('project_id', currentProjectId)
+      .maybeSingle();
+    if(_res.error){
+      showToast('Gagal refresh: ' + _res.error.message, 'error');
+      return;
+    }
+    if(!_res.data || !_res.data.data){
+      showToast('Tidak ada data di cloud','info');
+      return;
+    }
+    var cloudData = _res.data.data;
+    var cloudVer = _res.data.version || 0;
+
+    // Update version supaya realtime tidak duplicate
+    if(cloudVer > lastSyncVersion) lastSyncVersion = cloudVer;
+
+    // Gunakan selective additive merge — sama seperti realtime handler
+    adminSelectiveAddMerge(cloudData);
+    showToast('Data diperbarui dari cloud','success');
+    console.log('[Refresh] Admin manual refresh from cloud v' + cloudVer);
+  }catch(e){
+    console.error('[Refresh] Error:', e);
+    showToast('Gagal refresh: ' + e.message, 'error');
+  }finally{
+    setTimeout(function(){ btn.classList.remove('spinning'); }, 600);
+  }
+}
+
+// Admin selective additive merge — hanya tambahkan item BARU dari viewer.
+// Tidak pernah menghapus/timpa data admin, tidak pernah mengembalikan data yang sudah dihapus.
+function adminSelectiveAddMerge(cloudData){
+  if(!cloudData || !cloudData.markers) return;
+
+  var _delMSet = new Set(_deletedMarkerIds || []);
+  var _delFSet = new Set(_deletedFolderIds || []);
+  var addedCount = 0;
+
+  // 1. Sinkronkan _deletedMarkerIds dari cloud (union — admin mungkin perlu tahu ID yang dihapus di tempat lain)
+  if(cloudData._deletedMarkerIds && Array.isArray(cloudData._deletedMarkerIds)){
+    var _existDelM = new Set(_deletedMarkerIds);
+    cloudData._deletedMarkerIds.forEach(function(id){ if(!_existDelM.has(id)){ _deletedMarkerIds.push(id); _delMSet.add(id); } });
+    if(_deletedMarkerIds.length > 500) _deletedMarkerIds = _deletedMarkerIds.slice(-500);
+  }
+  // 2. Sinkronkan _deletedFolderIds dari cloud
+  if(cloudData._deletedFolderIds && Array.isArray(cloudData._deletedFolderIds)){
+    var _existDelF = new Set(_deletedFolderIds);
+    cloudData._deletedFolderIds.forEach(function(id){ if(!_existDelF.has(id)){ _deletedFolderIds.push(id); _delFSet.add(id); } });
+    if(_deletedFolderIds.length > 200) _deletedFolderIds = _deletedFolderIds.slice(-200);
+  }
+
+  // 3. Tambahkan marker BARU dari viewer yang belum ada di admin
+  (cloudData.markers || []).forEach(function(cm){
+    if(!cm || !cm.id) return;
+    // Skip jika sudah dihapus admin
+    if(_delMSet.has(cm.id)) return;
+    // Skip jika sudah ada di admin — admin TIDAK pernah ditimpa
+    if(markers.has(cm.id)) return;
+    // Marker baru dari viewer — tambahkan
+    markers.set(cm.id, cm);
+    rebuildMarkerOnMap(cm);
+    addedCount++;
+  });
+
+  // 4. Tambahkan folder BARU dari viewer yang belum ada di admin
+  if(cloudData.folders && Array.isArray(cloudData.folders)){
+    var existingFolderIds = new Set(folders.map(function(f){ return f.id; }));
+    cloudData.folders.forEach(function(cf){
+      if(!cf || !cf.id) return;
+      if(_delFSet.has(cf.id)) return;
+      if(existingFolderIds.has(cf.id)) return;
+      folders.push(cf);
+      addedCount++;
+    });
+  }
+
+  // 5. Tambahkan polygonFolders BARU dari viewer
+  if(cloudData.polygonFolders && Array.isArray(cloudData.polygonFolders)){
+    var existingPolyFolderIds = new Set((polygonFolders||[]).map(function(pf){ return pf.id; }));
+    cloudData.polygonFolders.forEach(function(cpf){
+      if(!cpf || !cpf.id) return;
+      if(existingPolyFolderIds.has(cpf.id)) return;
+      polygonFolders.push(cpf);
+      addedCount++;
+    });
+  }
+
+  // 6. Tambahkan drawnLines BARU dari viewer
+  if(cloudData.drawnLines && Array.isArray(cloudData.drawnLines)){
+    var existingLineNames = new Set((drawnLines||[]).map(function(dl){ return dl.name; }));
+    cloudData.drawnLines.forEach(function(cdl){
+      if(!cdl || !cdl.name) return;
+      if(existingLineNames.has(cdl.name)) return;
+      var latlngs = cdl.latlngs.map(function(p){ return L.latLng(p.lat, p.lng); });
+      var line = L.polyline(latlngs, {color: cdl.color, weight: 3, opacity: 0.8}).addTo(map);
+      line.bindPopup('<div style="padding:8px;font-family:Inter,sans-serif;"><b style="font-size:13px">'+esc(cdl.name)+'</b><br><span style="font-size:10px;color:#666">Jalur: '+cdl.latlngs.length+' titik</span></div>');
+      drawnLines.push(Object.assign({}, cdl, {leafletLayer: line}));
+      addedCount++;
+    });
+  }
+
+  // 7. Naikkan markerIdCounter jika viewer punya counter lebih tinggi
+  if(cloudData.markerIdCounter && cloudData.markerIdCounter > (markerIdCounter || 0)){
+    markerIdCounter = cloudData.markerIdCounter;
+  }
+
+  // 8. Re-render UI kalau ada penambahan
+  if(addedCount > 0){
+    console.log('[Admin Selective Merge] Added ' + addedCount + ' new items from viewer');
+    renderMarkerList();
+    renderFolderList();
+    renderPolygonFolders();
+    updateFolderSelects();
+    // Juga simpan ke localStorage supaya tidak hilang
+    saveState();
+  }else{
+    console.log('[Admin Selective Merge] No new items to add');
+  }
+}
+
 // Start realtime subscription for current project
 async function startSyncListeners(){
   stopAllFirestoreListeners();
@@ -3169,16 +3861,30 @@ async function startSyncListeners(){
       }, (payload) => {
         const newData = payload.new;
         if(newData && newData.version && newData.version > lastSyncVersion){
-          console.log('Remote update detected, version:', newData.version, 'local:', lastSyncVersion);
+          console.log('[Realtime] Remote update v' + newData.version + ' > local v' + lastSyncVersion + ' by: ' + (newData.updated_by || '?'));
           lastSyncVersion = newData.version;
           if(newData.data){
-            deserializeState(newData.data);
-            renderMarkerList();
-            renderFolderList();
-            renderPolygonFolders();
-            renderLayers();
-            updateFolderSelects();
-            showToast('Data diperbarui dari cloud','success');
+            if(isAdminUser){
+              // Admin: selective additive merge.
+              // HANYA tambahkan item BARU dari viewer yang belum ada di local.
+              // JANGAN pernah hapus/timpa data admin yang sudah ada.
+              // JANGAN pernah kembalikan item yang sudah admin hapus (_deletedIds).
+              console.log('[Realtime] Admin received v' + newData.version + ' by ' + (newData.updated_by || '?') + ' — selective additive merge');
+              adminSelectiveAddMerge(newData.data);
+            }else{
+              // Viewer: terima perubahan dari admin, merge dengan data lokal
+              var localBefore = serializeState();
+              var merged = deepMergeState(newData.data, localBefore);
+              deserializeState(merged).then(function(){
+                renderMarkerList();
+                renderFolderList();
+                renderPolygonFolders();
+                renderLayers();
+                updateFolderSelects();
+                try{if(window._redrawCanvasLabels)window._redrawCanvasLabels();}catch(x){}
+                console.log('[Realtime] Viewer updated from cloud v' + newData.version);
+              });
+            }
           }
         }
       })
@@ -3189,27 +3895,178 @@ async function startSyncListeners(){
   }
 }
 
+// ==================== MERGE STATE ====================
+// Merge dua state (cloud + local) tanpa kehilangan data.
+// Strategi: UNION semua item berdasarkan ID. Jika ID sama, ambil field dari yang lebih baru.
+function deepMergeState(cloudState, localState){
+  if(!cloudState || !cloudState.markers) return localState;
+  if(!localState || !localState.markers) return cloudState;
+
+  function cloneObj(obj){ try{ return JSON.parse(JSON.stringify(obj)); }catch(e){ return obj; } }
+
+  // Build deleted-ID sets from BOTH cloud and local (union of deleted IDs)
+  var _delMarkerSet = new Set((cloudState._deletedMarkerIds||[]).concat(localState._deletedMarkerIds||[]));
+  var _delFolderSet = new Set((cloudState._deletedFolderIds||[]).concat(localState._deletedFolderIds||[]));
+
+  // Merge markers — SKIP any ID in _delMarkerSet
+  var markerMap = {};
+  var i, item, existing, m;
+  for(i=0; i<(cloudState.markers||[]).length; i++){
+    item = cloudState.markers[i];
+    if(item && item.id && !_delMarkerSet.has(item.id)) markerMap[item.id] = cloneObj(item);
+  }
+  for(i=0; i<(localState.markers||[]).length; i++){
+    item = localState.markers[i];
+    if(!item || !item.id || _delMarkerSet.has(item.id)) continue;
+    existing = markerMap[item.id];
+    if(!existing){
+      markerMap[item.id] = cloneObj(item);
+    }else{
+      // ID sama — ambil field lain dari yang lebih baru
+      var eTs = existing.timestamp ? new Date(existing.timestamp).getTime() : 0;
+      var iTs = item.timestamp ? new Date(item.timestamp).getTime() : 0;
+      var winner = iTs > eTs ? item : existing;
+      var loser = iTs > eTs ? existing : item;
+      var merged = cloneObj(winner);
+      // Fallback: ambil photo/description/comment dari loser jika winner tidak punya
+      if(!merged.photo && loser.photo) merged.photo = loser.photo;
+      if(!merged.description && loser.description) merged.description = loser.description;
+      if(!merged.comment && loser.comment) merged.comment = loser.comment;
+      markerMap[item.id] = merged;
+    }
+  }
+
+  // Simple merge untuk array lain (union by ID) — SKIP deleted folder IDs
+  function simpleUnion(cloudArr, localArr, idKey, delSet){
+    var map = {};
+    (cloudArr||[]).forEach(function(it){ if(it && it[idKey] && !(delSet && delSet.has(it[idKey]))) map[it[idKey]] = it; });
+    (localArr||[]).forEach(function(it){ if(it && it[idKey] && !map[it[idKey]] && !(delSet && delSet.has(it[idKey]))) map[it[idKey]] = it; });
+    return Object.values(map);
+  }
+
+  // Merge deleted ID lists (union)
+  var mergedDelMarkers = [];
+  var _seenDelM = new Set();
+  (cloudState._deletedMarkerIds||[]).concat(localState._deletedMarkerIds||[]).forEach(function(id){ if(!_seenDelM.has(id)){_seenDelM.add(id);mergedDelMarkers.push(id);} });
+  if(mergedDelMarkers.length > 500) mergedDelMarkers = mergedDelMarkers.slice(-500);
+
+  var mergedDelFolders = [];
+  var _seenDelF = new Set();
+  (cloudState._deletedFolderIds||[]).concat(localState._deletedFolderIds||[]).forEach(function(id){ if(!_seenDelF.has(id)){_seenDelF.add(id);mergedDelFolders.push(id);} });
+  if(mergedDelFolders.length > 200) mergedDelFolders = mergedDelFolders.slice(-200);
+
+  return {
+    markers: Object.values(markerMap),
+    folders: simpleUnion(cloudState.folders, localState.folders, 'id', _delFolderSet),
+    polygonFolders: simpleUnion(cloudState.polygonFolders, localState.polygonFolders, 'id'),
+    drawnLines: simpleUnion(cloudState.drawnLines, localState.drawnLines, 'name'),
+    layers: simpleUnion(cloudState.layers, localState.layers, 'name'),
+    markerIdCounter: Math.max(cloudState.markerIdCounter||0, localState.markerIdCounter||0),
+    activeFolderId: localState.activeFolderId || cloudState.activeFolderId || null,
+    _deletedMarkerIds: mergedDelMarkers,
+    _deletedFolderIds: mergedDelFolders
+  };
+}
+
 // Save current state to Supabase project_data
+// MERGE dengan cloud data sebelum save supaya data admin & viewer tidak saling timpa.
+// Viewer BOLEH menyimpan ke cloud. Viewer TIDAK BISA menghapus (diblokir di UI).
 async function saveStateToSupabase(){
-  if(!isSupabaseReady || !currentProjectId || syncInProgress) return;
+  if(!isSupabaseReady){
+    console.warn('[Save] SKIP: isSupabaseReady=false');
+    return;
+  }
+  if(!currentProjectId){
+    console.warn('[Save] SKIP: currentProjectId is null');
+    return;
+  }
+  if(syncInProgress){
+    // Jangan drop save — queue supaya tidak hilang!
+    console.log('[Save] syncInProgress=true → queuing save');
+    saveQueued = true;
+    return;
+  }
   syncInProgress = true;
+  var _saveRole = isAdminUser ? 'Admin' : 'Viewer';
   try{
-    const stateData = serializeState();
+    // 1. Ambil data terbaru dari cloud untuk di-merge
+    var _cloudRow = null;
+    try{
+      var _res = await sb.from('project_data')
+        .select('data,version')
+        .eq('project_id', currentProjectId)
+        .maybeSingle();
+      if(_res.error){
+        console.error('[Save] ERROR read cloud:', _res.error.message, _res.error.code);
+        if(!isAdminUser) showToast('Gagal baca data cloud: ' + _res.error.message, 'error');
+      }
+      if(!_res.error && _res.data){
+        _cloudRow = _res.data;
+        if(_cloudRow.version && _cloudRow.version > lastSyncVersion){
+          console.log('[Save] Cloud version',_cloudRow.version,'> local',lastSyncVersion,'— updating');
+          lastSyncVersion = _cloudRow.version;
+        }
+      }
+    }catch(e){
+      console.error('[Save] Exception read cloud:', e);
+    }
+
+    // 2. Serialize local state
+    var localState = serializeState();
+    console.log('['+_saveRole+' Save] Local markers:', localState.markers.length, 'folders:', (localState.folders||[]).length);
+
+    // 3. Merge supaya data viewer yang ditambahkan tidak hilang saat admin save
+    // Admin: local state utama + ambil titik baru dari cloud (viewer-created)
+    // Viewer: merge supaya data admin + data viewer keduanya tersimpan
+    var finalState;
+    if(isAdminUser){
+      if(_cloudRow && _cloudRow.data){
+        // Admin local sebagai "cloud" (utama), cloud sebagai "local" (tambahan viewer)
+        // deepMergeState(a,b): a dimasukkan dulu ke map, b ditambahkan jika belum ada
+        // Jadi: semua data admin masuk, titik viewer yang belum ada di admin juga masuk
+        // Titik yang dihapus admin (tidak ada di local) tidak ikut masuk dari cloud
+        finalState = deepMergeState(localState, _cloudRow.data);
+        console.log('['+_saveRole+' Save] Admin merge — markers:', finalState.markers.length);
+      }else{
+        finalState = localState;
+        console.log('['+_saveRole+' Save] Admin — no cloud, local only');
+      }
+    }else if(_cloudRow && _cloudRow.data){
+      finalState = deepMergeState(_cloudRow.data, localState);
+      console.log('['+_saveRole+' Save] Viewer merge — markers:', finalState.markers.length);
+    }else{
+      finalState = localState;
+      console.log('['+_saveRole+' Save] No cloud data, using local only');
+    }
+
+    // 4. Save merged state
     lastSyncVersion++;
+    console.log('['+_saveRole+' Save] Upserting version', lastSyncVersion);
     const {error} = await sb.from('project_data').upsert({
       project_id: currentProjectId,
-      data: stateData,
+      data: finalState,
       version: lastSyncVersion,
-      updated_by: currentUser ? currentUser.name : 'admin',
+      updated_by: currentUser ? currentUser.name : 'viewer',
       updated_at: new Date().toISOString()
     }, {onConflict: 'project_id'});
-    if(error) throw error;
+    if(error){
+      console.error('['+_saveRole+' Save] UPSERT ERROR:', error.message, error.code, error.details);
+      if(!isAdminUser) showToast('Gagal simpan ke cloud: ' + error.message, 'error');
+      throw error;
+    }
+    console.log('['+_saveRole+' Save] SUCCESS v' + lastSyncVersion + ' — ' + finalState.markers.length + ' markers');
     updateSyncStatus('online','Tersinkron');
   }catch(e){
-    console.warn('Save to Supabase error:', e);
-    // Don't show error for every save - only log
+    console.error('['+_saveRole+' Save] CATCH:', e);
   }finally{
     syncInProgress = false;
+    // Jika ada save yang di-queue selama save ini berjalan, lakukan sekarang
+    if(saveQueued){
+      saveQueued = false;
+      console.log('['+_saveRole+' Save] Processing queued save...');
+      // Delay kecil supaya realtime update dari save ini sempat diproses dulu
+      setTimeout(function(){ saveStateToSupabase(); }, 300);
+    }
   }
 }
 
@@ -3223,8 +4080,15 @@ async function loadStateFromSupabase(){
       .maybeSingle();
     if(error) throw error;
     if(!data || !data.data){
-      console.log('No remote data found, using local state');
-      // Upload local data as initial
+      console.log('No remote data found for project:', currentProjectId);
+      // Viewer mode: jangan upload data lokal jika tidak ada data remote
+      // (mencegah data lama di-upload kembali setelah admin reset)
+      if(!isAdminUser){
+        console.log('Viewer mode: skip uploading local data after reset');
+        return false;
+      }
+      // Admin: upload local data as initial
+      console.log('Admin mode: uploading local data as initial');
       await uploadLocalDataToProject();
       return false;
     }
@@ -3250,6 +4114,11 @@ async function deleteLayerFromFirestore(layerId){}
 async function uploadLocalDataToProject(){
   if(!isSupabaseReady || !currentProjectId){
     showToast('Data tersimpan lokal. Sinkronisasi memerlukan koneksi Supabase.','success');
+    return;
+  }
+  // Viewer mode: jangan upload data ke Supabase
+  if(!isAdminUser){
+    console.log('Viewer: skipping uploadLocalDataToProject');
     return;
   }
   try{
@@ -3280,15 +4149,25 @@ async function syncAllMarkersToFirestore(){ await saveStateToSupabase(); }
 // Viewer TIDAK bisa: hapus proyek, hapus semua titik, akses pengaturan
 function enforceAdminControls(){
   if(isAdminUser){
-    // Admin: tampilkan gear settings
     var s=document.getElementById('btn-settings');if(s)s.classList.remove('hidden-settings');
+    document.body.classList.remove('viewer-mode');
+    var lea=document.getElementById('layer-export-actions');if(lea)lea.style.display='';
+    var eta=document.getElementById('edit-titik-actions');if(eta)eta.style.display='';
+    var beb=document.getElementById('batch-edit-bar');if(beb)beb.style.display='';
     return;
   }
+  // Viewer mode
+  document.body.classList.add('viewer-mode');
   document.querySelectorAll('.delete-project-btn').forEach(function(b){b.style.display='none';});
   var d = document.getElementById('btn-toggle-delete-mode'); if(d) d.style.display='none';
   var r = document.getElementById('proyek-delete-row'); if(r) r.style.display='none';
   var cl = document.querySelector('button[onclick="clearAllData()"]'); if(cl) cl.style.display='none';
   var da = document.getElementById('btn-delete-all-markers'); if(da) da.style.display='none';
+  var lea=document.getElementById('layer-export-actions');if(lea)lea.style.display='none';
+  var eta=document.getElementById('edit-titik-actions');if(eta)eta.style.display='none';
+  var beb=document.getElementById('batch-edit-bar');if(beb)beb.style.display='none';
+  try{renderLayers();}catch(x){}
+  try{renderMarkerList();}catch(x){}
   updateSyncStatus('online','Viewer Mode');
   console.log('Viewer mode enforced');
 }
@@ -3493,8 +4372,8 @@ window.__editMarker=(id)=>{
     if(previewEl) previewEl.classList.add('hidden');
     if(sizeEl) sizeEl.textContent = '';
   }
-  // Load comments
-  renderEditComments(m);
+  // Load comment field (simple text, like description)
+  document.getElementById('edit-comment').value = m.comment || '';
   // Sembunyikan tombol Hapus untuk viewer
   var editBtns = document.querySelectorAll('#edit-modal button');
   editBtns.forEach(function(b){if(b.getAttribute('onclick')==='deleteEditingMarker()') b.style.display = isAdminUser ? '' : 'none';});
@@ -4126,10 +5005,10 @@ async function handleUrlImport() {
       return;
     }
 
-    // Add as layer (no fileId since it's from URL)
+    // Add as layer (no fileId since it's from URL, but save the URL for sync)
     showUrlStatus('Menambahkan ' + geojson.features.length + ' feature ke peta...', 'blue');
     await new Promise(function(r){setTimeout(r,30);}); // yield to UI
-    addGeoJsonLayer('[URL] ' + fileName, geojson, true, null);
+    addGeoJsonLayer('[URL] ' + fileName, geojson, true, null, url);
     addToUrlHistory(url);
     showUrlStatus('Berhasil! ' + geojson.features.length + ' feature dimuat dari URL', 'green');
     showToast('Layer berhasil dimuat: ' + geojson.features.length + ' feature', 'success');
@@ -4279,7 +5158,7 @@ async function loadFileAsLayer(file,setVisible,fileId){
   }
 }
 
-function addGeoJsonLayer(fileName,geojson,setVisible,fileId){
+function addGeoJsonLayer(fileName,geojson,setVisible,fileId,importUrl){
   const idx=layers.length;
   const color=LAYER_COLORS[idx%LAYER_COLORS.length];
   const layerNames=[];
@@ -4372,9 +5251,9 @@ function addGeoJsonLayer(fileName,geojson,setVisible,fileId){
 
   const visible=setVisible!==false;
   if(visible&&geoJsonLayers)geoJsonLayers.addLayer(geoJsonLayer);
-  const layerObj = {name:fileName,geojson,layerNames,color,geoJsonLayer,visible,fileId:fileId||null,_layerId:'layer-'+Date.now()+'-'+Math.random().toString(36).substring(2,8),_useCluster:useCluster};
+  const layerObj = {name:fileName,geojson,layerNames,color,geoJsonLayer,visible,fileId:fileId||null,_layerId:'layer-'+Date.now()+'-'+Math.random().toString(36).substring(2,8),_useCluster:useCluster,_importUrl:importUrl||null,_createdBy:isAdminUser?'admin':'viewer'};
   layers.push(layerObj);
-  if(visible){
+  if(visible && !_isRestoringLayers){
     try{
       if(typeof geoJsonLayer.getBounds==='function' && geoJsonLayer.getBounds().isValid()){
         map.fitBounds(geoJsonLayer.getBounds().pad(0.1));
@@ -4398,11 +5277,13 @@ function addGeoJsonLayer(fileName,geojson,setVisible,fileId){
     }catch(e){console.warn('fitBounds error:',e);}
   }
   renderLayers();
-  debouncedSave();
+  if(!_isRestoringLayers){
+    debouncedSave();
+    // Sync layer ke Firestore
+    syncLayerToFirestore(layerObj);
+  }
   // Trigger canvas label redraw
   if(window._redrawCanvasLabels)window._redrawCanvasLabels();
-  // Sync layer ke Firestore
-  syncLayerToFirestore(layerObj);
 }
 
 
@@ -4764,10 +5645,18 @@ function renderLayers(){
   const c=document.getElementById('layer-list');
   const exportActions=document.getElementById('layer-export-actions');
   if(layers.length===0){c.innerHTML='';if(exportActions)exportActions.classList.add('hidden');return;}
-  if(exportActions)exportActions.classList.remove('hidden');
+  // Viewer: JANGAN tampilkan layer-export-actions (Pilih Semua + Export KMZ)
+  if(isAdminUser && exportActions)exportActions.classList.remove('hidden');
   c.innerHTML=layers.map((l,i)=>{
     const checked=selectedLayerIdxs.has(i)?'checked':'';
-    return '<div class="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50 group'+(selectedLayerIdxs.has(i)?' bg-blue-50 border-blue-200':'')+'"><input type="checkbox" data-layer-idx="'+i+'" '+checked+' onchange="toggleLayerSelection('+i+',this.checked)" onclick="event.stopPropagation()" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 accent-blue-600 shrink-0 cursor-pointer" /><label class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"><input type="checkbox" '+(l.visible?'checked':'')+' onchange="toggleLayer('+i+')" class="rounded text-emerald-600 focus:ring-emerald-500" /><div class="w-3 h-3 rounded-sm shrink-0" style="background:'+l.color+'"></div><span class="text-xs text-gray-700 truncate flex-1">'+esc(l.name)+'</span></label><span class="text-[10px] text-gray-400">'+l.layerNames.length+'</span><button onclick="removeLayer('+i+')" class="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-0.5" title="Hapus layer"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div>';
+    // Viewer: TIDAK bisa manage layer admin (termasuk layer tanpa _createdBy)
+    const isAdminLayer = !l._createdBy || l._createdBy === 'admin';
+    const canManage = isAdminUser || !isAdminLayer;
+    // Checkbox seleksi (untuk export) — HANYA admin
+    const selCb = isAdminUser ? '<input type="checkbox" data-layer-idx="'+i+'" '+checked+' onchange="toggleLayerSelection('+i+',this.checked)" onclick="event.stopPropagation()" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 accent-blue-600 shrink-0 cursor-pointer" />' : '';
+    // Tombol hapus — hanya admin atau viewer untuk layer sendiri
+    const delBtn = canManage ? '<button onclick="removeLayer('+i+')" class="layer-del-btn text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-0.5" title="Hapus layer"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>' : '';
+    return '<div class="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50 group'+(selectedLayerIdxs.has(i)?' bg-blue-50 border-blue-200':'')+'">'+selCb+'<label class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"><input type="checkbox" '+(l.visible?'checked':'')+' onchange="toggleLayer('+i+')" class="rounded text-emerald-600 focus:ring-emerald-500" /><div class="w-3 h-3 rounded-sm shrink-0" style="background:'+l.color+'"></div><span class="text-xs text-gray-700 truncate flex-1">'+esc(l.name)+'</span></label><span class="text-[10px] text-gray-400">'+l.layerNames.length+'</span>'+delBtn+'</div>';
   }).join('');
   updateLayerSelectionUI();
 }
@@ -4798,6 +5687,8 @@ function toggleLayer(i){
 
 function removeLayer(i){
   const l=layers[i];
+  if(!isAdminUser && l._createdBy === 'admin'){showToast('Viewer tidak bisa menghapus layer admin','error');return;}
+  if(!isAdminUser && l._createdBy !== 'viewer'){showToast('Viewer tidak bisa menghapus layer ini','error');return;}
   if(geoJsonLayers)geoJsonLayers.removeLayer(l.geoJsonLayer);
   const lid = l._layerId;
   layers.splice(i,1);
@@ -4870,10 +5761,15 @@ function addManualMarker(){
 }
 
 function addMarker(lat,lng,type,customName){
+  // Viewer: pastikan ada proyek aktif supaya data tersimpan ke cloud
+  if(!isAdminUser && !currentProjectId && isSupabaseReady){
+    showToast('Pilih proyek terlebih dahulu di menu Proyek','error');
+    return;
+  }
   const id='marker-' + (++markerIdCounter);
   const name=customName||('Titik '+markerIdCounter);
   const color=sanitizeColor(MARKER_COLORS[type]||'#22c55e');
-  const m={id,lat,lng,name,description:'',color,userId:'User',timestamp:new Date().toISOString(),folderId:activeFolderId||undefined};
+  const m={id,lat,lng,name,description:'',color,userId:'User',timestamp:new Date().toISOString(),folderId:activeFolderId||undefined,comment:''};
   markers.set(id,m);
 
   const icon=L.divIcon({
@@ -4953,6 +5849,16 @@ function buildMarkerPopupHtml(m) {
     });
   }
 
+  // Komentar preview — field tunggal seperti deskripsi
+  if (m.comment) {
+    const bg = rowIdx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.04)';
+    h += '<div style="padding:6px 12px;background:' + bg + ';">';
+    h += '<div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Komentar</div>';
+    h += '<div style="font-size:11px;color:rgba(255,255,255,.8);line-height:1.4;white-space:pre-wrap;">' + esc(m.comment) + '</div>';
+    h += '</div>';
+    rowIdx++;
+  }
+
   h += '</div>';
 
   // ── Footer ──
@@ -4960,9 +5866,9 @@ function buildMarkerPopupHtml(m) {
   h += '<div style="font-size:9px;color:rgba(255,255,255,.4);">' + esc(m.userId) + '</div>';
   h += '<div style="display:flex;gap:4px;">';
   h += '<button onclick="showQrCode(\'' + m.id + '\')" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 10px;font-size:10px;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:4px;transition:all .15s;" onmouseenter="this.style.background=\'rgba(255,255,255,.2)\'" onmouseleave="this.style.background=\'rgba(255,255,255,.1)\'" title="QR Code"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>QR</button>';
-  var cmtCount = (m.comments && m.comments.length) || 0;
+  var _hasComment = !!m.comment;
   h += '<button onclick="window.__editMarker(\'' + m.id + '\')" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 12px;font-size:10px;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:4px;transition:all .15s;" onmouseenter="this.style.background=\'rgba(255,255,255,.2)\'" onmouseleave="this.style.background=\'rgba(255,255,255,.1)\'" onmousedown="this.style.opacity=.8" onmouseup="this.style.opacity=1">';
-  h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit' + (cmtCount > 0 ? ' <span style="background:#f59e0b;color:#000;border-radius:99px;padding:0 5px;font-size:8px;">' + cmtCount + '</span>' : '') + '</button>';
+  h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit' + (_hasComment ? ' <span style="background:#f59e0b;color:#000;border-radius:99px;padding:0 5px;font-size:8px;">&#x1F4AC;</span>' : '') + '</button>';
   h += '</div>';
   h += '</div>';
 
@@ -4980,7 +5886,7 @@ function getFilteredMarkers(){
   if(q){arr=arr.filter(function(m){return (m.name||'').toLowerCase().includes(q)||(m.description||'').toLowerCase().includes(q)||(m.lat+', '+m.lng).includes(q);});}
   if(currentMarkerFilter==='photo') arr=arr.filter(function(m){return !!m.photo;});
   else if(currentMarkerFilter==='nophoto') arr=arr.filter(function(m){return !m.photo;});
-  else if(currentMarkerFilter==='comment') arr=arr.filter(function(m){return m.comments&&m.comments.length>0;});
+  else if(currentMarkerFilter==='comment') arr=arr.filter(function(m){return !!m.comment;});
   return arr;
 }
 function setMarkerFilter(f,el){
@@ -4997,15 +5903,19 @@ function renderMarkerList(){
   const actionsEl=document.getElementById('edit-titik-actions');
   const c=document.getElementById('marker-list');
   if(markers.size===0){
-    actionsEl.classList.add('hidden');
+    if(actionsEl)actionsEl.classList.add('hidden');
     selectedMarkerIds.clear();
     c.innerHTML='<p class="text-center text-gray-400 text-xs py-4">Belum ada titik</p>';return;
   }
-  actionsEl.classList.remove('hidden');
+  // Viewer: tetap sembunyikan edit-titik-actions (berisi tombol hapus)
+  if(!isAdminUser && actionsEl) actionsEl.classList.add('hidden');
+  else if(actionsEl) actionsEl.classList.remove('hidden');
   var filtered=getFilteredMarkers();
   c.innerHTML=filtered.map(m=>{
     const checked=selectedMarkerIds.has(m.id)?'checked':'';
-    return '<div class="flex items-center gap-2 p-1.5 rounded hover:bg-gray-50 group'+(selectedMarkerIds.has(m.id)?' bg-indigo-50 border border-indigo-200':'')+'"><input type="checkbox" data-marker-id="'+m.id+'" '+checked+' onchange="toggleMarkerSelection(\''+m.id+'\',this.checked)" onclick="event.stopPropagation()" class="w-3.5 h-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 shrink-0 cursor-pointer" /><div class="w-2.5 h-2.5 rounded-full shrink-0" style="background:'+sanitizeColor(m.color)+'"></div>'+(m.photo?'<svg class="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>':'')+'<div class="flex-1 min-w-0 cursor-pointer" onclick="window.__editMarker(\''+m.id+'\')"><p class="text-[11px] font-medium text-gray-700 truncate">'+esc(m.name)+'</p><p class="text-[9px] text-gray-400 font-mono">'+m.lat.toFixed(5)+', '+m.lng.toFixed(5)+'</p></div></div>';
+    // Viewer: JANGAN tampilkan checkbox seleksi titik
+    const mkCb = isAdminUser ? '<input type="checkbox" data-marker-id="'+m.id+'" '+checked+' onchange="toggleMarkerSelection(\''+m.id+'\',this.checked)" onclick="event.stopPropagation()" class="w-3.5 h-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 shrink-0 cursor-pointer" />' : '';
+    return '<div class="flex items-center gap-2 p-1.5 rounded hover:bg-gray-50 group'+(selectedMarkerIds.has(m.id)?' bg-indigo-50 border border-indigo-200':'')+'">'+mkCb+'<div class="w-2.5 h-2.5 rounded-full shrink-0" style="background:'+sanitizeColor(m.color)+'"></div>'+(m.photo?'<svg class="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>':'')+'<div class="flex-1 min-w-0 cursor-pointer" onclick="window.__editMarker(\''+m.id+'\')"><p class="text-[11px] font-medium text-gray-700 truncate">'+esc(m.name)+'</p><p class="text-[9px] text-gray-400 font-mono">'+m.lat.toFixed(5)+', '+m.lng.toFixed(5)+'</p></div></div>';
   }).join('');
   updateSelectionUI();
   // Update batch bar
@@ -5057,11 +5967,17 @@ async function deleteSelectedMarkers(){
     // Sync deletion to Firestore
     deleteMarkerFromFirestore(id);
   });
+  // Track deleted IDs so viewer merge won't restore them
+  _deletedMarkerIds.push(...idsToDelete);
+  if(_deletedMarkerIds.length > 500) _deletedMarkerIds = _deletedMarkerIds.slice(-500);
   selectedMarkerIds.clear();
-  renderMarkerList();renderFolderList();renderPolygonFolders();renderLayers();debouncedSave();
+  renderMarkerList();renderFolderList();renderPolygonFolders();renderLayers();
+  // Save IMMEDIATELY (not debounced) to prevent race condition with realtime
+  saveState(); saveStateToSupabase();
 }
 
 async function deleteAllMarkers(){
+  if(!isAdminUser){showToast('Hanya admin yang bisa menghapus semua titik','error');return;}
   if(markers.size===0)return;
   if(!await appConfirm('Hapus SEMUA '+markers.size+' titik? Tindakan ini tidak bisa dibatalkan.'))return;
   const allIds = [...markers.keys()];
@@ -5070,9 +5986,14 @@ async function deleteAllMarkers(){
   });
   markers.clear();
   selectedMarkerIds.clear();
+  // Track deleted IDs so viewer merge won't restore them
+  _deletedMarkerIds.push(...allIds);
+  if(_deletedMarkerIds.length > 500) _deletedMarkerIds = _deletedMarkerIds.slice(-500);
   // Sync all deletions to Firestore
   allIds.forEach(id => deleteMarkerFromFirestore(id));
-  renderMarkerList();renderFolderList();renderPolygonFolders();renderLayers();debouncedSave();
+  renderMarkerList();renderFolderList();renderPolygonFolders();renderLayers();
+  // Save IMMEDIATELY (not debounced) to prevent race condition with realtime
+  saveState(); saveStateToSupabase();
 }
 
 // ==================== EDIT MARKER MODAL ====================
@@ -5202,7 +6123,10 @@ function saveMarkerEdit(){
   if(editingPhotoData !== null){
     m.photo = editingPhotoData || null;
   }
-  // Comments are already saved in-place via addCommentToMarker/deleteComment
+  // WAJIB update timestamp supaya deepMergeState tahu edit ini lebih baru
+  m.timestamp = new Date().toISOString();
+  // Save comment field (simple text, like description)
+  m.comment = document.getElementById('edit-comment').value;
   if(m.leafletMarker)m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
   closeEditModal();renderMarkerList();renderFolderList();debouncedSave();
 }
@@ -5213,7 +6137,12 @@ function deleteEditingMarker(){
   const m=markers.get(editingMarkerId);
   if(m&&m.leafletMarker)userMarkers.removeLayer(m.leafletMarker);
   markers.delete(editingMarkerId);
-  closeEditModal();renderMarkerList();renderFolderList();debouncedSave();
+  // Track deleted ID so viewer merge won't restore it
+  _deletedMarkerIds.push(editingMarkerId);
+  if(_deletedMarkerIds.length > 500) _deletedMarkerIds = _deletedMarkerIds.slice(-500);
+  closeEditModal();renderMarkerList();renderFolderList();
+  // Save IMMEDIATELY (not debounced) to prevent race condition with realtime
+  saveState(); saveStateToSupabase();
 }
 
 // ==================== MARKER FOLDERS ====================
@@ -5804,7 +6733,12 @@ function deleteFolder(folderId){
   folders=folders.filter(f=>f.id!==folderId);
   if(activeFolderId===folderId)activeFolderId=null;
   markers.forEach(m=>{if(m.folderId===folderId)m.folderId=null;});
-  renderFolderList();updateFolderSelects();debouncedSave();
+  // Track deleted ID so viewer merge won't restore it
+  _deletedFolderIds.push(folderId);
+  if(_deletedFolderIds.length > 200) _deletedFolderIds = _deletedFolderIds.slice(-200);
+  renderFolderList();updateFolderSelects();
+  // Save IMMEDIATELY (not debounced) to prevent race condition with realtime
+  saveState(); saveStateToSupabase();
 }
 
 // ==================== POLYGON FOLDERS ====================
@@ -6409,7 +7343,7 @@ function renderDataTable(searchQ){
       if(s.col==='no'){return 0;}
       else if(s.col==='folder'){var fa=folders.find(function(f){return f.id===a.folderId;});var fb=folders.find(function(f){return f.id===b.folderId;});va=(fa?fa.name:'-').toLowerCase();vb=(fb?fb.name:'-').toLowerCase();}
       else if(s.col==='photo'){va=a.photo?1:0;vb=b.photo?1:0;}
-      else if(s.col==='comments'){va=(a.comments||[]).length;vb=(b.comments||[]).length;}
+      else if(s.col==='comments'){va=a.comment||'';vb=b.comment||'';}
       else if(s.col==='timestamp'){va=a.timestamp||'';vb=b.timestamp||'';}
       else{va=String(a[s.col]||'').toLowerCase();vb=String(b[s.col]||'').toLowerCase();}
       if(va<vb)return s.asc?-1:1;if(va>vb)return s.asc?1:-1;return 0;
@@ -6433,7 +7367,7 @@ function renderDataTable(searchQ){
     h+='<td title="'+esc(m.description||'')+'">'+esc((m.description||'').substring(0,40))+'</td>';
     h+='<td>'+(folder?esc(folder.name):'<span style="color:#ccc">-</span>')+'</td>';
     h+='<td>'+(m.photo?'&#x1F4F7;':'-')+'</td>';
-    h+='<td>'+(m.comments&&m.comments.length?'&#x1F4AC; '+m.comments.length:'-')+'</td>';
+    h+='<td>'+(m.comment?'&#x1F4AC;':'-')+'</td>';
     h+='<td style="font-size:9px;color:#999">'+(m.timestamp?new Date(m.timestamp).toLocaleDateString('id-ID'):'-')+'</td>';
     h+='</tr>';
   });
@@ -6449,10 +7383,10 @@ function sortDataTable(col){
 function filterDataTable(q){renderDataTable(q);}
 function exportDataTableToExcel(){
   if(dataTableData.length===0){showToast('Tidak ada data','error');return;}
-  var ws_data=[['No','Nama','Latitude','Longitude','Deskripsi','Folder','Punya Foto','Jumlah Komentar','Tanggal']];
+  var ws_data=[['No','Nama','Latitude','Longitude','Deskripsi','Folder','Punya Foto','Komentar','Tanggal']];
   dataTableData.forEach(function(m,i){
     var folder=folders.find(function(f){return f.id===m.folderId;});
-    ws_data.push([i+1,m.name,m.lat.toFixed(6),m.lng.toFixed(6),m.description||'',folder?folder.name:'',m.photo?'Ya':'Tidak',(m.comments||[]).length,m.timestamp?new Date(m.timestamp).toLocaleString('id-ID'):'']);
+    ws_data.push([i+1,m.name,m.lat.toFixed(6),m.lng.toFixed(6),m.description||'',folder?folder.name:'',m.photo?'Ya':'Tidak',m.comment||'-',m.timestamp?new Date(m.timestamp).toLocaleString('id-ID'):'']);
   });
   var wb=XLSX.utils.book_new();
   var ws=XLSX.utils.aoa_to_sheet(ws_data);
@@ -6523,55 +7457,15 @@ function updateGpsTrackInfo(){
 }
 
 // ==================== FEATURE 4: COMMENTS ====================
-function renderEditComments(m){
-  var list=document.getElementById('edit-comments-list');
-  var countEl=document.getElementById('edit-comment-count');
-  var comments=m.comments||[];
-  countEl.textContent=comments.length;
-  if(comments.length===0){list.innerHTML='<p class="text-[10px] text-gray-400 text-center py-2">Belum ada komentar</p>';return;}
-  var h='';
-  comments.slice().reverse().forEach(function(c,i){
-    var initial=(c.user||'U').charAt(0).toUpperCase();
-    h+='<div class="comment-item"><div class="comment-avatar">'+esc(initial)+'</div><div class="comment-body"><div class="flex items-center gap-2"><span class="comment-name">'+esc(c.user||'User')+'</span><span class="comment-time">'+(c.time?timeAgo(c.time):'')+'</span><button class="comment-delete ml-auto text-red-400 hover:text-red-600 text-xs" onclick="deleteComment('+(comments.length-1-i)+')">x</button></div><p class="comment-text">'+esc(c.text)+'</p></div></div>';
-  });
-  list.innerHTML=h;
-}
-function timeAgo(ts){
-  var d=Date.now()-new Date(ts).getTime();
-  if(d<60000) return 'baru saja';
-  if(d<3600000) return Math.floor(d/60000)+'m lalu';
-  if(d<86400000) return Math.floor(d/3600000)+'j lalu';
-  return Math.floor(d/86400000)+'h lalu';
-}
-function addCommentToMarker(){
-  if(!editingMarkerId) return;
-  var input=document.getElementById('edit-comment-input');
-  var text=input.value.trim();
-  if(!text) return;
-  var m=markers.get(editingMarkerId);
-  if(!m) return;
-  if(!m.comments) m.comments=[];
-  m.comments.push({text:text,user:currentUser?currentUser.displayName||currentUser.email:'User',time:new Date().toISOString()});
-  input.value='';
-  renderEditComments(m);
-  debouncedSave();
-}
-function deleteComment(idx){
-  if(!editingMarkerId) return;
-  var m=markers.get(editingMarkerId);
-  if(!m||!m.comments) return;
-  m.comments.splice(idx,1);
-  renderEditComments(m);
-  if(m.leafletMarker) m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
-  debouncedSave();
-}
+
 
 // ==================== FEATURE 5: BATCH EDIT ====================
 function batchMoveToFolder(){
   if(selectedMarkerIds.size===0){showToast('Pilih titik dulu','error');return;}
   var folderId=document.getElementById('batch-folder-select').value;
   if(!folderId){showToast('Pilih folder tujuan','error');return;}
-  selectedMarkerIds.forEach(function(id){var m=markers.get(id);if(m){m.folderId=folderId;}});
+  var now=new Date().toISOString();
+  selectedMarkerIds.forEach(function(id){var m=markers.get(id);if(m){m.folderId=folderId;m.timestamp=now;}});
   renderMarkerList();renderFolderList();debouncedSave();
   showToast(selectedMarkerIds.size+' titik dipindahkan','success');
 }
@@ -6580,9 +7474,10 @@ function batchChangeColor(){
   var color=prompt('Masukkan warna hex (misal: #ef4444):','#ef4444');
   if(!color) return;
   color=sanitizeColor(color);
+  var now=new Date().toISOString();
   selectedMarkerIds.forEach(function(id){
     var m=markers.get(id);if(!m) return;
-    m.color=color;
+    m.color=color;m.timestamp=now;
     if(m.leafletMarker){
       var icon=L.divIcon({html:'<div style="width:28px;height:28px;background:'+color+';border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>',className:'',iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-28]});
       m.leafletMarker.setIcon(icon);
@@ -6754,11 +7649,16 @@ function finishDrawLine(){
 // ==================== PWA SERVICE WORKER ====================
 (function initPWA() {
   if (!('serviceWorker' in navigator)) return;
+  // UNREGISTER semua SW lama + hapus semua cache — fix PWA stale cache
+  // Terutama penting untuk viewer yang selalu butuh code terbaru
+  if(caches){caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k);});});}
+  if(navigator.serviceWorker){navigator.serviceWorker.getRegistrations().then(function(regs){regs.forEach(function(r){r.unregister();});});}
+  // Skip PWA untuk viewer mode — viewer selalu butuh data fresh
+  if(window._gateViewerMode){console.log('[PWA] Viewer mode — skip SW registration');return;}
 
   const SW_CODE = `
-const CACHE_NAME = 'comsur-survey-v9';
+const CACHE_NAME = 'comsur-survey-v10';
 const ASSETS_TO_CACHE = [
-  './',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
@@ -6786,6 +7686,20 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  // NETWORK-FIRST untuk navigation request (HTML) supaya selalu dapat versi terbaru
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+  // CACHE-FIRST untuk asset CDN (CSS, JS library)
   event.respondWith(
     caches.match(event.request).then(cached => {
       const fetchPromise = fetch(event.request).then(response => {
