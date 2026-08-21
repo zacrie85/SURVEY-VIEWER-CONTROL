@@ -2,7 +2,10 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<!-- CACHE BUSTER: selalu bersihkan cache & SW untuk viewer mode -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- CACHE BUSTER v12: selalu bersihkan cache & SW untuk viewer mode -->
 <script>
 (function(){
   try{
@@ -2008,11 +2011,11 @@ async function loadState(){
     // Restore folders first
     folders=state.folders||[];
 
-    // Restore markers (without leafletMarker)
+    // Restore markers (DEEP CLONE supaya tidak ada shared reference)
     // JANGAN pernah turunkan markerIdCounter
     markerIdCounter=Math.max(markerIdCounter||0, state.folderIdCounter||0, state.markerIdCounter||0);
     state.markers.forEach(m=>{
-      markers.set(m.id,{...m,leafletMarker:null});
+      markers.set(m.id, JSON.parse(JSON.stringify(m)));
     });
     // Re-create leaflet markers
     markers.forEach((m,id)=>{
@@ -3509,11 +3512,14 @@ function stopAllFirestoreListeners(){
 }
 
 // Serialize current local state to a JSON-serializable object
+// DEEP CLONE setiap marker supaya tidak ada shared reference (comments, dll)
 function serializeState(){
   return {
     markers: Array.from(markers.values()).map(m => {
-      const {leafletMarker, ...rest} = m;
-      return rest;
+      // Deep clone: serialize lalu parse kembali = objek 100% independen
+      var cloned = JSON.parse(JSON.stringify(m));
+      delete cloned.leafletMarker;
+      return cloned;
     }),
     folders: folders,
     polygonFolders: polygonFolders.map(pf => ({
@@ -3633,6 +3639,19 @@ async function deserializeState(data){
       var cloned = JSON.parse(JSON.stringify(m));
       markers.set(cloned.id, cloned);
       rebuildMarkerOnMap(cloned);
+    });
+
+    // DIAGNOSTIC: cek apakah ada shared comments reference antar marker
+    var _commentRefs = {};
+    markers.forEach(function(mk, mkId){
+      if(mk.comments && mk.comments.length > 0){
+        var refKey = mk.comments.map(function(c){ return c._cid || c.time; }).join('|');
+        if(_commentRefs[refKey] && _commentRefs[refKey] !== mkId){
+          console.warn('[Deserialize] WARNING: shared comments detected between', _commentRefs[refKey], 'and', mkId, '- fixing...');
+          mk.comments = JSON.parse(JSON.stringify(mk.comments));
+        }
+        _commentRefs[refKey] = mkId;
+      }
     });
 
     // Rebuild polygon folder highlights
@@ -3763,16 +3782,22 @@ function deepMergeState(cloudState, localState){
     // Mulai dari winner (deep clone)
     var merged = cloneObj(winner);
 
-    // UNION comments: gabungkan comments dari kedua versi, dedup by time
+    // UNION comments: gabungkan comments dari kedua versi, dedup by _cid (atau time fallback)
     var cloudComments = (cloudM.comments && Array.isArray(cloudM.comments)) ? cloudM.comments : [];
     var localComments = (localM.comments && Array.isArray(localM.comments)) ? localM.comments : [];
     if(cloudComments.length > 0 || localComments.length > 0){
       var commentMap = {};
       cloudComments.forEach(function(c){
-        if(c && c.time) commentMap[c.time] = c;
+        if(c){
+          var key = c._cid || ('t_' + (c.time || ''));
+          commentMap[key] = c;
+        }
       });
       localComments.forEach(function(c){
-        if(c && c.time) commentMap[c.time] = c; // local overwrites jika waktu sama
+        if(c){
+          var key = c._cid || ('t_' + (c.time || ''));
+          commentMap[key] = c; // local overwrites jika key sama
+        }
       });
       merged.comments = Object.values(commentMap);
     }else{
@@ -3885,7 +3910,8 @@ async function saveStateToSupabase(){
 
     // 4. Save merged state
     lastSyncVersion++;
-    console.log('['+_saveRole+' Save] Upserting version', lastSyncVersion);
+    var _dataStr = JSON.stringify(finalState);
+    console.log('['+_saveRole+' Save] Upserting version', lastSyncVersion, '| data size:', _dataStr.length, 'bytes');
     const {error} = await sb.from('project_data').upsert({
       project_id: currentProjectId,
       data: finalState,
@@ -3898,7 +3924,9 @@ async function saveStateToSupabase(){
       if(!isAdminUser) showToast('Gagal simpan ke cloud: ' + error.message, 'error');
       throw error;
     }
-    console.log('['+_saveRole+' Save] SUCCESS v' + lastSyncVersion + ' — ' + finalState.markers.length + ' markers saved');
+    var _finalCmtCount = 0;
+    finalState.markers.forEach(function(mk){ _finalCmtCount += (mk.comments ? mk.comments.length : 0); });
+    console.log('['+_saveRole+' Save] SUCCESS v' + lastSyncVersion + ' — ' + finalState.markers.length + ' markers, ' + _finalCmtCount + ' total comments');
     updateSyncStatus('online','Tersinkron');
   }catch(e){
     console.error('['+_saveRole+' Save] CATCH:', e);
@@ -7313,11 +7341,19 @@ function addCommentToMarker(){
   if(!text) return;
   var m=markers.get(editingMarkerId);
   if(!m) return;
-  if(!m.comments) m.comments=[];
-  m.comments.push({text:text,user:currentUser?currentUser.displayName||currentUser.email:'User',time:new Date().toISOString()});
-  // Update timestamp supaya merge tahu marker ini sudah diubah
+  // BULLETPROOF: selalu buat array BARU supaya tidak ada shared reference
+  var existing = Array.isArray(m.comments) ? m.comments.map(function(c){return {...c};}) : [];
+  var newComment = {
+    _cid: 'c' + Date.now() + '-' + Math.random().toString(36).substr(2,6),
+    text: text,
+    user: currentUser ? currentUser.displayName || currentUser.email : 'User',
+    time: new Date().toISOString()
+  };
+  existing.push(newComment);
+  m.comments = existing; // assign NEW array, bukan push ke array lama
   m.timestamp = new Date().toISOString();
   input.value='';
+  console.log('[Comment] Added to', editingMarkerId, '| total:', m.comments.length, '| _cid:', newComment._cid);
   renderEditComments(m);
   if(m.leafletMarker) m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
   debouncedSave();
@@ -7327,7 +7363,9 @@ function deleteComment(idx){
   if(!editingMarkerId) return;
   var m=markers.get(editingMarkerId);
   if(!m||!m.comments) return;
-  m.comments.splice(idx,1);
+  // BULLETPROOF: buat array BARU setelah hapus
+  var newArr = m.comments.filter(function(c,i){return i !== idx;});
+  m.comments = newArr;
   renderEditComments(m);
   if(m.leafletMarker) m.leafletMarker.setPopupContent(buildMarkerPopupHtml(m));
   debouncedSave();
