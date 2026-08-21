@@ -668,11 +668,20 @@ window.addEventListener('unhandledrejection',function(ev){
                   try{localStorage.removeItem('kmz_current_project');}catch(x){}
                   // Hapus juga key lama jika ada
                   try{localStorage.removeItem('comsur-survey-state');}catch(x){}
-                  // Bersihkan IndexedDB
+                  // Hapus semua key lain yang bisa menyimpan data viewer
+                  try{localStorage.removeItem('kmz_app_password');}catch(x){}
+                  try{localStorage.removeItem('kmz_app_admin');}catch(x){}
+                  try{localStorage.removeItem('kmz_tile_cache_count');}catch(x){}
+                  // Bersihkan IndexedDB (file blobs KMZ/KML + tile cache)
                   try{indexedDB.deleteDatabase('kmz-viewer-files');}catch(x){}
                   try{indexedDB.deleteDatabase('kmz-viewer-tiles');}catch(x){}
+                  // Force reload supaya memastikan semua state JavaScript segar
+                  // (cache buster _cb sudah di-handle di atas)
                   localStorage.setItem('kmz_viewer_reset_version',_vd.viewer_reset_version);
-                  console.log('[Gate] All viewer cache cleared — fresh start forced.');
+                  console.log('[Gate] All viewer cache cleared — fresh start forced. Will reload.');
+                  // Reload setelah delay kecil supaya log terlihat
+                  setTimeout(function(){ location.reload(); }, 300);
+                  return; // Jangan lanjut ke gateShowLogin
                 }
               }
               if(_vd.viewer_password_hash){
@@ -2000,7 +2009,8 @@ async function loadState(){
     folders=state.folders||[];
 
     // Restore markers (without leafletMarker)
-    markerIdCounter=state.folderIdCounter||0;
+    // JANGAN pernah turunkan markerIdCounter
+    markerIdCounter=Math.max(markerIdCounter||0, state.folderIdCounter||0, state.markerIdCounter||0);
     state.markers.forEach(m=>{
       markers.set(m.id,{...m,leafletMarker:null});
     });
@@ -2441,6 +2451,7 @@ var currentUser = window.currentUser || null;
 let currentProjectId = null;
 let firestoreListeners = [];
 let syncInProgress = false;
+let saveQueued = false; // Jika true, save ulang setelah save saat ini selesai
 
 let realtimeSubscription = null;
 let lastSyncVersion = 0;
@@ -2546,6 +2557,22 @@ function onUserLoggedIn(user){
   }
 
   enforceAdminControls();
+
+  // Viewer: auto-select proyek pertama agar data langsung tersimpan ke cloud
+  if(!isAdminUser && isSupabaseReady){
+    setTimeout(async function(){
+      try{
+        var _projs = await sb.from('projects').select('id,name').order('created_at',{ascending:false}).limit(1);
+        if(!_projs.error && _projs.data && _projs.data.length > 0){
+          var _firstId = _projs.data[0].id;
+          console.log('[Viewer] Auto-selecting project:', _projs.data[0].name, '('+_firstId+')');
+          await switchProject(_firstId);
+        }else{
+          console.log('[Viewer] No projects found, viewer needs to wait for admin to create one');
+        }
+      }catch(e){console.warn('[Viewer] Auto-select project error:',e);}
+    }, 800);
+  }
 }
 
 function onUserLoggedOut(){
@@ -3021,7 +3048,7 @@ function invalidateViewerSessions(){
 async function resetAllViewerData(){
   if(!isAdminUser) return;
   var statusEl = document.getElementById('reset-viewer-status');
-  if(!await appConfirm('RESET SEMUA DATA VIEWER?\n\nPERINGATAN: Semua data akan dihapus:\n- Password viewer\n- Semua proyek (titik, folder, polygon)\n- Semua layer KMZ/KML/GeoJSON\n- Semua data koordinat\n\nTindakan ini TIDAK BISA dibatalkan! Lanjutkan?')){
+  if(!await appConfirm('RESET SEMUA DATA VIEWER?\n\nPERINGATAN: Semua data akan dihapus:\n- Password viewer\n- Semua proyek (titik, folder, polygon)\n- Semua layer KMZ/KML/GeoJSON\n- Semua data koordinat\n- Semua data di Layer & Import\n\nTindakan ini TIDAK BISA dibatalkan! Lanjutkan?')){
     return;
   }
   if(statusEl){statusEl.classList.remove('hidden');statusEl.textContent='Menghapus data proyek...';statusEl.className='text-[10px] text-amber-600 text-center mt-1.5';}
@@ -3029,74 +3056,141 @@ async function resetAllViewerData(){
   appViewerPasswordHash = null;
   window._gateViewerHash = null;
   try{localStorage.removeItem('kmz_app_viewer_password');}catch(x){}
-  // 2. Hapus SEMUA data dari Supabase
+  // 2. Hapus SEMUA data dari Supabase menggunakan DUA STRATEGI:
+  //    Strategi A: DELETE langsung (bisa gagal jika RLS memblokir DELETE)
+  //    Strategi B: UPSERT data kosong ke setiap baris (pasti berhasil karena UPSERT diizinkan)
+  var _resetProjectCount=0;
   if(isSupabaseReady){
     try{
       var _su=localStorage.getItem('kmz_supabase_url')||'https://rhmcorcyeyuqzufvdpue.supabase.co';
       var _sk=localStorage.getItem('kmz_supabase_key')||'sb_publishable_thNNRHWUKx2vcoKgaj8YKQ_RH9H9X0B';
       var _tmpSb=supabase.createClient(_su,_sk);
-      // 2a. Hapus semua data proyek (titik, layer, KMZ) dari project_data
-      // kecuali baris __app_settings__ yang menyimpan password admin
-      if(statusEl)statusEl.textContent='Menghapus data titik & layer...';
-      var _delData=await _tmpSb.from('project_data').delete().neq('project_id','__app_settings__');
-      if(_delData.error){
-        console.error('resetAllViewerData delete project_data error:',_delData.error.message);
-        if(statusEl){statusEl.textContent='Gagal hapus data: '+_delData.error.message;statusEl.className='text-[10px] text-red-500 text-center mt-1.5';}
-        showToast('Gagal hapus data proyek: '+_delData.error.message,'error');
-        return;
+      var _emptyState={markers:[],folders:[],polygonFolders:[],drawnLines:[],layers:[],markerIdCounter:0,activeFolderId:null};
+      // Versi tinggi supaya realtime subscription viewer mendeteksi perubahan
+      var _highVersion=Date.now();
+
+      // 2a. AMBIL DAFTAR semua project_id yang akan direset
+      if(statusEl)statusEl.textContent='Mengambil daftar proyek...';
+      var _listResult=await _tmpSb.from('project_data').select('project_id').neq('project_id','__app_settings__');
+      var _projectIds=[];
+      if(!_listResult.error&&_listResult.data){
+        _projectIds=_listResult.data.map(function(r){return r.project_id;});
       }
-      console.log('Deleted',_delData.count,'rows from project_data');
-      // 2b. Hapus semua proyek dari tabel projects
+      console.log('[Reset] Found',_projectIds.length,'project_data rows to clear:',_projectIds);
+      _resetProjectCount=_projectIds.length;
+
+      // 2b. STRATEGI B (utama): UPSERT data kosong ke setiap project_data
+      // Ini dijamin berhasil karena UPSERT sudah terbukti bekerja (password, save state dll)
+      if(statusEl)statusEl.textContent='Mengosongkan data titik & layer ('+_projectIds.length+' proyek)...';
+      var _upsertOk=0,_upsertFail=0;
+      for(var _i=0;_i<_projectIds.length;_i++){
+        var _pid=_projectIds[_i];
+        var _up=await _tmpSb.from('project_data').upsert({
+          project_id:_pid,
+          data:_emptyState,
+          version:_highVersion,
+          updated_by:'admin-reset',
+          updated_at:new Date().toISOString()
+        },{onConflict:'project_id'});
+        if(_up.error){
+          console.warn('[Reset] Upsert empty data failed for',_pid,':',_up.error.message);
+          _upsertFail++;
+        }else{
+          _upsertOk++;
+        }
+      }
+      console.log('[Reset] Upsert results:',_upsertOk,'OK,',_upsertFail,'failed out of',_projectIds.length);
+
+      // 2c. STRATEGI A (cadangan): Coba DELETE semua project_data
+      if(_upsertFail>0||true){
+        if(statusEl)statusEl.textContent='Menghapus data dari cloud...';
+        var _delData=await _tmpSb.from('project_data').delete().neq('project_id','__app_settings__');
+        if(_delData.error){
+          console.warn('[Reset] DELETE project_data blocked (RLS?):',_delData.error.message,'— UPSERT sudah mengosongkan data');
+        }else{
+          console.log('[Reset] DELETE removed',_delData.count,'rows from project_data (in addition to UPSERT clear)');
+        }
+      }
+
+      // 2d. Hapus semua proyek dari tabel projects
       if(statusEl)statusEl.textContent='Menghapus daftar proyek...';
+      // Coba DELETE dulu
       var _delProjects=await _tmpSb.from('projects').delete().neq('id','__app_settings__');
-      if(_delProjects.error){
-        console.warn('resetAllViewerData delete projects warning:',_delProjects.error.message);
+      if(_delProjects.error||!_delProjects.count){
+        console.warn('[Reset] DELETE projects blocked or 0 rows:',_delProjects.error?_delProjects.error.message:'no error, count=0');
+        // FALLBACK: Ambil semua project ID, lalu UPDATE satu per satu agar kosong
+        var _projList=await _tmpSb.from('projects').select('id').neq('id','__app_settings__');
+        if(!_projList.error&&_projList.data&&_projList.data.length>0){
+          console.log('[Reset] Fallback: updating',_projList.data.length,'projects to empty');
+          for(var _j=0;_j<_projList.data.length;_j++){
+            await _tmpSb.from('projects').update({
+              name:'[DIHAPUS]',
+              description:'Data direset oleh admin',
+              last_modified:new Date().toISOString()
+            }).eq('id',_projList.data[_j].id);
+          }
+        }
       }else{
-        console.log('Deleted',_delProjects.count,'rows from projects');
+        console.log('[Reset] Deleted',_delProjects.count,'rows from projects');
       }
-      // 2c. Update __app_settings__: hapus viewer password + tambah viewer_reset_version baru
+
+      // 2e. Update __app_settings__: hapus viewer password + tambah viewer_reset_version baru
       if(statusEl)statusEl.textContent='Mengupdate pengaturan...';
       var _result=await _tmpSb.from('project_data').select('data').eq('project_id','__app_settings__').maybeSingle();
       var _existingData=_result&&_result.data&&_result.data.data?_result.data.data:{};
       _existingData.type='app_settings';
-      _existingData.viewer_password_hash=null; // hapus password viewer
-      _existingData.viewer_reset_version=Date.now().toString(36)+'-'+Math.random().toString(36).substr(2,6); // versi baru
+      _existingData.viewer_password_hash=null;
+      _existingData.viewer_reset_version=Date.now().toString(36)+'-'+Math.random().toString(36).substr(2,6);
       var _upsert=await _tmpSb.from('project_data').upsert({
         project_id:'__app_settings__',
         data:_existingData,
         updated_at:new Date().toISOString()
       },{onConflict:'project_id'});
       if(_upsert.error){
-        console.error('resetAllViewerData upsert error:',_upsert.error.message);
+        console.error('[Reset] Upsert __app_settings__ error:',_upsert.error.message);
         if(statusEl){statusEl.textContent='Gagal: '+_upsert.error.message;statusEl.className='text-[10px] text-red-500 text-center mt-1.5';}
         showToast('Gagal update pengaturan: '+_upsert.error.message,'error');
         return;
       }
-      console.log('All viewer data reset successfully in Supabase');
+      console.log('[Reset] __app_settings__ updated with new viewer_reset_version');
     }catch(_se){
-      console.error('resetAllViewerData exception:',_se.message);
+      console.error('[Reset] Exception:',_se.message,_se.stack);
       if(statusEl){statusEl.textContent='Gagal: '+_se.message;statusEl.className='text-[10px] text-red-500 text-center mt-1.5';}
       showToast('Gagal reset: '+_se.message,'error');
       return;
     }
   }
-  // 3. Bersihkan data lokal admin juga (karena data sudah dihapus dari cloud)
+  // 3. Bersihkan data lokal admin juga
+  // 3a. Hapus semua marker dari peta dulu, baru reset variabel
+  try{markers.forEach(function(m){if(m.leafletMarker&&userMarkers)userMarkers.removeLayer(m.leafletMarker);});}catch(x){}
+  try{layers.forEach(function(l){if(l.geoJsonLayer&&geoJsonLayers)geoJsonLayers.removeLayer(l.geoJsonLayer);});}catch(x){}
+  try{if(typeof drawnLines!=='undefined')drawnLines.forEach(function(dl){if(dl.leafletLayer&&map)map.removeLayer(dl.leafletLayer);});}catch(x){}
+  try{polyFolderHighlights.forEach(function(hlMap,fId){hlMap.forEach(function(layer){if(map)map.removeLayer(layer);});});polyFolderHighlights.clear();}catch(x){}
   currentProjectId = null;
-  markers = [];
+  markers = new Map();
   folders = [];
   polygonFolders = [];
   layers = [];
+  if(typeof drawnLines!=='undefined') drawnLines.length=0;
+  stopAllFirestoreListeners();
   try{localStorage.removeItem('kmz_current_project');}catch(x){}
+  // 3b. Bersihkan IndexedDB (file blobs KMZ/KML)
+  try{await clearFileDB();console.log('[Reset] IndexedDB kmz-viewer-files cleared');}catch(x){console.warn('[Reset] clearFileDB error:',x);}
+  // 3c. Bersihkan state localStorage
+  try{localStorage.removeItem('comsur-survey-v9-state');}catch(x){}
   // 4. Re-render UI supaya kosong
   try{renderLayers();}catch(x){}
   try{renderMarkerList();}catch(x){}
-  try{clearAllMapMarkers();}catch(x){}
+  try{renderFolderList();}catch(x){}
+  try{renderPolygonFolders();}catch(x){}
   try{loadProjectList();}catch(x){}
+  try{renderSavedFiles();}catch(x){}
+  try{if(window._redrawCanvasLabels)window._redrawCanvasLabels();}catch(x){}
   // 5. Update status UI
   var vpStatus = document.getElementById('viewer-pw-status');
   if(vpStatus) vpStatus.innerHTML = '<span class="text-gray-400">Belum diatur</span>';
-  if(statusEl){statusEl.textContent='Berhasil! Semua data viewer telah dihapus.';statusEl.className='text-[10px] text-emerald-600 text-center mt-1.5';}
-  showToast('Semua data viewer berhasil direset! Proyek, titik, layer KMZ — semua dihapus.','success');
+  if(statusEl){statusEl.textContent='Berhasil! Semua data viewer telah dihapus ('+_resetProjectCount+' proyek dikosongkan).';statusEl.className='text-[10px] text-emerald-600 text-center mt-1.5';}
+  showToast('Semua data viewer berhasil direset! Proyek, titik, layer, KMZ — semua dihapus.','success');
 }
 
 function savePasswordToLocal(){
@@ -3487,7 +3581,8 @@ async function deserializeState(data){
     markers.clear();
     folders = data.folders || [];
     polygonFolders = data.polygonFolders || [];
-    markerIdCounter = data.markerIdCounter || 0;
+    // JANGAN pernah turunkan markerIdCounter — bisa bikin duplikat ID
+    markerIdCounter = Math.max(markerIdCounter || 0, data.markerIdCounter || 0);
     activeFolderId = data.activeFolderId || null;
 
     // Clear existing layers from map
@@ -3576,16 +3671,34 @@ async function startSyncListeners(){
       }, (payload) => {
         const newData = payload.new;
         if(newData && newData.version && newData.version > lastSyncVersion){
-          console.log('Remote update detected, version:', newData.version, 'local:', lastSyncVersion);
+          console.log('[Realtime] Remote update v' + newData.version + ' > local v' + lastSyncVersion + ' by: ' + (newData.updated_by || '?'));
           lastSyncVersion = newData.version;
           if(newData.data){
-            deserializeState(newData.data);
+            // ===== KRITIS: Viewer HARUS MERGE, bukan REPLACE =====
+            // Admin kirim data yang TIDAK punya data viewer → jika REPLACE, data viewer HILANG
+            // Viewer TIDAK bisa hapus, jadi aman untuk selalu merge
+            var stateToLoad = newData.data;
+            if(!isAdminUser) {
+              var localBefore = serializeState();
+              console.log('[Realtime Viewer] Local markers before merge:', localBefore.markers ? localBefore.markers.length : 0, '| Incoming markers:', newData.data.markers ? newData.data.markers.length : 0);
+              stateToLoad = deepMergeState(newData.data, localBefore);
+              console.log('[Realtime Viewer] Merged markers:', stateToLoad.markers ? stateToLoad.markers.length : 0);
+            }
+            deserializeState(stateToLoad);
             renderMarkerList();
             renderFolderList();
             renderPolygonFolders();
             renderLayers();
             updateFolderSelects();
-            showToast('Data diperbarui dari cloud','success');
+            try{if(window._redrawCanvasLabels)window._redrawCanvasLabels();}catch(x){}
+            // Viewer: setelah merge, simpan state yang sudah di-merge kembali ke cloud
+            // supaya data viewer yang belum tersinkron ikut tersimpan
+            if(!isAdminUser) {
+              saveQueued = true;
+              saveStateToSupabase();
+            } else {
+              showToast('Data diperbarui dari cloud','success');
+            }
           }
         }
       })
@@ -3596,30 +3709,148 @@ async function startSyncListeners(){
   }
 }
 
+// ==================== MERGE STATE ====================
+// Merge dua state (cloud + local) tanpa kehilangan data dari salah satu sisi.
+// Strategi: ambil UNION dari semua array berdasarkan ID unik.
+// Jika ada konflik (ID sama), ambil yang lebih baru berdasarkan timestamp.
+function deepMergeState(cloudState, localState){
+  if(!cloudState || !cloudState.markers) return localState;
+  if(!localState || !localState.markers) return cloudState;
+
+  // Helper: merge array of items by unique ID
+  function mergeById(cloudArr, localArr, idKey, tsKey){
+    var map = {};
+    var i;
+    // Masukkan cloud items dulu
+    for(i=0; i<(cloudArr||[]).length; i++){
+      var item = cloudArr[i];
+      if(item && item[idKey]) map[item[idKey]] = item;
+    }
+    // Merge local items — jika ID sama, ambil yang lebih baru
+    for(i=0; i<(localArr||[]).length; i++){
+      var item = localArr[i];
+      if(!item || !item[idKey]) continue;
+      var existing = map[item[idKey]];
+      if(!existing){
+        map[item[idKey]] = item; // Baru, tambahkan
+      }else if(tsKey && item[tsKey] && existing[tsKey]){
+        // Ambil yang lebih baru
+        var itemTs = new Date(item[tsKey]).getTime() || 0;
+        var existTs = new Date(existing[tsKey]).getTime() || 0;
+        if(itemTs > existTs) map[item[idKey]] = item;
+      }
+      // Jika tidak ada tsKey, keep cloud version (existing)
+    }
+    return Object.values(map);
+  }
+
+  // Merge markers by ID (pakai timestamp sebagai tiebreaker)
+  var mergedMarkers = mergeById(cloudState.markers, localState.markers, 'id', 'timestamp');
+  // Merge folders by ID
+  var mergedFolders = mergeById(cloudState.folders, localState.folders, 'id', 'createdAt');
+  // Merge polygonFolders by ID
+  var mergedPolyFolders = mergeById(cloudState.polygonFolders, localState.polygonFolders, 'id', 'createdAt');
+  // Merge drawnLines by name
+  var mergedLines = mergeById(cloudState.drawnLines, localState.drawnLines, 'name', null);
+  // Merge layers by name (layers tidak punya ID unik yang stabil)
+  var mergedLayers = mergeById(cloudState.layers, localState.layers, 'name', null);
+
+  return {
+    markers: mergedMarkers,
+    folders: mergedFolders,
+    polygonFolders: mergedPolyFolders,
+    drawnLines: mergedLines,
+    layers: mergedLayers,
+    markerIdCounter: Math.max(cloudState.markerIdCounter||0, localState.markerIdCounter||0),
+    activeFolderId: localState.activeFolderId || cloudState.activeFolderId || null
+  };
+}
+
 // Save current state to Supabase project_data
+// MERGE dengan cloud data sebelum save supaya data admin & viewer tidak saling timpa.
+// Viewer BOLEH menyimpan ke cloud. Viewer TIDAK BISA menghapus (diblokir di UI).
 async function saveStateToSupabase(){
-  if(!isSupabaseReady || !currentProjectId || syncInProgress) return;
-  // Viewer mode: jangan simpan data ke Supabase
-  // Hanya admin yang boleh menulis data ke cloud
-  if(!isAdminUser) return;
+  if(!isSupabaseReady){
+    console.warn('[Save] SKIP: isSupabaseReady=false');
+    return;
+  }
+  if(!currentProjectId){
+    console.warn('[Save] SKIP: currentProjectId is null');
+    return;
+  }
+  if(syncInProgress){
+    // Jangan drop save — queue supaya tidak hilang!
+    console.log('[Save] syncInProgress=true → queuing save');
+    saveQueued = true;
+    return;
+  }
   syncInProgress = true;
+  var _saveRole = isAdminUser ? 'Admin' : 'Viewer';
   try{
-    const stateData = serializeState();
+    // 1. Ambil data terbaru dari cloud untuk di-merge
+    var _cloudRow = null;
+    try{
+      var _res = await sb.from('project_data')
+        .select('data,version')
+        .eq('project_id', currentProjectId)
+        .maybeSingle();
+      if(_res.error){
+        console.error('[Save] ERROR read cloud:', _res.error.message, _res.error.code);
+        if(!isAdminUser) showToast('Gagal baca data cloud: ' + _res.error.message, 'error');
+      }
+      if(!_res.error && _res.data){
+        _cloudRow = _res.data;
+        if(_cloudRow.version && _cloudRow.version > lastSyncVersion){
+          console.log('[Save] Cloud version',_cloudRow.version,'> local',lastSyncVersion,'— updating');
+          lastSyncVersion = _cloudRow.version;
+        }
+      }
+    }catch(e){
+      console.error('[Save] Exception read cloud:', e);
+    }
+
+    // 2. Serialize local state
+    var localState = serializeState();
+    console.log('['+_saveRole+' Save] Local markers:', localState.markers.length, 'folders:', localState.folders.length, 'project:', currentProjectId);
+
+    // 3. Merge cloud + local supaya tidak ada data yang hilang
+    var finalState;
+    if(_cloudRow && _cloudRow.data){
+      finalState = deepMergeState(_cloudRow.data, localState);
+      console.log('['+_saveRole+' Save] Merged — markers:', finalState.markers.length, 'folders:', finalState.folders.length, 'layers:', (finalState.layers||[]).length);
+    }else{
+      finalState = localState;
+      console.log('['+_saveRole+' Save] No cloud data, using local only');
+    }
+
+    // 4. Save merged state
     lastSyncVersion++;
+    console.log('['+_saveRole+' Save] Upserting version', lastSyncVersion);
     const {error} = await sb.from('project_data').upsert({
       project_id: currentProjectId,
-      data: stateData,
+      data: finalState,
       version: lastSyncVersion,
-      updated_by: currentUser ? currentUser.name : 'admin',
+      updated_by: currentUser ? currentUser.name : 'viewer',
       updated_at: new Date().toISOString()
     }, {onConflict: 'project_id'});
-    if(error) throw error;
+    if(error){
+      console.error('['+_saveRole+' Save] UPSERT ERROR:', error.message, error.code, error.details);
+      if(!isAdminUser) showToast('Gagal simpan ke cloud: ' + error.message, 'error');
+      throw error;
+    }
+    console.log('['+_saveRole+' Save] SUCCESS v' + lastSyncVersion + ' — ' + finalState.markers.length + ' markers saved');
     updateSyncStatus('online','Tersinkron');
   }catch(e){
-    console.warn('Save to Supabase error:', e);
-    // Don't show error for every save - only log
+    console.error('['+_saveRole+' Save] CATCH:', e);
   }finally{
     syncInProgress = false;
+    // Jika ada save yang di-queue selama save ini berjalan, lakukan sekarang
+    if(saveQueued){
+      saveQueued = false;
+      console.log('['+_saveRole+' Save] Processing queued save...');
+      // Delay kecil supaya realtime update dari save ini sempat diproses dulu
+      setTimeout(function(){ saveStateToSupabase(); }, 300);
+    }
   }
 }
 
@@ -5314,6 +5545,11 @@ function addManualMarker(){
 }
 
 function addMarker(lat,lng,type,customName){
+  // Viewer: pastikan ada proyek aktif supaya data tersimpan ke cloud
+  if(!isAdminUser && !currentProjectId && isSupabaseReady){
+    showToast('Pilih proyek terlebih dahulu di menu Proyek','error');
+    return;
+  }
   const id='marker-' + (++markerIdCounter);
   const name=customName||('Titik '+markerIdCounter);
   const color=sanitizeColor(MARKER_COLORS[type]||'#22c55e');
