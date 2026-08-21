@@ -3820,8 +3820,13 @@ async function saveStateToSupabase(){
     console.log('['+_saveRole+' Save] Local markers:', localState.markers.length, 'folders:', (localState.folders||[]).length);
 
     // 3. Merge cloud + local supaya tidak ada data yang hilang
+    // Admin ADALAH otoritas — gunakan local state langsung (hapus = hapus)
+    // Viewer perlu merge supaya data yang ditambahkan viewer tidak hilang
     var finalState;
-    if(_cloudRow && _cloudRow.data){
+    if(isAdminUser){
+      finalState = localState;
+      console.log('['+_saveRole+' Save] Admin mode — using local state directly (authority)');
+    }else if(_cloudRow && _cloudRow.data){
       finalState = deepMergeState(_cloudRow.data, localState);
       console.log('['+_saveRole+' Save] Merged — markers:', finalState.markers.length, 'folders:', (finalState.folders||[]).length);
     }else{
